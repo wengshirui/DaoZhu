@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AccoBot — 智能财务助手</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Expand buttons (visible when panels collapsed) -->
+        <button class="btn-expand btn-expand-left" id="expand-left" onclick="togglePanel('left')" title="展开">▶</button>
+        <button class="btn-expand btn-expand-right" id="expand-right" onclick="togglePanel('right')" title="展开">◀</button>
+
+        <!-- Left Panel: Business Area -->
+        <aside class="panel panel-left" id="panel-left">
+            <div class="panel-header">
+                <h1>💰 AccoBot</h1>
+                <button class="btn-collapse" onclick="togglePanel('left')" title="折叠">◀</button>
+            </div>
+
+            <!-- Account Switch -->
+            <div class="section account-section">
+                <h3>当前账套</h3>
+                <select id="current-company" onchange="switchCompany(this.value)">
+                    <option value="">未选择账套</option>
+                </select>
+                <div class="account-actions">
+                    <button class="btn-sm" onclick="showNewCompany()">+ 新建</button>
+                    <button class="btn-sm" onclick="openCompanyFolder()">📂</button>
+                    <button class="btn-sm btn-danger-sm" onclick="deleteCompanyStep1()">🗑️</button>
+                </div>
+            </div>
+
+            <!-- Todo Reminders -->
+            <div class="section todo-section">
+                <h3>待办提醒</h3>
+                <div id="todo-list">
+                    <div class="todo-cat" onclick="toggleTodo(this)">
+                        <span>📋 账务待办</span><span class="badge" id="badge-accounting">0</span>
+                    </div>
+                    <div class="todo-items" id="todo-accounting"></div>
+                    <div class="todo-cat" onclick="toggleTodo(this)">
+                        <span>🧾 税务待办</span><span class="badge" id="badge-tax">0</span>
+                    </div>
+                    <div class="todo-items" id="todo-tax"></div>
+                    <div class="todo-cat" onclick="toggleTodo(this)">
+                        <span>🏢 工商待办</span><span class="badge" id="badge-business">0</span>
+                    </div>
+                    <div class="todo-items" id="todo-business"></div>
+                    <div class="todo-cat" onclick="toggleTodo(this)">
+                        <span>🛡️ 社保待办</span><span class="badge" id="badge-social">0</span>
+                    </div>
+                    <div class="todo-items" id="todo-social"></div>
+                </div>
+            </div>
+
+            <!-- Data Display Area -->
+            <div class="section data-section">
+                <h3>数据概览</h3>
+                <div id="data-display" class="data-placeholder">
+                    <p>选择账套后显示数据</p>
+                </div>
+            </div>
+
+            <div class="panel-footer">
+                <button class="btn-settings" onclick="showSettings()">⚙️ 设置</button>
+                <span class="version" id="version">v0.1.0</span>
+            </div>
+        </aside>
+
+        <!-- Center: Chat Area -->
+        <main class="panel panel-center">
+            <div class="chat-messages" id="messages">
+                <div class="msg msg-system">
+                    <p>👋 你好！我是 AccoBot，你的智能财务助手。</p>
+                    <p>试试问我：<em>"银行存款还有多少"</em> 或 <em>"帮我记一笔，今天付了3000元房租"</em></p>
+                </div>
+            </div>
+            <div class="chat-input">
+                <div class="upload-zone" id="upload-zone" style="display:none;">
+                    <span>📎 拖拽文件到此处上传（发票图片、银行流水 Excel）</span>
+                    <button class="btn-sm" onclick="hideUploadZone()">×</button>
+                </div>
+                <textarea id="input" placeholder="输入消息... (Enter 发送，拖拽文件上传)" rows="1"
+                    onkeydown="handleKeyDown(event)" oninput="autoResize(this)"></textarea>
+                <button class="btn-attach" onclick="triggerFileUpload()" title="上传文件">📎</button>
+                <button class="btn-send" onclick="sendMessage()" id="btn-send">发送</button>
+                <input type="file" id="file-input" style="display:none;" onchange="handleFileSelect(event)" multiple accept=".jpg,.jpeg,.png,.pdf,.xls,.xlsx,.csv" />
+            </div>
+        </main>
+
+        <!-- Right Panel: Chat History -->
+        <aside class="panel panel-right" id="panel-right">
+            <div class="panel-header">
+                <button class="btn-collapse" onclick="togglePanel('right')" title="折叠">▶</button>
+                <h3>对话</h3>
+            </div>
+            <button class="btn-new-chat" onclick="newChat()">+ 新建对话</button>
+            <div class="chat-history" id="chat-history">
+                <div class="history-group">
+                    <div class="history-date">今天</div>
+                    <div class="history-item active" id="current-chat">
+                        <span class="history-title">新对话</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal" style="display:none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>⚙️ 设置</h2>
+                <button class="modal-close" onclick="closeSettings()">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- Tab navigation -->
+                <div class="settings-tabs">
+                    <button class="tab-btn active" onclick="switchSettingsTab('model')">模型配置</button>
+                    <button class="tab-btn" onclick="switchSettingsTab('gateway')">消息平台</button>
+                </div>
+
+                <!-- Model Tab -->
+                <div class="settings-tab-content" id="tab-model">
+                    <p class="modal-desc">配置 AI 模型的 API Key。推荐使用 DeepSeek。</p>
+                    <div class="form-group">
+                        <label>模型提供商</label>
+                        <select id="cfg-provider" onchange="onProviderChange()">
+                            <option value="deepseek">DeepSeek（推荐）</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="other">其他兼容接口</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>API Key</label>
+                        <input type="password" id="cfg-apikey" placeholder="sk-..." />
+                        <small id="cfg-apikey-hint">获取：<a href="https://platform.deepseek.com/api_keys" target="_blank">DeepSeek 控制台</a></small>
+                    </div>
+                    <div class="form-group" id="cfg-baseurl-group" style="display:none;">
+                        <label>API Base URL</label>
+                        <input type="text" id="cfg-baseurl" placeholder="https://api.example.com/v1" />
+                    </div>
+                    <div class="form-group" id="cfg-model-group" style="display:none;">
+                        <label>模型名称</label>
+                        <input type="text" id="cfg-model" placeholder="gpt-4o" />
+                    </div>
+                    <button class="btn-primary" onclick="saveSettings()">保存</button>
+                    <div id="cfg-message" class="form-msg"></div>
+                </div>
+
+                <!-- Gateway Tab -->
+                <div class="settings-tab-content" id="tab-gateway" style="display:none;">
+                    <p class="modal-desc">配置消息平台接入（企业微信/钉钉/飞书），让你在手机上也能和 AccoBot 对话。</p>
+
+                    <h4 class="gateway-section-title">企业微信</h4>
+                    <div class="form-group">
+                        <label>Corp ID（企业ID）</label>
+                        <input type="text" id="gw-wecom-corpid" placeholder="ww..." />
+                    </div>
+                    <div class="form-group">
+                        <label>Agent ID（应用ID）</label>
+                        <input type="text" id="gw-wecom-agentid" placeholder="1000002" />
+                    </div>
+                    <div class="form-group">
+                        <label>Secret（应用密钥）</label>
+                        <input type="password" id="gw-wecom-secret" placeholder="..." />
+                    </div>
+
+                    <h4 class="gateway-section-title">钉钉</h4>
+                    <div class="form-group">
+                        <label>App Key</label>
+                        <input type="text" id="gw-dingtalk-appkey" placeholder="ding..." />
+                    </div>
+                    <div class="form-group">
+                        <label>App Secret</label>
+                        <input type="password" id="gw-dingtalk-secret" placeholder="..." />
+                    </div>
+
+                    <h4 class="gateway-section-title">飞书</h4>
+                    <div class="form-group">
+                        <label>App ID</label>
+                        <input type="text" id="gw-feishu-appid" placeholder="cli_..." />
+                    </div>
+                    <div class="form-group">
+                        <label>App Secret</label>
+                        <input type="password" id="gw-feishu-secret" placeholder="..." />
+                    </div>
+
+                    <button class="btn-primary" onclick="saveGatewayConfig()">保存平台配置</button>
+                    <div id="gw-message" class="form-msg"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Company Modal -->
+    <div class="modal-overlay" id="company-modal" style="display:none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>📂 新建账套</h2>
+                <button class="modal-close" onclick="closeCompanyModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group"><label>公司名称 *</label><input type="text" id="company-name" placeholder="XX科技有限公司" /></div>
+                <div class="form-group"><label>行业</label><input type="text" id="company-industry" placeholder="餐饮、电商、制造业" /></div>
+                <div class="form-group"><label>纳税人类型</label><select id="company-taxpayer"><option value="small_scale">小规模纳税人</option><option value="general">一般纳税人</option></select></div>
+                <div class="form-group"><label>会计准则</label><select id="company-standard"><option value="small_enterprise">小企业会计准则</option><option value="enterprise">企业会计准则</option></select></div>
+                <button class="btn-primary" onclick="createCompany()">创建账套</button>
+                <div id="company-message" class="form-msg"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirm Modal -->
+    <div class="modal-overlay" id="delete-modal" style="display:none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>⚠️ 删除账套</h2>
+                <button class="modal-close" onclick="closeDeleteModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <p class="delete-warning" id="delete-warning-text"></p>
+                <div class="form-group" id="delete-confirm-group" style="display:none;">
+                    <label>请输入公司名称确认</label>
+                    <input type="text" id="delete-confirm-name" placeholder="输入公司名称..." />
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="closeDeleteModal()">取消</button>
+                    <button class="btn-danger" onclick="deleteCompanyNext()">确认删除</button>
+                </div>
+                <div id="delete-message" class="form-msg"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

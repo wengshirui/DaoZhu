@@ -1,0 +1,1 @@
+"""AccoBot database package."""

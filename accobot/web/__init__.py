@@ -1,0 +1,1 @@
+"""AccoBot Web UI package."""
