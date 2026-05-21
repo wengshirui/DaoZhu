@@ -43,7 +43,12 @@ document.addEventListener('DOMContentLoaded', () => {
     (async function() {
         await loadChatSessions();
         if (!chatSessions.length) await createNewSession();
-        else { currentSessionId = chatSessions[0].id; renderChatHistory(); }
+        else {
+            currentSessionId = chatSessions[0].id;
+            renderChatHistory();
+            // Load messages for the resumed session
+            switchSession(currentSessionId);
+        }
     })();
 
     // Data overview (if company selected)

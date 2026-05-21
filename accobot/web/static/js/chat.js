@@ -171,7 +171,6 @@ function renderChatHistory() {
 }
 
 async function switchSession(sessionId) {
-    if (sessionId === currentSessionId) return;
     currentSessionId = sessionId;
     renderChatHistory();
     try {
