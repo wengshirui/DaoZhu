@@ -78,15 +78,19 @@ class TestQueryVouchers:
 
 
 class TestPostVoucher:
-    def test_post_success(self, isolated_env):
-        from accobot.tools.voucher_tool import create_voucher_with_entries, post_voucher
+    def test_auto_posted_on_create(self, isolated_env):
+        """Vouchers are now auto-posted on creation (balance validated)."""
+        from accobot.tools.voucher_tool import create_voucher_with_entries
         r = json.loads(create_voucher_with_entries({
-            "summary": "测试过账",
+            "summary": "测试自动过账",
             "entries": [{"account_code": "1001", "debit": 1000}, {"account_code": "1002", "credit": 1000}],
         }))
-        vid = r["voucher_id"]
-        post_result = json.loads(post_voucher({"voucher_id": vid}))
-        assert post_result["success"] is True
+        assert r["success"] is True
+        # Verify it's already posted
+        from accobot.db.manager import DBManager
+        mgr = DBManager.get_instance()
+        voucher = mgr.accounting.get_voucher_with_entries(r["voucher_id"])
+        assert voucher["status"] == "posted"
 
     def test_post_already_posted(self, isolated_env):
         from accobot.tools.voucher_tool import create_voucher_with_entries, post_voucher
@@ -95,9 +99,8 @@ class TestPostVoucher:
             "entries": [{"account_code": "1001", "debit": 100}, {"account_code": "1002", "credit": 100}],
         }))
         vid = r["voucher_id"]
-        post_voucher({"voucher_id": vid})
         result = json.loads(post_voucher({"voucher_id": vid}))
-        assert "error" in result
+        assert "error" in result  # Already posted
 
 
 class TestLedgerTools:

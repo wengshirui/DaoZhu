@@ -116,6 +116,13 @@ def create_voucher_with_entries(args: dict, **kwargs) -> str:
 
     This is the primary tool for recording transactions. The AI should use this
     to create a voucher with all debit/credit entries at once.
+
+    Enforces accounting fundamentals:
+    - Every entry must have a valid account code (must exist and be a leaf account)
+    - Every entry must have either debit > 0 or credit > 0 (not both zero)
+    - Total debits must equal total credits (balanced)
+    - Period is auto-determined from voucher date
+    - Voucher is auto-posted after creation
     """
     db = _get_db()
     if not db:
@@ -130,13 +137,7 @@ def create_voucher_with_entries(args: dict, **kwargs) -> str:
     if not entries or len(entries) < 2:
         return tool_error("至少需要一借一贷两条分录")
 
-    # Validate balance
-    total_debit = sum(e.get("debit", 0) for e in entries)
-    total_credit = sum(e.get("credit", 0) for e in entries)
-    if abs(total_debit - total_credit) > 0.01:
-        return tool_error(f"借贷不平衡：借方 {total_debit:.2f}，贷方 {total_credit:.2f}，差额 {abs(total_debit - total_credit):.2f}")
-
-    # Validate all accounts exist
+    # Validate each entry
     for i, entry in enumerate(entries):
         code = entry.get("account_code", "")
         if not code:
@@ -144,10 +145,34 @@ def create_voucher_with_entries(args: dict, **kwargs) -> str:
         account = db.get_account(code)
         if not account:
             return tool_error(f"科目 {code} 不存在")
+        # Must be leaf account
+        if not account.get("is_leaf"):
+            return tool_error(f"科目 {code}（{account['name']}）不是末级科目，不能录入分录。请使用其下级明细科目。")
+        # Must have amount
+        debit = float(entry.get("debit", 0))
+        credit = float(entry.get("credit", 0))
+        if debit == 0 and credit == 0:
+            return tool_error(f"第{i+1}条分录（{account['name']}）借贷金额都为0，至少填一个")
+        if debit < 0 or credit < 0:
+            return tool_error(f"第{i+1}条分录金额不能为负数")
+        if debit > 0 and credit > 0:
+            return tool_error(f"第{i+1}条分录不能同时有借方和贷方金额，请拆分为两条")
+
+    # Validate balance
+    total_debit = sum(float(e.get("debit", 0)) for e in entries)
+    total_credit = sum(float(e.get("credit", 0)) for e in entries)
+    if abs(total_debit - total_credit) > 0.01:
+        return tool_error(f"借贷不平衡：借方 {total_debit:.2f}，贷方 {total_credit:.2f}，差额 {abs(total_debit - total_credit):.2f}")
+
+    # Determine period from voucher date (not from current open period)
+    try:
+        year = int(voucher_date[:4])
+        month = int(voucher_date[5:7])
+        period_id = f"{year}-{month:02d}"
+    except (ValueError, IndexError):
+        period_id = f"{date.today().year}-{date.today().month:02d}"
 
     # Create voucher
-    period = _get_current_period()
-    period_id = period["id"] if period else None
     voucher_id = f"V{date.today().strftime('%Y%m%d')}{uuid.uuid4().hex[:4].upper()}"
 
     db.create_voucher(
@@ -171,8 +196,12 @@ def create_voucher_with_entries(args: dict, **kwargs) -> str:
         amount = debit if debit > 0 else credit
         entry_lines.append(f"  {direction}：{account['name']} {amount:,.2f}")
 
-    msg = f"✅ 凭证 {voucher_id} 已创建（{voucher_date} {summary}）\n" + "\n".join(entry_lines)
-    return tool_result(success=True, voucher_id=voucher_id, message=msg)
+    # Auto-post the voucher (balance already validated)
+    db.update_voucher_status(voucher_id, "posted")
+
+    msg = (f"✅ 凭证 {voucher_id} 已创建并过账（{voucher_date} {summary}）\n"
+           f"期间：{period_id}\n" + "\n".join(entry_lines))
+    return tool_result(success=True, voucher_id=voucher_id, period_id=period_id, message=msg)
 
 
 def query_vouchers(args: dict, **kwargs) -> str:
