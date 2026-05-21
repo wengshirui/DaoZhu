@@ -58,6 +58,10 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "timeout": 120,
         },
     },
+    "heartbeat": {
+        "enabled": True,
+        "interval_minutes": 5,
+    },
 }
 
 

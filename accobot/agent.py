@@ -58,10 +58,11 @@ class AccoAgent:
         self.config = config or load_config()
         self.on_token = on_token  # streaming callback
 
-        # Build system prompt with skill index
+        # Build system prompt with skill index + SOUL.md
         base_prompt = system_prompt or DEFAULT_SYSTEM_PROMPT
         skills_index = self._build_skills_index()
-        self.system_prompt = base_prompt.replace("{skills_index}", skills_index)
+        soul_content = self._load_soul()
+        self.system_prompt = base_prompt.replace("{skills_index}", skills_index) + soul_content
 
         # LLM client setup
         model_config = self.config.get("model", {})
@@ -99,6 +100,23 @@ class AccoAgent:
         except Exception as e:
             logger.debug("Failed to build skills index: %s", e)
             return "(Skill 系统未就绪)"
+
+    def _load_soul(self) -> str:
+        """Load SOUL.md for system prompt customization."""
+        try:
+            from accobot.soul import load_soul
+            return load_soul()
+        except Exception as e:
+            logger.debug("Failed to load SOUL.md: %s", e)
+            return ""
+
+    def _maybe_compress(self) -> None:
+        """Compress message history if it exceeds token threshold."""
+        try:
+            from accobot.session_compress import compress_messages
+            self.messages = compress_messages(self.messages)
+        except Exception as e:
+            logger.debug("Session compression failed: %s", e)
 
     def _discover_mcp(self) -> None:
         """Discover and register MCP tools from configured servers."""
@@ -143,6 +161,9 @@ class AccoAgent:
         Returns the final text response.
         """
         self.messages.append({"role": "user", "content": user_message})
+
+        # Compress session if too long
+        self._maybe_compress()
 
         iteration = 0
         while iteration < self.max_iterations:

@@ -1131,6 +1131,13 @@ def start_server(host: str = "127.0.0.1", port: int = 9120, open_browser: bool =
     load_env()
     discover_tools()
 
+    # Start heartbeat for proactive reminders
+    try:
+        from accobot.heartbeat import start_heartbeat
+        start_heartbeat()
+    except Exception as e:
+        logger.debug("Heartbeat start failed: %s", e)
+
     if open_browser:
         # Open browser after a short delay
         import threading

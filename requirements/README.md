@@ -23,6 +23,7 @@
 | `REQ-015-quality-check.md` | 质检与风控 |
 | `REQ-016-skill-system.md` | Skill 系统（操作流程知识库） |
 | `REQ-017-mcp-client.md` | MCP 客户端（外部工具连接器） |
+| `REQ-018-heartbeat-session-soul.md` | 主动循环 / Session 压缩 / 身份文件化 |
 
 ## 需求状态
 
@@ -54,6 +55,7 @@
 | REQ-015 质检与风控 | ✔️ Done | 凭证质检✔️（借贷平衡/大额现金/空摘要/科目余额方向异常） |
 | REQ-016 Skill 系统 | ✔️ Done | Skill 存储✔️、目录扫描✔️、索引构建✔️、system prompt 注入✔️、skill_list/view/manage 工具✔️、预置 Skill✔️、只读保护✔️ |
 | REQ-017 MCP 客户端 | ✔️ Done | 配置读取✔️、Stdio 连接✔️（持久化任务）、HTTP 连接✔️、工具发现注册✔️、工具调用✔️、超时控制✔️、重试✔️、环境变量插值✔️、优雅关闭✔️、Web UI 状态✔️、重连✔️ |
+| REQ-018 主动循环/压缩/身份 | ✔️ Done | Heartbeat 主动提醒✔️、Session 压缩✔️、SOUL.md 身份文件✔️ |
 
 ## 目标用户
 
