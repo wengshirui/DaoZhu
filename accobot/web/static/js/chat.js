@@ -26,6 +26,8 @@ function handleMessage(data) {
             showAgentStatus('回复中...');
             break;
         case 'tool_call':
+            // Reset assistant msg so next text tokens create a new bubble AFTER tools
+            currentAssistantMsg = null;
             addToolCall(data.name, data.args);
             addOpLogEntry(data.name, 'running', '');
             showAgentStatus(`调用工具: ${data.name}`);
@@ -43,6 +45,8 @@ function handleMessage(data) {
                 saveMessageToHistory('assistant', currentAssistantMsg.dataset.raw);
             }
             finishStreaming();
+            // Refresh data overview after agent completes (data may have changed)
+            if (typeof loadDataOverview === 'function') loadDataOverview();
             break;
         case 'error':
             if (data.content && data.content.includes('API Key')) configError = true;
