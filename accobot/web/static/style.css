@@ -33,7 +33,7 @@ body {
 .panel { display: flex; flex-direction: column; overflow: hidden; }
 .panel-left { width: 240px; min-width: 200px; background: var(--bg2); border-right: 1px solid var(--border); }
 .panel-center { flex: 1; display: flex; flex-direction: column; }
-.panel-right { width: 220px; min-width: 180px; background: var(--bg2); border-left: 1px solid var(--border); }
+.panel-right { width: 220px; min-width: 180px; background: var(--bg2); border-left: 1px solid var(--border); display: flex; flex-direction: column; }
 
 .panel-left.collapsed, .panel-right.collapsed {
     width: 0; min-width: 0; overflow: hidden; border: none;
@@ -71,28 +71,35 @@ body {
 .section h3 { font-size: 0.7rem; text-transform: uppercase; color: var(--dim); margin-bottom: 6px; letter-spacing: 0.5px; }
 
 /* Collapsible sections */
-.section-toggle { cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; }
+.section-toggle { cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; margin-bottom: 0; }
 .section-toggle:hover { color: var(--text); }
-.toggle-arrow { font-size: 0.6rem; transition: transform 0.2s; }
-.section-content { transition: max-height 0.3s ease; overflow: hidden; }
-.section-content.collapsed { max-height: 0 !important; margin: 0; padding: 0; }
+.toggle-arrow { font-size: 0.55rem; color: var(--dim); }
+.section-content { max-height: 300px; overflow: hidden; transition: max-height 0.25s ease, padding 0.25s ease; padding-top: 6px; }
+.section-content.collapsed { max-height: 0; padding-top: 0; padding-bottom: 0; }
 
 /* Capabilities section */
-.capabilities-section { max-height: 200px; overflow-y: auto; }
-.cap-group { margin-bottom: 8px; }
-.cap-label { font-size: 0.7rem; color: var(--dim); font-weight: 600; margin-bottom: 3px; }
-.cap-items { font-size: 0.65rem; color: var(--dim); padding-left: 4px; }
-.cap-item { padding: 2px 0; display: flex; align-items: center; gap: 4px; }
-.cap-item .cap-dot { width: 5px; height: 5px; border-radius: 50%; }
+.capabilities-section { }
+.capabilities-section .section-content { padding-top: 4px; max-height: 150px; }
+.cap-group { margin-bottom: 6px; }
+.cap-label { font-size: 0.65rem; color: var(--dim); font-weight: 600; margin-bottom: 2px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.3px; }
+.cap-items { font-size: 0.65rem; color: var(--dim); padding-left: 8px; }
+.cap-item { padding: 2px 0; display: flex; align-items: center; gap: 5px; line-height: 1.4; }
+.cap-item .cap-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
 .cap-dot.connected { background: var(--success); }
 .cap-dot.disconnected { background: var(--error); }
 .cap-dot.skill { background: var(--primary); }
 
 /* Operation log */
-.op-log-section { border-top: 1px solid var(--border); margin-top: auto; }
-.op-log-items { max-height: 180px; overflow-y: auto; font-size: 0.65rem; }
-.op-log-entry { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--dim); }
-.op-log-entry .op-time { color: var(--dim); opacity: 0.6; margin-right: 4px; }
+.op-log-section { border-top: 1px solid var(--border); border-bottom: none; }
+.op-log-section .section-content { padding-top: 4px; }
+.op-log-items { max-height: 150px; overflow-y: auto; font-size: 0.65rem; }
+.op-log-entry { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--dim); display: flex; align-items: center; gap: 4px; }
+.op-log-entry .op-time { color: var(--dim); opacity: 0.5; font-size: 0.58rem; font-family: monospace; flex-shrink: 0; }
+.op-log-entry .op-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.op-log-entry .op-status { font-size: 0.6rem; flex-shrink: 0; }
+.op-log-entry .op-status.ok { color: var(--success); }
+.op-log-entry .op-status.err { color: var(--error); }
+.op-log-empty { color: var(--dim); opacity: 0.4; text-align: center; padding: 8px 0; font-size: 0.6rem; }
 .op-log-entry .op-name { color: var(--primary); }
 .op-log-entry .op-status { margin-left: 4px; }
 .op-log-entry .op-status.ok { color: var(--success); }
