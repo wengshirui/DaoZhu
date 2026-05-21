@@ -112,6 +112,30 @@ class AccoAgent:
         except Exception as e:
             logger.debug("MCP discovery failed: %s", e)
 
+    def _sanitize_messages(self) -> List[Dict[str, Any]]:
+        """Sanitize messages before sending to LLM.
+
+        Strips non-standard fields that strict providers (Moonshot, Kimi,
+        通义千问) reject with HTTP 400. Only keeps fields defined in the
+        OpenAI Chat Completions spec.
+        """
+        allowed_keys = {
+            "system": {"role", "content", "name"},
+            "user": {"role", "content", "name"},
+            "assistant": {"role", "content", "tool_calls", "refusal"},
+            "tool": {"role", "content", "tool_call_id"},
+        }
+        sanitized = []
+        for msg in self.messages:
+            role = msg.get("role", "user")
+            keys = allowed_keys.get(role, {"role", "content"})
+            clean = {k: v for k, v in msg.items() if k in keys}
+            # Remove empty content for assistant messages with tool_calls
+            if role == "assistant" and "tool_calls" in clean and not clean.get("content"):
+                clean["content"] = ""
+            sanitized.append(clean)
+        return sanitized
+
     def chat(self, user_message: str) -> str:
         """Simple interface — send a message, get a response.
 
@@ -130,7 +154,7 @@ class AccoAgent:
             # Call LLM
             kwargs: Dict[str, Any] = {
                 "model": self.model,
-                "messages": self.messages,
+                "messages": self._sanitize_messages(),
             }
             if tool_defs:
                 kwargs["tools"] = tool_defs

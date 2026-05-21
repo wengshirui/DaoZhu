@@ -491,6 +491,49 @@ async def data_overview():
 # MCP Status API
 # =========================================================================
 
+@app.get("/api/browser/check")
+async def browser_check():
+    """Check if a Chromium-family browser is available for Playwright MCP."""
+    import shutil
+    import sys
+
+    candidates = []
+    if sys.platform == "win32":
+        candidates = [
+            "chrome", "chromium", "msedge", "brave",
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+            r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+            r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe",
+        ]
+    elif sys.platform == "darwin":
+        candidates = [
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            "/Applications/Chromium.app/Contents/MacOS/Chromium",
+            "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+            "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+            "chromium", "google-chrome",
+        ]
+    else:
+        candidates = ["chromium", "chromium-browser", "google-chrome", "brave-browser", "microsoft-edge"]
+
+    for candidate in candidates:
+        found = shutil.which(candidate)
+        if found:
+            return {"available": True, "browser": found}
+        # Check absolute paths (Windows)
+        if os.path.isfile(candidate):
+            return {"available": True, "browser": candidate}
+
+    # Check if npx can run playwright (it bundles its own browser)
+    npx = shutil.which("npx")
+    if npx:
+        return {"available": True, "browser": "playwright-bundled (via npx)", "note": "Playwright MCP will download its own browser on first use"}
+
+    return {"available": False, "error": "未找到 Chromium 系浏览器。请安装 Chrome、Edge 或 Brave。"}
+
+
 @app.get("/api/skills/list")
 async def skills_list_api():
     """Return list of available skills for the UI capabilities panel."""
