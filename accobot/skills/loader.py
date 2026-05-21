@@ -84,8 +84,12 @@ def scan_skills() -> List[Dict[str, Any]]:
         is_builtin = (skills_dir == BUNDLED_SKILLS_DIR)
 
         for skill_md in sorted(skills_dir.rglob("SKILL.md")):
-            # Skip hidden directories
-            if any(part.startswith(".") for part in skill_md.parts):
+            # Skip hidden directories (only check relative path parts)
+            try:
+                rel_parts = skill_md.relative_to(skills_dir).parts
+            except ValueError:
+                continue
+            if any(part.startswith(".") for part in rel_parts):
                 continue
 
             try:

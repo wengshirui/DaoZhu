@@ -55,13 +55,12 @@ class TestScanSkills:
     def test_finds_bundled_skills(self):
         skills = scan_skills()
         names = [s["name"] for s in skills]
-        assert "通用分录模板" in names
-        assert "期末结转流程" in names
+        assert "create-skill" in names
 
     def test_bundled_skills_marked_correctly(self):
         skills = scan_skills()
         for s in skills:
-            if s["name"] in ("通用分录模板", "期末结转流程"):
+            if s["name"] == "create-skill":
                 assert s["is_builtin"] is True
 
     def test_skills_have_required_fields(self):
@@ -81,8 +80,7 @@ class TestScanSkills:
 class TestBuildSkillsIndex:
     def test_index_contains_skill_names(self):
         index = build_skills_index()
-        assert "通用分录模板" in index
-        assert "期末结转流程" in index
+        assert "create-skill" in index
 
     def test_index_has_tags(self):
         index = build_skills_index()
@@ -100,9 +98,9 @@ class TestBuildSkillsIndex:
 
 class TestLoadSkill:
     def test_load_bundled_skill(self):
-        result = load_skill("通用分录模板")
+        result = load_skill("create-skill")
         assert result["success"] is True
-        assert "收入类" in result["content"]
+        assert "创建新 Skill" in result["content"]
         assert result["is_builtin"] is True
 
     def test_load_nonexistent_skill(self):
@@ -159,7 +157,7 @@ class TestSkillManagement:
         assert "V2" in saved
 
     def test_cannot_edit_bundled_skill(self):
-        result = edit_skill("通用分录模板", "---\nname: x\ndescription: y\n---\nHack")
+        result = edit_skill("create-skill", "---\nname: x\ndescription: y\n---\nHack")
         assert result["success"] is False
         assert "read-only" in result["error"]
 
@@ -173,7 +171,7 @@ class TestSkillManagement:
         assert not (temp_skills_dir / "deleteme").exists()
 
     def test_cannot_delete_bundled_skill(self):
-        result = delete_skill("通用分录模板")
+        result = delete_skill("create-skill")
         assert result["success"] is False
         assert "read-only" in result["error"]
 
@@ -186,15 +184,15 @@ class TestSkillTools:
     def test_skill_list_tool(self):
         from accobot.tools.skill_tool import skill_list
         result = json.loads(skill_list({}))
-        assert result["count"] >= 2
+        assert result["count"] >= 1
         names = [s["name"] for s in result["skills"]]
-        assert "通用分录模板" in names
+        assert "create-skill" in names
 
     def test_skill_view_tool(self):
         from accobot.tools.skill_tool import skill_view
-        result = json.loads(skill_view({"name": "期末结转流程"}))
+        result = json.loads(skill_view({"name": "create-skill"}))
         assert result["success"] is True
-        assert "period_end_carryforward" in result["content"]
+        assert "skill_manage" in result["content"]
 
     def test_skill_view_not_found(self):
         from accobot.tools.skill_tool import skill_view
