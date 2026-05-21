@@ -448,29 +448,44 @@ async def data_overview():
         bal = db.get_account_balance(acct["code"])
         payable += bal["balance"]
 
-    # Monthly income/expense (from current period posted vouchers)
+    # Monthly income/expense (from current month's posted vouchers)
     from datetime import date as date_mod
     today = date_mod.today()
     period_id = f"{today.year}-{today.month:02d}"
+    # Date range for current month (more reliable than period_id which may be null)
+    month_start = f"{today.year}-{today.month:02d}-01"
+    month_end = f"{today.year}-{today.month:02d}-31"
 
     monthly_income = 0.0
     monthly_expense = 0.0
 
-    income_accounts = db.list_accounts(category="income")
-    for acct in income_accounts:
-        if not acct["is_leaf"]:
-            continue
-        details = db.get_account_details(acct["code"], period_id=period_id)
-        for d in details:
-            monthly_income += d["credit"] - d["debit"]
+    # Query income directly from entries joined with posted vouchers in date range
+    with db._lock:
+        # Income: credit entries on income-category accounts
+        cur = db._conn.execute("""
+            SELECT COALESCE(SUM(e.credit - e.debit), 0) as total
+            FROM entries e
+            JOIN vouchers v ON e.voucher_id = v.id
+            JOIN accounts a ON e.account_code = a.code
+            WHERE v.status = 'posted'
+              AND a.category = 'income'
+              AND v.voucher_date >= ? AND v.voucher_date <= ?
+        """, (month_start, month_end))
+        row = cur.fetchone()
+        monthly_income = row["total"] if row else 0.0
 
-    expense_accounts = db.list_accounts(category="expense")
-    for acct in expense_accounts:
-        if not acct["is_leaf"]:
-            continue
-        details = db.get_account_details(acct["code"], period_id=period_id)
-        for d in details:
-            monthly_expense += d["debit"] - d["credit"]
+        # Expense: debit entries on expense-category accounts
+        cur = db._conn.execute("""
+            SELECT COALESCE(SUM(e.debit - e.credit), 0) as total
+            FROM entries e
+            JOIN vouchers v ON e.voucher_id = v.id
+            JOIN accounts a ON e.account_code = a.code
+            WHERE v.status = 'posted'
+              AND a.category = 'expense'
+              AND v.voucher_date >= ? AND v.voucher_date <= ?
+        """, (month_start, month_end))
+        row = cur.fetchone()
+        monthly_expense = row["total"] if row else 0.0
 
     # Draft voucher count
     drafts = db.list_vouchers(status="draft", limit=999)
