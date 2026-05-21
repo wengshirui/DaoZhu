@@ -19,21 +19,6 @@
                 <button class="btn-collapse" onclick="togglePanel('left')" title="折叠">◀</button>
             </div>
 
-            <!-- Agent Capabilities (MCP + Skills) -->
-            <div class="section capabilities-section">
-                <h3 onclick="toggleSection('capabilities')" class="section-toggle">🤖 AGENT 能力 <span class="toggle-arrow" id="arrow-capabilities">▼</span></h3>
-                <div class="section-content" id="content-capabilities">
-                    <div class="cap-group">
-                        <div class="cap-label">MCP 服务器</div>
-                        <div id="cap-mcp-list" class="cap-items"></div>
-                    </div>
-                    <div class="cap-group">
-                        <div class="cap-label">Skills</div>
-                        <div id="cap-skill-list" class="cap-items"></div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Account Switch -->
             <div class="section account-section">
                 <h3>当前账套</h3>
@@ -78,7 +63,20 @@
                 </div>
             </div>
 
-            <div class="panel-footer">
+            <!-- Agent Capabilities (MCP + Skills) -->
+            <div class="section capabilities-section">
+                <h3 onclick="toggleSection('capabilities')" class="section-toggle">AGENT 能力 <span class="toggle-arrow" id="arrow-capabilities">▶</span></h3>
+                <div class="section-content collapsed" id="content-capabilities">
+                    <div class="cap-group">
+                        <div class="cap-label">MCP 服务器</div>
+                        <div id="cap-mcp-list" class="cap-items"></div>
+                    </div>
+                    <div class="cap-group">
+                        <div class="cap-label">Skills</div>
+                        <div id="cap-skill-list" class="cap-items"></div>
+                    </div>
+                </div>
+            </div>            <div class="panel-footer">
                 <button class="btn-settings" onclick="showSettings()">⚙️ 设置</button>
                 <span class="version" id="version">v0.1.0</span>
             </div>
@@ -99,7 +97,7 @@
             <div class="chat-messages" id="messages">
                 <div class="msg msg-system">
                     <p>👋 你好！我是 AccoBot，你的智能财务助手。</p>
-                    <p>试试问我：<em>"银行存款还有多少"</em> 或 <em>"帮我记一笔，今天付了3000元房租"</em></p>
+                    <p>试试问我：<em>"银行存款还有多少"</em>、<em>"帮我记一笔，今天付了3000元房租"</em> 或 <em>"帮我开一张发票"</em></p>
                 </div>
             </div>
             <div class="chat-input">

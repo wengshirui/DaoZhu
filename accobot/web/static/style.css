@@ -73,18 +73,18 @@ body {
 /* Collapsible sections */
 .section-toggle { cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; margin-bottom: 0; }
 .section-toggle:hover { color: var(--text); }
-.toggle-arrow { font-size: 0.55rem; color: var(--dim); }
-.section-content { max-height: 300px; overflow: hidden; transition: max-height 0.25s ease, padding 0.25s ease; padding-top: 6px; }
-.section-content.collapsed { max-height: 0; padding-top: 0; padding-bottom: 0; }
+.toggle-arrow { font-size: 0.6rem; color: var(--dim); }
+.section-content { padding-top: 6px; }
+.section-content.collapsed { display: none; }
 
 /* Capabilities section */
 .capabilities-section { }
-.capabilities-section .section-content { padding-top: 4px; max-height: 150px; }
-.cap-group { margin-bottom: 6px; }
-.cap-label { font-size: 0.65rem; color: var(--dim); font-weight: 600; margin-bottom: 2px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.3px; }
-.cap-items { font-size: 0.65rem; color: var(--dim); padding-left: 8px; }
-.cap-item { padding: 2px 0; display: flex; align-items: center; gap: 5px; line-height: 1.4; }
-.cap-item .cap-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.capabilities-section .section-content { padding-top: 6px; }
+.cap-group { margin-bottom: 8px; }
+.cap-label { font-size: 0.75rem; color: var(--dim); font-weight: 600; margin-bottom: 3px; }
+.cap-items { font-size: 0.75rem; color: var(--dim); padding-left: 8px; }
+.cap-item { padding: 2px 0; display: flex; align-items: center; gap: 5px; line-height: 1.5; }
+.cap-item .cap-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .cap-dot.connected { background: var(--success); }
 .cap-dot.disconnected { background: var(--error); }
 .cap-dot.skill { background: var(--primary); }
