@@ -18,6 +18,7 @@ dependencies = [
     "pydantic>=2.0.0,<3",
     "rich>=13.0.0,<15",
     "prompt_toolkit>=3.0.0,<4",
+    "mcp>=1.0.0,<2",
 ]
 
 [project.optional-dependencies]

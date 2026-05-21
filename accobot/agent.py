@@ -35,6 +35,14 @@ DEFAULT_SYSTEM_PROMPT = """你是 AccoBot，一个智能财务助手。你帮助
 你有权调用工具来完成具体操作。每次调用工具后，根据结果向用户反馈。
 如果用户的指令不够明确，主动询问缺失信息。
 发现风险时主动提示（合规风险、数据异常等）。
+
+## Skills（操作流程知识库）
+
+如果下方列出的 Skill 与当前任务相关，你必须先调用 skill_view(name) 加载它的完整内容，然后按其中的步骤执行。
+Skill 包含经过验证的操作流程、注意事项和最佳实践，优先于你的通用知识。
+如果用户修正了你的操作步骤，完成任务后主动提议"要不要把这个流程保存为 Skill？"
+
+{skills_index}
 """
 
 
@@ -48,8 +56,12 @@ class AccoAgent:
         on_token: Optional[Callable[[str], None]] = None,
     ):
         self.config = config or load_config()
-        self.system_prompt = system_prompt or DEFAULT_SYSTEM_PROMPT
         self.on_token = on_token  # streaming callback
+
+        # Build system prompt with skill index
+        base_prompt = system_prompt or DEFAULT_SYSTEM_PROMPT
+        skills_index = self._build_skills_index()
+        self.system_prompt = base_prompt.replace("{skills_index}", skills_index)
 
         # LLM client setup
         model_config = self.config.get("model", {})
@@ -65,7 +77,7 @@ class AccoAgent:
 
         self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.model = model_config.get("model_name", "gpt-4o")
-        self.max_iterations = model_config.get("max_iterations", 30)
+        self.max_iterations = model_config.get("max_iterations", 90)
 
         # Conversation state
         self.messages: List[Dict[str, Any]] = [
@@ -74,6 +86,31 @@ class AccoAgent:
 
         # Discover and register tools
         discover_tools()
+
+        # Discover MCP tools (if configured)
+        self._discover_mcp()
+
+    def _build_skills_index(self) -> str:
+        """Build the skill index for system prompt injection."""
+        try:
+            from accobot.skills.loader import build_skills_index
+            index = build_skills_index()
+            return index if index else "(暂无可用 Skill)"
+        except Exception as e:
+            logger.debug("Failed to build skills index: %s", e)
+            return "(Skill 系统未就绪)"
+
+    def _discover_mcp(self) -> None:
+        """Discover and register MCP tools from configured servers."""
+        try:
+            from accobot.mcp.client import discover_mcp_tools
+            tool_names = discover_mcp_tools()
+            if tool_names:
+                logger.info("MCP: registered %d tool(s)", len(tool_names))
+        except ImportError:
+            logger.debug("MCP SDK not available")
+        except Exception as e:
+            logger.debug("MCP discovery failed: %s", e)
 
     def chat(self, user_message: str) -> str:
         """Simple interface — send a message, get a response.
@@ -153,7 +190,24 @@ class AccoAgent:
                 self.messages.append({"role": "assistant", "content": content})
                 return content
 
-        # Max iterations reached
+        # Max iterations reached — give one grace call without tools
+        # so the agent can summarize what it accomplished and what's left
+        logger.info("Max iterations (%d) reached, making grace call", self.max_iterations)
+        try:
+            grace_response = self.client.chat.completions.create(
+                model=self.model,
+                messages=self.messages + [{
+                    "role": "system",
+                    "content": "你已达到本次对话的工具调用上限。请总结你已完成的操作和剩余未完成的步骤，告诉用户接下来该怎么做。不要再调用工具。",
+                }],
+            )
+            content = grace_response.choices[0].message.content or ""
+            if content:
+                self.messages.append({"role": "assistant", "content": content})
+                return content
+        except Exception:
+            pass
+
         fallback = "操作步骤较多，已达到单次对话的处理上限。请继续告诉我接下来要做什么。"
         self.messages.append({"role": "assistant", "content": fallback})
         return fallback

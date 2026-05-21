@@ -32,7 +32,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "provider": "deepseek",
         "model_name": "deepseek-chat",
         "base_url": "https://api.deepseek.com/v1",
-        "max_iterations": 30,
+        "max_iterations": 90,
     },
     "agent": {
         "system_prompt_file": None,
@@ -49,6 +49,14 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "user": {
         "role": None,  # boss / accountant / agency
         "name": None,
+    },
+    "mcp_servers": {
+        "playwright": {
+            "command": "npx",
+            "args": ["-y", "@playwright/mcp@latest"],
+            "enabled": True,
+            "timeout": 120,
+        },
     },
 }
 

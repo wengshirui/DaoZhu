@@ -41,3 +41,6 @@ htmlcov/
 
 # Kiro
 .kiro/
+
+# Playwright MCP data (auto-generated)
+.playwright-mcp/

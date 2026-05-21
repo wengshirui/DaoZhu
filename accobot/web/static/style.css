@@ -70,6 +70,35 @@ body {
 .section { padding: 10px 14px; border-bottom: 1px solid var(--border); }
 .section h3 { font-size: 0.7rem; text-transform: uppercase; color: var(--dim); margin-bottom: 6px; letter-spacing: 0.5px; }
 
+/* Collapsible sections */
+.section-toggle { cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; }
+.section-toggle:hover { color: var(--text); }
+.toggle-arrow { font-size: 0.6rem; transition: transform 0.2s; }
+.section-content { transition: max-height 0.3s ease; overflow: hidden; }
+.section-content.collapsed { max-height: 0 !important; margin: 0; padding: 0; }
+
+/* Capabilities section */
+.capabilities-section { max-height: 200px; overflow-y: auto; }
+.cap-group { margin-bottom: 8px; }
+.cap-label { font-size: 0.7rem; color: var(--dim); font-weight: 600; margin-bottom: 3px; }
+.cap-items { font-size: 0.65rem; color: var(--dim); padding-left: 4px; }
+.cap-item { padding: 2px 0; display: flex; align-items: center; gap: 4px; }
+.cap-item .cap-dot { width: 5px; height: 5px; border-radius: 50%; }
+.cap-dot.connected { background: var(--success); }
+.cap-dot.disconnected { background: var(--error); }
+.cap-dot.skill { background: var(--primary); }
+
+/* Operation log */
+.op-log-section { border-top: 1px solid var(--border); margin-top: auto; }
+.op-log-items { max-height: 180px; overflow-y: auto; font-size: 0.65rem; }
+.op-log-entry { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--dim); }
+.op-log-entry .op-time { color: var(--dim); opacity: 0.6; margin-right: 4px; }
+.op-log-entry .op-name { color: var(--primary); }
+.op-log-entry .op-status { margin-left: 4px; }
+.op-log-entry .op-status.ok { color: var(--success); }
+.op-log-entry .op-status.err { color: var(--error); }
+.op-log-empty { color: var(--dim); opacity: 0.5; text-align: center; padding: 10px 0; font-size: 0.65rem; }
+
 /* Account */
 .account-section select {
     width: 100%; padding: 6px 8px; background: var(--bg); border: 1px solid var(--border);
@@ -167,6 +196,25 @@ body {
 }
 .btn-send:hover { opacity: 0.85; }
 .btn-send:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-stop {
+    padding: 10px 14px; background: transparent; color: var(--error); border: 1.5px solid var(--error);
+    border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 0.75rem;
+    display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;
+}
+.btn-stop:hover { background: var(--error); color: #fff; }
+
+.agent-status {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 20px; font-size: 0.72rem; color: var(--dim);
+    animation: fadeIn 0.2s ease;
+}
+.status-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--primary);
+    box-shadow: 0 0 6px var(--primary);
+    animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
 
 .btn-attach {
     background: none; border: none; cursor: pointer; font-size: 1.1rem;

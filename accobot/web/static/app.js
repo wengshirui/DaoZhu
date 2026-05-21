@@ -28,13 +28,33 @@ function handleMessage(data) {
         case 'token':
             if (!currentAssistantMsg) currentAssistantMsg = addMsg('assistant', '');
             appendToMsg(currentAssistantMsg, data.content);
+            showAgentStatus('回复中...');
             break;
-        case 'tool_call': addToolCall(data.name, data.args); break;
-        case 'tool_result': addToolResult(data.name, data.result); break;
-        case 'done': finishStreaming(); break;
+        case 'tool_call':
+            addToolCall(data.name, data.args);
+            addOpLogEntry(data.name, 'running', '');
+            showAgentStatus(`调用工具: ${data.name}`);
+            break;
+        case 'tool_result':
+            addToolResult(data.name, data.result);
+            // Determine success/error from result
+            try {
+                const parsed = JSON.parse(data.result);
+                addOpLogEntry(data.name, parsed.error ? 'err' : 'ok', '');
+            } catch(e) { addOpLogEntry(data.name, 'ok', ''); }
+            showAgentStatus('分析结果...');
+            break;
+        case 'done':
+            // Save the complete assistant response to history
+            if (currentAssistantMsg && currentAssistantMsg.dataset.raw) {
+                saveMessageToHistory('assistant', currentAssistantMsg.dataset.raw);
+            }
+            finishStreaming();
+            break;
         case 'error':
             if (data.content && data.content.includes('API Key')) configError = true;
             addMsg('assistant', `⚠️ ${data.content}`);
+            saveMessageToHistory('assistant', data.content);
             finishStreaming();
             break;
     }
@@ -46,16 +66,41 @@ function sendMessage() {
     const msg = input.value.trim();
     if (!msg || isStreaming || !ws || ws.readyState !== WebSocket.OPEN) return;
     addMsg('user', msg);
+    saveMessageToHistory('user', msg);  // Persist to DB
     input.value = ''; autoResize(input);
     isStreaming = true; currentAssistantMsg = null;
     document.getElementById('btn-send').disabled = true;
+    document.getElementById('btn-send').style.display = 'none';
+    document.getElementById('btn-stop').style.display = 'inline-block';
+    showAgentStatus('思考中...');
     ws.send(JSON.stringify({ message: msg }));
-    // Update history title
-    const title = document.querySelector('#current-chat .history-title');
-    if (title && title.textContent === '新对话') title.textContent = msg.slice(0, 20) + (msg.length > 20 ? '...' : '');
 }
 
-function finishStreaming() { isStreaming = false; currentAssistantMsg = null; document.getElementById('btn-send').disabled = false; }
+function finishStreaming() {
+    isStreaming = false; currentAssistantMsg = null;
+    document.getElementById('btn-send').disabled = false;
+    document.getElementById('btn-send').style.display = 'inline-block';
+    document.getElementById('btn-stop').style.display = 'none';
+    hideAgentStatus();
+}
+
+function stopAgent() {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'stop' }));
+    }
+    addMsg('system', '⏹ 已手动停止');
+    finishStreaming();
+}
+
+function showAgentStatus(text) {
+    const el = document.getElementById('agent-status');
+    document.getElementById('status-text').textContent = text;
+    el.style.display = 'flex';
+}
+
+function hideAgentStatus() {
+    document.getElementById('agent-status').style.display = 'none';
+}
 
 function addMsg(role, content) {
     const el = document.getElementById('messages');
@@ -396,20 +441,31 @@ function renderChatHistory() {
 }
 
 async function switchSession(sessionId) {
+    if (sessionId === currentSessionId) return; // Already active
+
     currentSessionId = sessionId;
     renderChatHistory();
 
-    // Load messages
+    // Load messages from DB and display
     try {
         const r = await fetch(`/api/chat/sessions/${sessionId}/messages`);
         const data = await r.json();
         const messagesDiv = document.getElementById('messages');
         messagesDiv.innerHTML = '';
-        for (const msg of (data.messages || [])) {
+
+        const messages = data.messages || [];
+        if (!messages.length) {
+            messagesDiv.innerHTML = '<div class="msg msg-system"><p>（此对话暂无消息）</p></div>';
+        }
+        for (const msg of messages) {
             if (msg.role === 'user' || msg.role === 'assistant') {
                 addMsg(msg.role, msg.content);
             }
         }
+
+        // Reconnect WebSocket to reset agent, then replay history for context
+        if (ws) ws.close();
+        connectWebSocket();
     } catch (e) { /* ignore */ }
 }
 
@@ -428,40 +484,61 @@ async function createNewSession() {
 // Override newChat to use sessions
 const _originalNewChat = newChat;
 newChat = async function() {
+    // Save current session state (already persisted via saveMessageToHistory)
+    // Clear UI and create new session
     document.getElementById('messages').innerHTML = `<div class="msg msg-system"><p>👋 新对话已开始。有什么可以帮你的？</p></div>`;
     currentSessionId = null;
     await createNewSession();
+    // Reconnect WebSocket to reset agent memory for new conversation
+    if (ws) ws.close();
+    connectWebSocket();
 };
 
 // Save messages to history after each turn
 async function saveMessageToHistory(role, content) {
+    if (!content) return;
+
+    // Auto-create session on first message
     if (!currentSessionId) {
         await createNewSession();
     }
+    if (!currentSessionId) return; // Failed to create
+
     try {
         await fetch(`/api/chat/sessions/${currentSessionId}/messages`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ session_id: currentSessionId, role, content }),
         });
+
         // Auto-title from first user message
-        if (role === 'user' && chatSessions.length > 0) {
+        if (role === 'user') {
             const session = chatSessions.find(s => s.id === currentSessionId);
             if (session && session.title === '新对话') {
                 const title = content.slice(0, 20) + (content.length > 20 ? '...' : '');
+                session.title = title; // Update local cache immediately
                 await fetch(`/api/chat/sessions/${currentSessionId}`, {
                     method: 'PATCH',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ title }),
                 });
-                loadChatSessions();
+                renderChatHistory();
             }
         }
     } catch (e) { /* ignore */ }
 }
 
-// Load sessions on startup
-loadChatSessions();
+// Load sessions on startup and auto-create one if none exists
+(async function initChatSessions() {
+    await loadChatSessions();
+    if (!chatSessions.length) {
+        await createNewSession();
+    } else {
+        // Resume the most recent session
+        currentSessionId = chatSessions[0].id;
+        renderChatHistory();
+    }
+})();
 
 // ===== Data Overview =====
 async function loadDataOverview() {
@@ -505,6 +582,7 @@ function switchSettingsTab(tab) {
     document.getElementById(`tab-${tab}`).style.display = 'block';
     event.target.classList.add('active');
     if (tab === 'gateway') loadGatewayConfig();
+    if (tab === 'mcp') loadMcpStatus();
 }
 
 async function loadGatewayConfig() {
@@ -569,3 +647,201 @@ async function saveGatewayConfig() {
         msg.className = 'form-msg error';
     }
 }
+
+// ===== MCP Status =====
+async function loadMcpStatus() {
+    const container = document.getElementById('mcp-server-list');
+    try {
+        const r = await fetch('/api/mcp/status');
+        const data = await r.json();
+        const servers = data.servers || [];
+
+        if (!servers.length) {
+            container.innerHTML = '<p class="data-placeholder">未配置 MCP 服务器。</p>';
+            return;
+        }
+
+        let html = '<table class="data-table" style="width:100%">';
+        html += '<tr style="border-bottom:1px solid var(--border)"><td><b>服务器</b></td><td><b>状态</b></td><td><b>工具</b></td><td></td></tr>';
+        for (const s of servers) {
+            const status = s.connected ? '🟢 已连接' : (s.enabled ? '🟡 未连接' : '⚪ 已禁用');
+            const toggleLabel = s.enabled ? '禁用' : '启用';
+            const isPlaywright = s.name === 'playwright';
+            html += `<tr>
+                <td>${s.name}</td>
+                <td>${status}</td>
+                <td>${s.tool_count} 个</td>
+                <td>
+                    <button class="btn-sm" onclick="reconnectMcp('${s.name}')">重连</button>
+                    <button class="btn-sm" onclick="toggleMcp('${s.name}', ${!s.enabled})">${toggleLabel}</button>
+                    ${isPlaywright ? '' : `<button class="btn-sm btn-danger-sm" onclick="removeMcp('${s.name}')">删除</button>`}
+                </td>
+            </tr>`;
+        }
+        html += '</table>';
+        container.innerHTML = html;
+    } catch (e) {
+        container.innerHTML = '<p class="data-placeholder">加载 MCP 状态失败</p>';
+    }
+}
+
+async function reconnectMcp(name) {
+    const msg = document.getElementById('mcp-message');
+    msg.textContent = '正在重连...';
+    msg.className = 'form-msg';
+    try {
+        const r = await fetch('/api/mcp/reconnect', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ name }),
+        });
+        const data = await r.json();
+        if (data.success) {
+            msg.textContent = '✅ ' + data.message;
+            msg.className = 'form-msg success';
+            loadMcpStatus();
+        } else {
+            msg.textContent = '❌ ' + (data.error || '重连失败');
+            msg.className = 'form-msg error';
+        }
+    } catch (e) {
+        msg.textContent = '❌ 网络错误';
+        msg.className = 'form-msg error';
+    }
+}
+
+// ===== MCP Add/Remove/Toggle =====
+function onMcpTypeChange() {
+    const type = document.getElementById('mcp-add-type').value;
+    document.getElementById('mcp-cmd-group').style.display = type === 'stdio' ? 'block' : 'none';
+    document.getElementById('mcp-args-group').style.display = type === 'stdio' ? 'block' : 'none';
+    document.getElementById('mcp-url-group').style.display = type === 'http' ? 'block' : 'none';
+}
+
+async function addMcpServer() {
+    const msg = document.getElementById('mcp-message');
+    const name = document.getElementById('mcp-add-name').value.trim();
+    const type = document.getElementById('mcp-add-type').value;
+
+    if (!name) { msg.textContent = '❌ 请输入服务器名称'; msg.className = 'form-msg error'; return; }
+
+    const body = { name, type };
+    if (type === 'http') {
+        body.url = document.getElementById('mcp-add-url').value.trim();
+    } else {
+        body.command = document.getElementById('mcp-add-command').value.trim();
+        body.args = document.getElementById('mcp-add-args').value.trim();
+    }
+
+    try {
+        const r = await fetch('/api/mcp/add', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        const data = await r.json();
+        if (data.success) {
+            msg.textContent = '✅ ' + data.message; msg.className = 'form-msg success';
+            document.getElementById('mcp-add-name').value = '';
+            document.getElementById('mcp-add-command').value = '';
+            document.getElementById('mcp-add-args').value = '';
+            document.getElementById('mcp-add-url').value = '';
+            loadMcpStatus();
+        } else {
+            msg.textContent = '❌ ' + data.error; msg.className = 'form-msg error';
+        }
+    } catch (e) { msg.textContent = '❌ 网络错误'; msg.className = 'form-msg error'; }
+}
+
+async function toggleMcp(name, enabled) {
+    try {
+        const r = await fetch('/api/mcp/toggle', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name, enabled }) });
+        const data = await r.json();
+        const msg = document.getElementById('mcp-message');
+        if (data.success) { msg.textContent = '✅ ' + data.message; msg.className = 'form-msg success'; }
+        else { msg.textContent = '❌ ' + data.error; msg.className = 'form-msg error'; }
+        loadMcpStatus();
+    } catch (e) {}
+}
+
+async function removeMcp(name) {
+    if (!confirm(`确定删除 MCP 服务器 "${name}" 吗？`)) return;
+    try {
+        const r = await fetch('/api/mcp/remove', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name }) });
+        const data = await r.json();
+        const msg = document.getElementById('mcp-message');
+        if (data.success) { msg.textContent = '✅ ' + data.message; msg.className = 'form-msg success'; }
+        else { msg.textContent = '❌ ' + data.error; msg.className = 'form-msg error'; }
+        loadMcpStatus();
+    } catch (e) {}
+}
+
+// ===== Collapsible Sections =====
+function toggleSection(name) {
+    const content = document.getElementById(`content-${name}`);
+    const arrow = document.getElementById(`arrow-${name}`);
+    content.classList.toggle('collapsed');
+    arrow.textContent = content.classList.contains('collapsed') ? '▶' : '▼';
+}
+
+// ===== Agent Capabilities Display =====
+async function loadCapabilities() {
+    // Load MCP servers
+    try {
+        const r = await fetch('/api/mcp/status');
+        const data = await r.json();
+        const container = document.getElementById('cap-mcp-list');
+        const servers = data.servers || [];
+        if (!servers.length) {
+            container.innerHTML = '<div class="cap-item" style="opacity:0.5">未配置</div>';
+        } else {
+            container.innerHTML = servers.map(s => {
+                const dotClass = s.connected ? 'connected' : 'disconnected';
+                const label = s.connected ? `${s.name} (${s.tool_count}工具)` : `${s.name} (未连接)`;
+                return `<div class="cap-item"><span class="cap-dot ${dotClass}"></span>${label}</div>`;
+            }).join('');
+        }
+    } catch (e) {
+        document.getElementById('cap-mcp-list').innerHTML = '<div class="cap-item" style="opacity:0.5">加载失败</div>';
+    }
+
+    // Load Skills
+    try {
+        const r = await fetch('/api/skills/list');
+        const data = await r.json();
+        const container = document.getElementById('cap-skill-list');
+        const skills = data.skills || [];
+        if (!skills.length) {
+            container.innerHTML = '<div class="cap-item" style="opacity:0.5">暂无 Skill</div>';
+        } else {
+            container.innerHTML = skills.map(s =>
+                `<div class="cap-item"><span class="cap-dot skill"></span>${s.name}</div>`
+            ).join('');
+        }
+    } catch (e) {
+        document.getElementById('cap-skill-list').innerHTML = '<div class="cap-item" style="opacity:0.5">加载失败</div>';
+    }
+}
+
+// ===== Operation Log =====
+let opLogEntries = [];
+
+function addOpLogEntry(name, status, detail) {
+    const now = new Date();
+    const time = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+    opLogEntries.unshift({ time, name, status, detail });
+    if (opLogEntries.length > 50) opLogEntries.pop(); // Keep last 50
+    renderOpLog();
+}
+
+function renderOpLog() {
+    const container = document.getElementById('op-log-list');
+    if (!opLogEntries.length) {
+        container.innerHTML = '<div class="op-log-empty">暂无操作记录</div>';
+        return;
+    }
+    container.innerHTML = opLogEntries.map(e => {
+        const statusClass = e.status === 'ok' ? 'ok' : 'err';
+        const statusIcon = e.status === 'ok' ? '✓' : '✗';
+        return `<div class="op-log-entry"><span class="op-time">${e.time}</span><span class="op-name">${e.name}</span><span class="op-status ${statusClass}">${statusIcon}</span></div>`;
+    }).join('');
+}
+
+// Load capabilities on startup
+loadCapabilities();

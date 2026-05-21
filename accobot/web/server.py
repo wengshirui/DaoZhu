@@ -488,6 +488,131 @@ async def data_overview():
 
 
 # =========================================================================
+# MCP Status API
+# =========================================================================
+
+@app.get("/api/skills/list")
+async def skills_list_api():
+    """Return list of available skills for the UI capabilities panel."""
+    try:
+        from accobot.skills.loader import scan_skills
+        skills = scan_skills()
+        return {"skills": [{"name": s["name"], "description": s["description"], "category": s.get("category", "")} for s in skills]}
+    except Exception as e:
+        return {"skills": [], "error": str(e)}
+
+
+@app.get("/api/mcp/status")
+async def mcp_status():
+    """Return status of configured MCP servers."""
+    try:
+        from accobot.mcp.client import get_mcp_status
+        servers = get_mcp_status()
+        return {"servers": servers}
+    except ImportError:
+        return {"servers": [], "note": "MCP SDK not installed (pip install 'accobot[mcp]')"}
+    except Exception as e:
+        return {"servers": [], "error": str(e)}
+
+
+@app.post("/api/mcp/reconnect")
+async def mcp_reconnect(request: dict):
+    """Reconnect a specific MCP server."""
+    try:
+        from accobot.mcp.client import reconnect_server
+        name = request.get("name", "")
+        if not name:
+            return {"success": False, "error": "请指定服务器名称"}
+        ok = reconnect_server(name)
+        if ok:
+            return {"success": True, "message": f"MCP server '{name}' 已重连"}
+        return {"success": False, "error": f"MCP server '{name}' 重连失败"}
+    except ImportError:
+        return {"success": False, "error": "MCP SDK 未安装"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/mcp/add")
+async def mcp_add_server(request: dict):
+    """Add a new MCP server via Web UI."""
+    from accobot.config import load_config, save_config
+
+    name = request.get("name", "").strip()
+    if not name:
+        return {"success": False, "error": "服务器名称不能为空"}
+
+    config = load_config()
+    if "mcp_servers" not in config:
+        config["mcp_servers"] = {}
+
+    if name in config["mcp_servers"]:
+        return {"success": False, "error": f"服务器 '{name}' 已存在"}
+
+    server_type = request.get("type", "stdio")
+    new_server = {"enabled": True, "timeout": 120}
+
+    if server_type == "http":
+        url = request.get("url", "").strip()
+        if not url:
+            return {"success": False, "error": "请输入服务器 URL"}
+        new_server["url"] = url
+    else:
+        command = request.get("command", "").strip()
+        if not command:
+            return {"success": False, "error": "请输入命令"}
+        new_server["command"] = command
+        args_str = request.get("args", "").strip()
+        if args_str:
+            new_server["args"] = [a.strip() for a in args_str.split(",") if a.strip()]
+
+    config["mcp_servers"][name] = new_server
+    save_config(config)
+
+    return {"success": True, "message": f"MCP 服务器 '{name}' 已添加，刷新页面后生效"}
+
+
+@app.post("/api/mcp/remove")
+async def mcp_remove_server(request: dict):
+    """Remove an MCP server via Web UI."""
+    from accobot.config import load_config, save_config
+
+    name = request.get("name", "").strip()
+    if not name:
+        return {"success": False, "error": "请指定服务器名称"}
+    if name == "playwright":
+        return {"success": False, "error": "Playwright 是内置服务器，不能删除（可以禁用）"}
+
+    config = load_config()
+    servers = config.get("mcp_servers", {})
+    if name not in servers:
+        return {"success": False, "error": f"服务器 '{name}' 不存在"}
+
+    del servers[name]
+    save_config(config)
+    return {"success": True, "message": f"MCP 服务器 '{name}' 已删除"}
+
+
+@app.post("/api/mcp/toggle")
+async def mcp_toggle_server(request: dict):
+    """Enable/disable an MCP server via Web UI."""
+    from accobot.config import load_config, save_config
+
+    name = request.get("name", "").strip()
+    enabled = request.get("enabled", True)
+
+    config = load_config()
+    servers = config.get("mcp_servers", {})
+    if name not in servers:
+        return {"success": False, "error": f"服务器 '{name}' 不存在"}
+
+    servers[name]["enabled"] = enabled
+    save_config(config)
+    status = "启用" if enabled else "禁用"
+    return {"success": True, "message": f"MCP 服务器 '{name}' 已{status}"}
+
+
+# =========================================================================
 # Gateway Configuration API
 # =========================================================================
 
@@ -789,19 +914,30 @@ async def websocket_chat(websocket: WebSocket):
         await websocket.close()
         return
 
+    # Stop flag for interrupting agent turns
+    stop_requested = {"value": False}
+
     try:
         while True:
             # Receive message from client
             data = await websocket.receive_text()
             msg = json.loads(data)
-            user_message = msg.get("message", "")
 
+            # Handle stop request
+            if msg.get("type") == "stop":
+                stop_requested["value"] = True
+                await websocket.send_json({"type": "done"})
+                continue
+
+            user_message = msg.get("message", "")
             if not user_message:
                 continue
 
+            # Reset stop flag for new turn
+            stop_requested["value"] = False
+
             # Run agent in thread pool to not block event loop
-            # Send tool call events and streaming tokens via websocket
-            await _run_agent_turn(websocket, agent, user_message)
+            await _run_agent_turn(websocket, agent, user_message, stop_requested)
 
     except WebSocketDisconnect:
         logger.info("WebSocket client disconnected")
@@ -813,14 +949,23 @@ async def websocket_chat(websocket: WebSocket):
             pass
 
 
-async def _run_agent_turn(websocket: WebSocket, agent: AccoAgent, user_message: str):
+async def _run_agent_turn(websocket: WebSocket, agent: AccoAgent, user_message: str, stop_requested: dict = None):
     """Execute one agent turn with streaming updates to the client."""
+    if stop_requested is None:
+        stop_requested = {"value": False}
+
     # Add user message to history
     agent.messages.append({"role": "user", "content": user_message})
 
     iteration = 0
     while iteration < agent.max_iterations:
         iteration += 1
+
+        # Check stop flag
+        if stop_requested["value"]:
+            agent.messages.append({"role": "assistant", "content": "（已被用户中断）"})
+            await websocket.send_json({"type": "done"})
+            return
 
         # Get tool definitions
         tool_defs = registry.get_definitions()
