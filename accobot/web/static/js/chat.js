@@ -45,8 +45,9 @@ function handleMessage(data) {
                 saveMessageToHistory('assistant', currentAssistantMsg.dataset.raw);
             }
             finishStreaming();
-            // Refresh data overview after agent completes (data may have changed)
+            // Refresh data overview and capabilities after agent completes
             if (typeof loadDataOverview === 'function') loadDataOverview();
+            if (typeof loadCapabilities === 'function') loadCapabilities();
             break;
         case 'error':
             if (data.content && data.content.includes('API Key')) configError = true;
