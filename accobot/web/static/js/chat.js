@@ -101,18 +101,28 @@ function appendToMsg(el, text) {
 function addToolCall(name, args) {
     const el = document.getElementById('messages');
     const div = document.createElement('div');
-    div.className = 'msg msg-assistant';
-    div.innerHTML = `<div class="tool-call"><div class="tool-call-header">🔧 ${esc(name)}</div><div class="tool-call-args">${esc(JSON.stringify(args, null, 2))}</div></div>`;
+    div.className = 'msg msg-tool-block';
+    const argsStr = JSON.stringify(args, null, 2);
+    div.innerHTML = `<div class="tool-block collapsed" onclick="this.classList.toggle('collapsed')">
+        <div class="tool-block-header"><span class="tool-icon">🔧</span><span class="tool-name">${esc(name)}</span><span class="tool-toggle">▶</span></div>
+        <div class="tool-block-body"><pre>${esc(argsStr)}</pre></div>
+    </div>`;
     el.appendChild(div); el.scrollTop = el.scrollHeight;
 }
 
 function addToolResult(name, result) {
     const el = document.getElementById('messages');
     let display = result;
-    try { const p = JSON.parse(result); display = p.message || JSON.stringify(p, null, 2); } catch(e) {}
+    let isError = false;
+    try { const p = JSON.parse(result); display = p.message || JSON.stringify(p, null, 2); isError = !!p.error; } catch(e) {}
     const div = document.createElement('div');
-    div.className = 'msg msg-assistant';
-    div.innerHTML = `<div class="tool-result">✅ ${esc(name)}: ${esc(display)}</div>`;
+    div.className = 'msg msg-tool-block';
+    const icon = isError ? '❌' : '✅';
+    const statusClass = isError ? 'error' : 'success';
+    div.innerHTML = `<div class="tool-block collapsed ${statusClass}" onclick="this.classList.toggle('collapsed')">
+        <div class="tool-block-header"><span class="tool-icon">${icon}</span><span class="tool-name">${esc(name)}</span><span class="tool-toggle">▶</span></div>
+        <div class="tool-block-body"><pre>${esc(display)}</pre></div>
+    </div>`;
     el.appendChild(div); el.scrollTop = el.scrollHeight;
 }
 

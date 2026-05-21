@@ -186,6 +186,31 @@ body {
     white-space: pre-wrap; max-height: 150px; overflow-y: auto;
 }
 
+/* Tool blocks — Kiro-style collapsible */
+.msg-tool-block { max-width: 90%; }
+.tool-block {
+    border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+    margin: 4px 0; cursor: pointer; transition: border-color 0.2s;
+}
+.tool-block:hover { border-color: rgba(212,160,23,0.4); }
+.tool-block.success { border-color: rgba(76,175,80,0.3); }
+.tool-block.error { border-color: rgba(244,67,54,0.3); }
+.tool-block-header {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 10px; background: var(--tool-bg); font-size: 0.75rem;
+}
+.tool-block-header .tool-icon { font-size: 0.8rem; }
+.tool-block-header .tool-name { color: var(--primary); font-weight: 500; flex: 1; }
+.tool-block-header .tool-toggle { font-size: 0.55rem; color: var(--dim); transition: transform 0.2s; }
+.tool-block:not(.collapsed) .tool-toggle { transform: rotate(90deg); }
+.tool-block-body {
+    padding: 8px 10px; background: var(--bg); font-size: 0.7rem;
+    font-family: monospace; color: var(--dim); white-space: pre-wrap;
+    max-height: 200px; overflow-y: auto; border-top: 1px solid var(--border);
+}
+.tool-block-body pre { margin: 0; white-space: pre-wrap; word-break: break-all; }
+.tool-block.collapsed .tool-block-body { display: none; }
+
 .chat-input {
     padding: 12px 20px; border-top: 1px solid var(--border); background: var(--bg2);
     display: flex; gap: 8px; align-items: flex-end;
