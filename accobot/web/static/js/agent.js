@@ -5,13 +5,13 @@
 
 // ===== Agent Status =====
 function showAgentStatus(text) {
-    const el = document.getElementById('agent-status');
+    const toolbar = document.getElementById('chat-toolbar');
     document.getElementById('status-text').textContent = text;
-    el.style.display = 'flex';
+    toolbar.style.display = 'flex';
 }
 
 function hideAgentStatus() {
-    document.getElementById('agent-status').style.display = 'none';
+    document.getElementById('chat-toolbar').style.display = 'none';
 }
 
 // ===== Operation Log =====

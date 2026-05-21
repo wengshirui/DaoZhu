@@ -63,8 +63,6 @@ function sendMessage() {
     input.value = ''; autoResize(input);
     isStreaming = true; currentAssistantMsg = null;
     document.getElementById('btn-send').disabled = true;
-    document.getElementById('btn-send').style.display = 'none';
-    document.getElementById('btn-stop').style.display = 'inline-block';
     showAgentStatus('思考中...');
     ws.send(JSON.stringify({ message: msg }));
 }
@@ -72,8 +70,6 @@ function sendMessage() {
 function finishStreaming() {
     isStreaming = false; currentAssistantMsg = null;
     document.getElementById('btn-send').disabled = false;
-    document.getElementById('btn-send').style.display = 'inline-block';
-    document.getElementById('btn-stop').style.display = 'none';
     hideAgentStatus();
 }
 

@@ -86,6 +86,16 @@
 
         <!-- Center: Chat Area -->
         <main class="panel panel-center">
+            <!-- Status bar above chat (like Kiro) -->
+            <div class="chat-toolbar" id="chat-toolbar" style="display:none;">
+                <div class="toolbar-left">
+                    <span class="status-dot"></span>
+                    <span class="status-text" id="status-text">思考中...</span>
+                </div>
+                <div class="toolbar-right">
+                    <button class="btn-stop" onclick="stopAgent()" id="btn-stop" title="停止">⏹ 停止</button>
+                </div>
+            </div>
             <div class="chat-messages" id="messages">
                 <div class="msg msg-system">
                     <p>👋 你好！我是 AccoBot，你的智能财务助手。</p>
@@ -101,12 +111,7 @@
                     onkeydown="handleKeyDown(event)" oninput="autoResize(this)"></textarea>
                 <button class="btn-attach" onclick="triggerFileUpload()" title="上传文件">📎</button>
                 <button class="btn-send" onclick="sendMessage()" id="btn-send">发送</button>
-                <button class="btn-stop" onclick="stopAgent()" id="btn-stop" style="display:none;" title="停止">⏹ 停止</button>
                 <input type="file" id="file-input" style="display:none;" onchange="handleFileSelect(event)" multiple accept=".jpg,.jpeg,.png,.pdf,.xls,.xlsx,.csv" />
-            </div>
-            <div class="agent-status" id="agent-status" style="display:none;">
-                <span class="status-dot"></span>
-                <span class="status-text" id="status-text">思考中...</span>
             </div>
         </main>
 

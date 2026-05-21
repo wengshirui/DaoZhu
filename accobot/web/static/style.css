@@ -205,22 +205,26 @@ body {
 .btn-send:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .btn-stop {
-    padding: 10px 14px; background: transparent; color: var(--error); border: 1.5px solid var(--error);
-    border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 0.75rem;
-    display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;
+    padding: 5px 10px; background: transparent; color: var(--error); border: 1px solid var(--error);
+    border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 0.7rem;
+    display: inline-flex; align-items: center; gap: 3px; transition: all 0.2s;
 }
 .btn-stop:hover { background: var(--error); color: #fff; }
 
-.agent-status {
-    display: flex; align-items: center; gap: 8px;
-    padding: 6px 20px; font-size: 0.72rem; color: var(--dim);
-    animation: fadeIn 0.2s ease;
+/* Chat toolbar (status + stop) — above messages, like Kiro */
+.chat-toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 16px; border-bottom: 1px solid var(--border); background: var(--bg2);
+    min-height: 32px; animation: fadeIn 0.2s ease;
 }
-.status-dot {
-    width: 7px; height: 7px; border-radius: 50%; background: var(--primary);
-    box-shadow: 0 0 6px var(--primary);
+.chat-toolbar .toolbar-left { display: flex; align-items: center; gap: 6px; }
+.chat-toolbar .toolbar-right { display: flex; align-items: center; }
+.chat-toolbar .status-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--primary);
+    box-shadow: 0 0 5px var(--primary);
     animation: pulse 1.4s ease-in-out infinite;
 }
+.chat-toolbar .status-text { font-size: 0.7rem; color: var(--dim); }
 @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
 
 .btn-attach {
