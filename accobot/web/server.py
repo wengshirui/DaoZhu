@@ -865,6 +865,173 @@ async def set_user_profile(request: dict):
     return {"success": True, "role": role}
 
 
+# =========================================================================
+# Business Data Browsing APIs (REQ-024)
+# =========================================================================
+
+@app.get("/api/vouchers")
+async def list_vouchers_api(
+    period_id: str = None,
+    status: str = None,
+    keyword: str = None,
+    date_from: str = None,
+    date_to: str = None,
+    limit: int = 50,
+    offset: int = 0,
+):
+    """List vouchers with filtering for the business panel."""
+    from accobot.db.manager import DBManager
+
+    mgr = DBManager.get_instance()
+    if not mgr.accounting:
+        return {"vouchers": [], "error": "未选择账套", "total": 0}
+
+    db = mgr.accounting
+    with db._lock:
+        sql = "SELECT * FROM vouchers WHERE 1=1"
+        params = []
+
+        if period_id:
+            sql += " AND period_id = ?"
+            params.append(period_id)
+        if status:
+            sql += " AND status = ?"
+            params.append(status)
+        if keyword:
+            sql += " AND summary LIKE ?"
+            params.append(f"%{keyword}%")
+        if date_from:
+            sql += " AND voucher_date >= ?"
+            params.append(date_from)
+        if date_to:
+            sql += " AND voucher_date <= ?"
+            params.append(date_to)
+
+        # Count total
+        count_sql = sql.replace("SELECT *", "SELECT COUNT(*)")
+        cur = db._conn.execute(count_sql, params)
+        total = cur.fetchone()[0]
+
+        # Fetch page
+        sql += " ORDER BY voucher_date DESC, created_at DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+        cur = db._conn.execute(sql, params)
+        vouchers = [dict(row) for row in cur.fetchall()]
+
+    # Enrich with entry summary
+    for v in vouchers:
+        entries = db.get_voucher_with_entries(v["id"])
+        if entries:
+            v["entry_count"] = len(entries.get("entries", []))
+            v["total_debit"] = sum(e["debit"] for e in entries.get("entries", []))
+        else:
+            v["entry_count"] = 0
+            v["total_debit"] = 0
+
+    return {"vouchers": vouchers, "total": total, "limit": limit, "offset": offset}
+
+
+@app.get("/api/vouchers/{voucher_id}")
+async def get_voucher_detail_api(voucher_id: str):
+    """Get voucher detail with all entries."""
+    from accobot.db.manager import DBManager
+
+    mgr = DBManager.get_instance()
+    if not mgr.accounting:
+        return {"error": "未选择账套"}
+
+    voucher = mgr.accounting.get_voucher_with_entries(voucher_id)
+    if not voucher:
+        return {"error": f"凭证 {voucher_id} 不存在"}
+
+    # Enrich entries with account names
+    for entry in voucher.get("entries", []):
+        account = mgr.accounting.get_account(entry["account_code"])
+        entry["account_name"] = account["name"] if account else entry["account_code"]
+
+    return {"voucher": voucher}
+
+
+@app.get("/api/tax/summary")
+async def get_tax_summary():
+    """Return tax summary for the overview panel.
+
+    Reads from 应交税费 related accounts — both parent (2221) and sub-accounts.
+    """
+    from accobot.db.manager import DBManager
+
+    mgr = DBManager.get_instance()
+    if not mgr.accounting:
+        return {"error": "未选择账套"}
+
+    db = mgr.accounting
+
+    # Find all tax-related accounts (2221 and sub-accounts)
+    total_tax = 0.0
+    details = []
+
+    with db._lock:
+        cur = db._conn.execute(
+            "SELECT code, name FROM accounts WHERE code LIKE '2221%' AND is_active = 1 ORDER BY code"
+        )
+        tax_accounts = [dict(row) for row in cur.fetchall()]
+
+    for acct in tax_accounts:
+        bal = db.get_account_balance(acct["code"])
+        if bal["balance"] != 0 or bal["total_debit"] != 0 or bal["total_credit"] != 0:
+            details.append({
+                "code": acct["code"],
+                "name": acct["name"],
+                "balance": round(bal["balance"], 2),
+            })
+            # Only sum leaf accounts to avoid double-counting
+            # If 2221 is leaf (no sub-accounts), count it; otherwise count sub-accounts
+            if acct["code"] == "2221":
+                # Check if it has sub-accounts
+                has_children = any(a["code"] != "2221" for a in tax_accounts)
+                if not has_children:
+                    total_tax += bal["balance"]
+            else:
+                total_tax += bal["balance"]
+
+    return {
+        "total_tax": round(total_tax, 2),
+        "details": details,
+    }
+
+
+@app.get("/api/ledger/balance-sheet")
+async def get_balance_sheet_api(period_id: str = None, category: str = None):
+    """Get trial balance (科目余额表) for the business panel."""
+    from accobot.db.manager import DBManager
+
+    mgr = DBManager.get_instance()
+    if not mgr.accounting:
+        return {"accounts": [], "error": "未选择账套"}
+
+    db = mgr.accounting
+    accounts = db.list_accounts(category=category)
+    result = []
+
+    for acct in accounts:
+        if not acct["is_leaf"]:
+            continue
+        bal = db.get_account_balance(acct["code"])
+        if bal["total_debit"] == 0 and bal["total_credit"] == 0:
+            continue  # Skip accounts with no activity
+        result.append({
+            "code": acct["code"],
+            "name": acct["name"],
+            "category": acct["category"],
+            "direction": bal["direction"],
+            "total_debit": bal["total_debit"],
+            "total_credit": bal["total_credit"],
+            "balance": bal["balance"],
+        })
+
+    return {"accounts": result, "count": len(result)}
+
+
 @app.get("/api/todos")
 async def get_todos():
     """Return todo/reminder items grouped by category."""
@@ -1146,12 +1313,12 @@ def start_server(host: str = "127.0.0.1", port: int = 9120, open_browser: bool =
     load_env()
     discover_tools()
 
-    # Start heartbeat for proactive reminders
+    # Start proactive engine for background checks (REQ-019)
     try:
-        from accobot.heartbeat import start_heartbeat
-        start_heartbeat()
+        from accobot.proactive import start_proactive
+        start_proactive()
     except Exception as e:
-        logger.debug("Heartbeat start failed: %s", e)
+        logger.debug("Proactive engine start failed: %s", e)
 
     if open_browser:
         # Open browser after a short delay

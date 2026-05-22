@@ -21,7 +21,7 @@ async function switchCompany(id) {
     if (!id) return;
     await fetch('/api/companies/switch', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({company_id: id}) });
     loadTodos();
-    loadDataOverview();
+    switchDataTab('overview');
     if (ws) ws.close(); connectWebSocket();
 }
 
@@ -100,8 +100,10 @@ async function loadTodos() {
 
 function renderTodos(data) {
     const cats = { accounting:'todo-accounting', tax:'todo-tax', business:'todo-business', social:'todo-social' };
+    let totalCount = 0;
     for (const [key, elId] of Object.entries(cats)) {
         const items = data[key] || [];
+        totalCount += items.length;
         const badge = document.getElementById(`badge-${key}`);
         badge.textContent = items.length;
         badge.className = items.length > 0 ? 'badge active' : 'badge';
@@ -109,9 +111,20 @@ function renderTodos(data) {
         container.innerHTML = items.length === 0 ? '<div class="todo-item" style="font-style:italic">暂无</div>'
             : items.map(i => `<div class="todo-item">${i.title}${i.due_date ? `<span class="due ${i.overdue?'overdue':''}">${i.due_date}</span>` : ''}</div>`).join('');
     }
+    // Update total badge
+    const totalBadge = document.getElementById('badge-total');
+    if (totalBadge) {
+        totalBadge.textContent = totalCount;
+        totalBadge.className = totalCount > 0 ? 'badge-total active' : 'badge-total';
+    }
 }
 
 function toggleTodo(el) { const items = el.nextElementSibling; if (items) items.classList.toggle('show'); }
+
+function toggleTodoPanel() {
+    const dropdown = document.getElementById('todo-dropdown');
+    if (dropdown) dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+}
 
 // ===== Data Overview =====
 async function loadDataOverview() {

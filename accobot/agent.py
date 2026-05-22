@@ -64,11 +64,12 @@ class AccoAgent:
         self.config = config or load_config()
         self.on_token = on_token  # streaming callback
 
-        # Build system prompt with skill index + SOUL.md
+        # Build system prompt with skill index + SOUL.md + standard rules
         base_prompt = system_prompt or DEFAULT_SYSTEM_PROMPT
         skills_index = self._build_skills_index()
         soul_content = self._load_soul()
-        self.system_prompt = base_prompt.replace("{skills_index}", skills_index) + soul_content
+        standard_rules = self._load_standard_rules()
+        self.system_prompt = base_prompt.replace("{skills_index}", skills_index) + soul_content + standard_rules
 
         # LLM client setup
         model_config = self.config.get("model", {})
@@ -115,6 +116,19 @@ class AccoAgent:
         except Exception as e:
             logger.debug("Failed to load SOUL.md: %s", e)
             return ""
+
+    def _load_standard_rules(self) -> str:
+        """Load accounting standard rules for current company (REQ-023)."""
+        try:
+            from accobot.db.manager import DBManager
+            from accobot.db.standards import load_standard_rules_summary
+            mgr = DBManager.get_instance()
+            company_dir = mgr.get_company_dir()
+            if company_dir:
+                return load_standard_rules_summary(company_dir)
+        except Exception as e:
+            logger.debug("Failed to load standard rules: %s", e)
+        return ""
 
     def _maybe_compress(self) -> None:
         """Compress message history if it exceeds token threshold."""

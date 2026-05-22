@@ -343,3 +343,107 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--dim); }
+
+/* ===== Data Panel (REQ-024) ===== */
+.todo-compact { padding: 0 12px; margin-bottom: 8px; }
+.todo-bar { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: var(--bg); border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--text); }
+.todo-bar:hover { background: var(--border); }
+.badge-total { background: var(--border); color: var(--dim); padding: 1px 7px; border-radius: 10px; font-size: 11px; }
+.badge-total.active { background: var(--warning); color: #000; }
+.todo-dropdown { margin-top: 6px; padding: 8px; background: var(--bg); border-radius: 6px; border: 1px solid var(--border); }
+
+.data-panel-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 0 12px; }
+.data-tab-nav { display: flex; gap: 2px; margin-bottom: 8px; background: var(--bg); border-radius: 6px; padding: 2px; }
+.data-tab-btn { flex: 1; padding: 6px 4px; border: none; background: transparent; border-radius: 4px; cursor: pointer; font-size: 12px; color: var(--dim); transition: all 0.15s; }
+.data-tab-btn:hover { background: var(--border); }
+.data-tab-btn.active { background: var(--bg3); color: var(--text); font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+
+.data-panel-content { flex: 1; overflow-y: auto; font-size: 13px; color: var(--text); }
+
+/* Data panel items */
+.dp-loading, .dp-empty { padding: 20px; text-align: center; color: var(--dim); font-size: 13px; }
+.dp-filters { display: flex; gap: 6px; margin-bottom: 8px; align-items: center; }
+.dp-filters select, .dp-filters input { padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; background: var(--bg); color: var(--text); }
+.dp-filters input { flex: 1; }
+.dp-count { font-size: 11px; color: var(--dim); margin-left: auto; }
+
+.dp-list { display: flex; flex-direction: column; gap: 2px; }
+.dp-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 6px; cursor: pointer; transition: background 0.1s; color: var(--text); }
+.dp-item:hover { background: var(--border); }
+.dp-item-main { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.dp-item-meta { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.dp-date { font-size: 11px; color: var(--dim); white-space: nowrap; }
+.dp-summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.dp-amount { font-size: 12px; color: var(--text); font-family: monospace; }
+.dp-status { font-size: 10px; padding: 1px 6px; border-radius: 3px; }
+.status-posted { background: rgba(76,175,80,0.2); color: #81c784; }
+.status-draft { background: rgba(255,152,0,0.2); color: #ffb74d; }
+
+/* Compact list (accounts, aux) */
+.dp-list-compact .dp-item { padding: 5px 10px; }
+.dp-code { font-family: monospace; font-size: 12px; color: var(--dim); min-width: 50px; }
+.dp-name { flex: 1; color: var(--text); }
+.dp-cat { font-size: 11px; color: var(--dim); }
+.dp-indent { padding-left: 24px; }
+.dp-group-header { padding: 6px 10px; font-size: 11px; font-weight: 600; color: var(--primary); text-transform: uppercase; border-bottom: 1px solid var(--border); margin-top: 4px; }
+
+/* Detail view — now in modal */
+.dp-detail { padding: 8px; }
+.dp-back { margin-bottom: 8px; color: var(--primary); background: none; border: 1px solid var(--border); }
+.dp-back:hover { border-color: var(--primary); }
+.dp-detail h4 { margin: 0 0 8px; font-size: 14px; color: var(--text); }
+.dp-detail-meta { display: flex; gap: 12px; font-size: 11px; color: var(--dim); margin-bottom: 12px; }
+
+/* Table */
+.dp-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.dp-table th { text-align: left; padding: 6px 8px; border-bottom: 2px solid var(--border); font-weight: 500; color: var(--dim); }
+.dp-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); color: var(--text); }
+.dp-table .num { text-align: right; font-family: monospace; }
+.dp-table .dp-total { font-weight: 600; border-top: 2px solid var(--border); }
+
+/* Pagination */
+.dp-pagination { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 8px; font-size: 12px; color: var(--dim); }
+
+/* ===== Overview Panel ===== */
+.dp-overview { padding: 4px 0; }
+.dp-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+.dp-metric { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; }
+.dp-metric-label { display: block; font-size: 11px; color: var(--dim); margin-bottom: 2px; }
+.dp-metric-value { font-size: 14px; font-weight: 500; font-family: monospace; color: var(--text); }
+.dp-income { color: #81c784; }
+.dp-expense { color: #ef5350; }
+
+.dp-section-title { font-size: 12px; font-weight: 600; color: var(--primary); margin: 12px 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+.dp-alerts { margin-bottom: 8px; }
+.dp-alert { padding: 6px 8px; font-size: 12px; background: rgba(255,152,0,0.1); border-radius: 4px; margin-bottom: 4px; border-left: 3px solid var(--warning); color: var(--text); }
+
+.dp-item-sm { padding: 5px 8px; font-size: 12px; }
+.dp-more { text-align: center; font-size: 11px; color: var(--primary); cursor: pointer; padding: 4px; }
+.dp-more:hover { text-decoration: underline; }
+
+.dp-quick-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+.dp-action-btn { padding: 8px 4px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); cursor: pointer; font-size: 12px; transition: all 0.15s; }
+.dp-action-btn:hover { background: var(--border); border-color: var(--primary); }
+
+/* ===== Detail Modal (REQ-024 fix: use modal for detail views) ===== */
+.detail-modal {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7); display: flex; align-items: center;
+    justify-content: center; z-index: 1000;
+}
+.detail-modal-content {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+    width: 600px; max-width: 90vw; max-height: 80vh; overflow-y: auto; padding: 20px;
+}
+.detail-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+}
+.detail-modal-header h3 { font-size: 1rem; color: var(--primary); margin: 0; }
+.detail-modal-close { background: none; border: none; color: var(--dim); font-size: 1.3rem; cursor: pointer; }
+.detail-modal-close:hover { color: var(--text); }
+
+/* Tax metric card — clickable */
+.dp-metric-tax { cursor: pointer; border: 1px solid var(--border); }
+.dp-metric-tax:hover { border-color: var(--primary); background: var(--bg3); }
+.dp-clickable-hint { color: var(--dim); font-size: 10px; margin-left: 2px; }

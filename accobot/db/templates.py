@@ -103,11 +103,100 @@ SMALL_ENTERPRISE_ACCOUNTS: List[Tuple[str, str, str, str, str]] = [
 ]
 
 
+# Enterprise Accounting Standard (企业会计准则) — includes additional accounts
+# not present in small enterprise standard
+ENTERPRISE_ACCOUNTS: List[Tuple[str, str, str, str, str]] = [
+    # 资产类 (includes all small enterprise + additional)
+    ("1001", "库存现金", "asset", "debit", None),
+    ("1002", "银行存款", "asset", "debit", None),
+    ("1012", "其他货币资金", "asset", "debit", None),
+    ("1101", "交易性金融资产", "asset", "debit", None),
+    ("1121", "应收票据", "asset", "debit", None),
+    ("1122", "应收账款", "asset", "debit", None),
+    ("1123", "预付账款", "asset", "debit", None),
+    ("1131", "应收股利", "asset", "debit", None),
+    ("1132", "应收利息", "asset", "debit", None),
+    ("1221", "其他应收款", "asset", "debit", None),
+    ("1231", "坏账准备", "asset", "credit", None),
+    ("1401", "材料采购", "asset", "debit", None),
+    ("1402", "在途物资", "asset", "debit", None),
+    ("1403", "原材料", "asset", "debit", None),
+    ("1404", "材料成本差异", "asset", "debit", None),
+    ("1405", "库存商品", "asset", "debit", None),
+    ("1407", "商品进销差价", "asset", "credit", None),
+    ("1408", "委托加工物资", "asset", "debit", None),
+    ("1411", "周转材料", "asset", "debit", None),
+    ("1471", "存货跌价准备", "asset", "credit", None),
+    ("1501", "持有至到期投资", "asset", "debit", None),
+    ("1511", "长期股权投资", "asset", "debit", None),
+    ("1512", "长期股权投资减值准备", "asset", "credit", None),
+    ("1601", "固定资产", "asset", "debit", None),
+    ("1602", "累计折旧", "asset", "credit", None),
+    ("1603", "固定资产减值准备", "asset", "credit", None),
+    ("1604", "在建工程", "asset", "debit", None),
+    ("1605", "工程物资", "asset", "debit", None),
+    ("1606", "固定资产清理", "asset", "debit", None),
+    ("1701", "无形资产", "asset", "debit", None),
+    ("1702", "累计摊销", "asset", "credit", None),
+    ("1703", "无形资产减值准备", "asset", "credit", None),
+    ("1711", "商誉", "asset", "debit", None),
+    ("1801", "长期待摊费用", "asset", "debit", None),
+    ("1811", "递延所得税资产", "asset", "debit", None),
+    ("1901", "待处理财产损溢", "asset", "debit", None),
+    # 负债类
+    ("2001", "短期借款", "liability", "credit", None),
+    ("2201", "应付票据", "liability", "credit", None),
+    ("2202", "应付账款", "liability", "credit", None),
+    ("2203", "预收账款", "liability", "credit", None),
+    ("2211", "应付职工薪酬", "liability", "credit", None),
+    ("2221", "应交税费", "liability", "credit", None),
+    ("222101", "应交增值税", "liability", "credit", "2221"),
+    ("222102", "应交城市维护建设税", "liability", "credit", "2221"),
+    ("222103", "应交教育费附加", "liability", "credit", "2221"),
+    ("222104", "应交企业所得税", "liability", "credit", "2221"),
+    ("222105", "应交个人所得税", "liability", "credit", "2221"),
+    ("2231", "应付利息", "liability", "credit", None),
+    ("2232", "应付股利", "liability", "credit", None),
+    ("2241", "其他应付款", "liability", "credit", None),
+    ("2401", "递延收益", "liability", "credit", None),
+    ("2501", "长期借款", "liability", "credit", None),
+    ("2601", "递延所得税负债", "liability", "credit", None),
+    ("2701", "长期应付款", "liability", "credit", None),
+    # 所有者权益类
+    ("3001", "实收资本", "equity", "credit", None),
+    ("3002", "资本公积", "equity", "credit", None),
+    ("3101", "盈余公积", "equity", "credit", None),
+    ("3103", "本年利润", "equity", "credit", None),
+    ("3104", "利润分配", "equity", "credit", None),
+    # 成本类
+    ("4001", "生产成本", "cost", "debit", None),
+    ("4101", "制造费用", "cost", "debit", None),
+    ("4301", "研发支出", "cost", "debit", None),
+    # 损益类 - 收入
+    ("5001", "主营业务收入", "income", "credit", None),
+    ("5051", "其他业务收入", "income", "credit", None),
+    ("5111", "投资收益", "income", "credit", None),
+    ("5121", "公允价值变动损益", "income", "credit", None),
+    ("5301", "营业外收入", "income", "credit", None),
+    # 损益类 - 费用/支出
+    ("5401", "主营业务成本", "expense", "debit", None),
+    ("5402", "其他业务成本", "expense", "debit", None),
+    ("5403", "税金及附加", "expense", "debit", None),
+    ("5601", "销售费用", "expense", "debit", None),
+    ("5602", "管理费用", "expense", "debit", None),
+    ("5603", "财务费用", "expense", "debit", None),
+    ("5701", "资产减值损失", "expense", "debit", None),
+    ("5711", "营业外支出", "expense", "debit", None),
+    ("5801", "所得税费用", "expense", "debit", None),
+]
+
+
 def load_template(standard: str = "small_enterprise") -> List[Tuple[str, str, str, str, str]]:
     """Load account template by standard name."""
     if standard == "small_enterprise":
         return SMALL_ENTERPRISE_ACCOUNTS
-    # TODO: Add enterprise standard (企业会计准则) template
+    if standard == "enterprise":
+        return ENTERPRISE_ACCOUNTS
     return SMALL_ENTERPRISE_ACCOUNTS
 
 

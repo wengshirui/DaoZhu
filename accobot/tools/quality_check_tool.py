@@ -2,6 +2,8 @@
 
 Toolset: "quality"
 Checks vouchers and operations for compliance risks.
+
+Now delegates to quality_engine.py for per-voucher checks (REQ-021).
 """
 
 from accobot.tools.registry import registry, tool_result, tool_error
@@ -27,95 +29,42 @@ def check_vouchers(args: dict, **kwargs) -> str:
     if not vouchers:
         return tool_result(success=True, issues=[], message="没有凭证需要检查")
 
-    issues = []
+    # Use quality engine for per-voucher checks
+    from accobot.tools.quality_engine import run_quality_check, save_quality_result
+
+    all_issues = []
 
     for v in vouchers:
-        voucher = db.get_voucher_with_entries(v["id"])
-        if not voucher:
-            continue
-        entries = voucher.get("entries", [])
+        result = run_quality_check(v["id"], db)
+        save_quality_result(v["id"], result, db)
 
-        # Check 1: Balance
-        total_debit = sum(e["debit"] for e in entries)
-        total_credit = sum(e["credit"] for e in entries)
-        if abs(total_debit - total_credit) > 0.01:
-            issues.append({
-                "level": "critical",
-                "icon": "🔴",
+        for issue in result.issues:
+            all_issues.append({
+                "level": issue.level,
+                "icon": {"critical": "🔴", "warning": "🟡", "info": "🟢"}.get(issue.level, "⚪"),
                 "voucher_id": v["id"],
-                "message": f"借贷不平衡：借方 {total_debit:.2f}，贷方 {total_credit:.2f}",
+                "message": issue.message,
             })
 
-        # Check 2: Empty summary
-        if not voucher.get("summary"):
-            issues.append({
-                "level": "warning",
-                "icon": "🟡",
-                "voucher_id": v["id"],
-                "message": "凭证摘要为空",
-            })
-
-        # Check 3: Large amount (>50000 cash)
-        for e in entries:
-            if e["account_code"] == "1001" and (e["debit"] > 50000 or e["credit"] > 50000):
-                issues.append({
-                    "level": "warning",
-                    "icon": "🟡",
-                    "voucher_id": v["id"],
-                    "message": f"大额现金交易 {max(e['debit'], e['credit']):,.2f} 元，请确认合规性",
-                })
-
-        # Check 4: No entries
-        if not entries:
-            issues.append({
-                "level": "critical",
-                "icon": "🔴",
-                "voucher_id": v["id"],
-                "message": "凭证没有分录",
-            })
-
-    # Check 5: Voucher number gaps
-    # (simplified — just count)
+    # Additional batch-level checks
     draft_count = sum(1 for v in vouchers if v["status"] == "draft")
     if draft_count > 10:
-        issues.append({
+        all_issues.append({
             "level": "info",
             "icon": "🟢",
             "voucher_id": "",
             "message": f"有 {draft_count} 张凭证处于草稿状态，建议及时审核过账",
         })
 
-    # Check 6: Account direction anomaly
-    accounts = db.list_accounts()
-    for acct in accounts:
-        if not acct["is_leaf"]:
-            continue
-        bal = db.get_account_balance(acct["code"])
-        # Asset with credit balance or liability with debit balance
-        if acct["category"] == "asset" and bal["balance"] < -0.01:
-            issues.append({
-                "level": "warning",
-                "icon": "🟡",
-                "voucher_id": "",
-                "message": f"资产科目「{acct['name']}」出现贷方余额 {bal['balance']:,.2f}，请检查",
-            })
-        elif acct["category"] == "liability" and bal["balance"] < -0.01:
-            issues.append({
-                "level": "warning",
-                "icon": "🟡",
-                "voucher_id": "",
-                "message": f"负债科目「{acct['name']}」出现借方余额，请检查",
-            })
-
     # Format output
-    if not issues:
+    if not all_issues:
         return tool_result(success=True, issues=[], message="✅ 质检通过，未发现问题")
 
-    critical = [i for i in issues if i["level"] == "critical"]
-    warnings = [i for i in issues if i["level"] == "warning"]
-    info = [i for i in issues if i["level"] == "info"]
+    critical = [i for i in all_issues if i["level"] == "critical"]
+    warnings = [i for i in all_issues if i["level"] == "warning"]
+    info = [i for i in all_issues if i["level"] == "info"]
 
-    lines = [f"质检结果（共 {len(issues)} 个问题）："]
+    lines = [f"质检结果（共 {len(all_issues)} 个问题）："]
     if critical:
         lines.append(f"\n🔴 严重（{len(critical)} 个）：")
         for i in critical:
@@ -129,7 +78,7 @@ def check_vouchers(args: dict, **kwargs) -> str:
         for i in info:
             lines.append(f"  {i['icon']} {i['message']}")
 
-    return tool_result(success=True, issues=issues,
+    return tool_result(success=True, issues=all_issues,
                        critical=len(critical), warnings=len(warnings), info=len(info),
                        message="\n".join(lines))
 

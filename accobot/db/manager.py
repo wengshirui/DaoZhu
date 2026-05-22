@@ -122,6 +122,10 @@ class DBManager:
         period_count = init_periods(acc_db, current_year)
         acc_db.close()
 
+        # Generate standard documents (REQ-023)
+        from accobot.db.standards import generate_standard_docs
+        generate_standard_docs(company_dir, accounting_standard)
+
         # Auto-switch to new company
         self.switch_company(company_id)
 

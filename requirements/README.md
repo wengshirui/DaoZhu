@@ -24,6 +24,12 @@
 | `REQ-016-skill-system.md` | Skill 系统（操作流程知识库） |
 | `REQ-017-mcp-client.md` | MCP 客户端（外部工具连接器） |
 | `REQ-018-heartbeat-session-soul.md` | 主动循环 / Session 压缩 / 身份文件化 |
+| `REQ-019-proactive-agent.md` | Agent 主动任务机制（通用化 Heartbeat） |
+| `REQ-020-first-run-setup.md` | 首次启动环境初始化 |
+| `REQ-021-auto-quality-check.md` | 凭证事后质检自动触发 |
+| `REQ-022-transparent-skill-learning.md` | Skill 透明化自动学习 |
+| `REQ-023-accounting-standard-config.md` | 账套会计准则维护 |
+| `REQ-024-business-data-panel.md` | 业务操作区（数据浏览与筛选） |
 
 ## 需求状态
 
@@ -56,6 +62,12 @@
 | REQ-016 Skill 系统 | ✔️ Done | Skill 存储✔️、目录扫描✔️、索引构建✔️、system prompt 注入✔️、skill_list/view/manage 工具✔️、预置 Skill✔️、只读保护✔️ |
 | REQ-017 MCP 客户端 | ✔️ Done | 配置读取✔️、Stdio 连接✔️（持久化任务）、HTTP 连接✔️、工具发现注册✔️、工具调用✔️、超时控制✔️、重试✔️、环境变量插值✔️、优雅关闭✔️、Web UI 状态✔️、重连✔️ |
 | REQ-018 主动循环/压缩/身份 | ✔️ Done | Heartbeat 主动提醒✔️、Session 压缩✔️、SOUL.md 身份文件✔️ |
+| REQ-019 Agent 主动任务机制 | ✔️ Done | ProactiveEngine框架✔️、任务注册/调度✔️、一次性任务持久化✔️、错误隔离✔️、迁移Heartbeat✔️ |
+| REQ-020 首次启动环境初始化 | ✔️ Done | 环境检测（Node.js/浏览器/API Key/账套）✔️、once任务注册✔️、通知推送✔️ |
+| REQ-021 凭证事后质检自动触发 | ✔️ Done | 质检引擎提取✔️、结果持久化✔️、过账前自动触发✔️、critical阻止过账✔️ |
+| REQ-022 Skill 透明化自动学习 | 📝 Draft | 纠正检测、主动提议记忆、透明创建、自动应用 |
+| REQ-023 账套会计准则维护 | ✔️ Done | 准则文档生成✔️、企业会计准则模板✔️、Agent动态加载✔️、准则切换（待做） |
+| REQ-024 业务操作区 | ✔️ Done | 面板改造✔️、凭证列表/筛选/详情✔️、科目浏览✔️、账簿余额表✔️、辅助项✔️、待办集中✔️ |
 
 ## 目标用户
 

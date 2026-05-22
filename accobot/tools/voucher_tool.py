@@ -196,11 +196,32 @@ def create_voucher_with_entries(args: dict, **kwargs) -> str:
         amount = debit if debit > 0 else credit
         entry_lines.append(f"  {direction}：{account['name']} {amount:,.2f}")
 
-    # Auto-post the voucher (balance already validated)
+    # Auto quality check before posting (REQ-021)
+    from accobot.tools.quality_engine import run_quality_check, save_quality_result
+
+    qc_result = run_quality_check(voucher_id, db)
+    save_quality_result(voucher_id, qc_result, db)
+
+    if not qc_result.passed:
+        # Critical issues — do NOT post, keep as draft
+        critical_msgs = [i.message for i in qc_result.issues if i.level == "critical"]
+        return tool_error(
+            f"质检不通过，凭证 {voucher_id} 保持草稿状态，请修正后使用 post_voucher 重新过账：\n"
+            + "\n".join(f"  🔴 {m}" for m in critical_msgs)
+        )
+
+    # Post the voucher
     db.update_voucher_status(voucher_id, "posted")
 
+    # Build response message
     msg = (f"✅ 凭证 {voucher_id} 已创建并过账（{voucher_date} {summary}）\n"
            f"期间：{period_id}\n" + "\n".join(entry_lines))
+
+    # Append warnings if any
+    if qc_result.warnings:
+        warning_msgs = [i.message for i in qc_result.warnings]
+        msg += "\n⚠️ 提示：" + "；".join(warning_msgs)
+
     return tool_result(success=True, voucher_id=voucher_id, period_id=period_id, message=msg)
 
 
@@ -280,8 +301,27 @@ def post_voucher(args: dict, **kwargs) -> str:
     if abs(total_debit - total_credit) > 0.01:
         return tool_error(f"借贷不平衡，无法过账：借方 {total_debit:.2f}，贷方 {total_credit:.2f}")
 
+    # Auto quality check before posting (REQ-021)
+    from accobot.tools.quality_engine import run_quality_check, save_quality_result
+
+    qc_result = run_quality_check(voucher_id, db)
+    save_quality_result(voucher_id, qc_result, db)
+
+    if not qc_result.passed:
+        critical_msgs = [i.message for i in qc_result.issues if i.level == "critical"]
+        return tool_error(
+            f"质检不通过，凭证 {voucher_id} 无法过账：\n"
+            + "\n".join(f"  🔴 {m}" for m in critical_msgs)
+        )
+
     db.update_voucher_status(voucher_id, "posted")
-    return tool_result(success=True, message=f"✅ 凭证 {voucher_id} 已过账")
+
+    msg = f"✅ 凭证 {voucher_id} 已过账"
+    if qc_result.warnings:
+        warning_msgs = [i.message for i in qc_result.warnings]
+        msg += "\n⚠️ 提示：" + "；".join(warning_msgs)
+
+    return tool_result(success=True, message=msg)
 
 
 # =========================================================================

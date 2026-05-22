@@ -54,6 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Data overview (if company selected)
     setTimeout(() => {
         const sel = document.getElementById('current-company');
-        if (sel && sel.value) loadDataOverview();
+        if (sel && sel.value) switchDataTab('overview');
     }, 500);
 });

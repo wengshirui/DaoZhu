@@ -32,34 +32,43 @@
                 </div>
             </div>
 
-            <!-- Todo Reminders -->
-            <div class="section todo-section">
-                <h3>待办提醒</h3>
-                <div id="todo-list">
+            <!-- Todo Notifications (compact, top bar) -->
+            <div class="section todo-compact">
+                <div class="todo-bar" onclick="toggleTodoPanel()">
+                    <span>🔔 待办</span>
+                    <span class="badge-total" id="badge-total">0</span>
+                </div>
+                <div class="todo-dropdown" id="todo-dropdown" style="display:none;">
                     <div class="todo-cat" onclick="toggleTodo(this)">
-                        <span>📋 账务待办</span><span class="badge" id="badge-accounting">0</span>
+                        <span>📋 账务</span><span class="badge" id="badge-accounting">0</span>
                     </div>
                     <div class="todo-items" id="todo-accounting"></div>
                     <div class="todo-cat" onclick="toggleTodo(this)">
-                        <span>🧾 税务待办</span><span class="badge" id="badge-tax">0</span>
+                        <span>🧾 税务</span><span class="badge" id="badge-tax">0</span>
                     </div>
                     <div class="todo-items" id="todo-tax"></div>
                     <div class="todo-cat" onclick="toggleTodo(this)">
-                        <span>🏢 工商待办</span><span class="badge" id="badge-business">0</span>
+                        <span>🏢 工商</span><span class="badge" id="badge-business">0</span>
                     </div>
                     <div class="todo-items" id="todo-business"></div>
                     <div class="todo-cat" onclick="toggleTodo(this)">
-                        <span>🛡️ 社保待办</span><span class="badge" id="badge-social">0</span>
+                        <span>🛡️ 社保</span><span class="badge" id="badge-social">0</span>
                     </div>
                     <div class="todo-items" id="todo-social"></div>
                 </div>
             </div>
 
-            <!-- Data Display Area -->
-            <div class="section data-section">
-                <h3>数据概览</h3>
-                <div id="data-display" class="data-placeholder">
-                    <p>选择账套后显示数据</p>
+            <!-- Business Data Panel (REQ-024) -->
+            <div class="section data-panel-section">
+                <div class="data-tab-nav">
+                    <button class="data-tab-btn active" data-tab="overview" onclick="switchDataTab('overview')">概览</button>
+                    <button class="data-tab-btn" data-tab="vouchers" onclick="switchDataTab('vouchers')">凭证</button>
+                    <button class="data-tab-btn" data-tab="accounts" onclick="switchDataTab('accounts')">科目</button>
+                    <button class="data-tab-btn" data-tab="ledger" onclick="switchDataTab('ledger')">账簿</button>
+                    <button class="data-tab-btn" data-tab="reports" onclick="switchDataTab('reports')">报表</button>
+                </div>
+                <div id="data-panel-content" class="data-panel-content">
+                    <div class="dp-empty">选择账套后浏览数据</div>
                 </div>
             </div>
 
@@ -306,6 +315,8 @@
 
     <script src="/static/js/agent.js"></script>
     <script src="/static/js/business.js"></script>
+    <script src="/static/js/data-panel.js"></script>
+    <script src="/static/js/data-reports.js"></script>
     <script src="/static/js/chat.js"></script>
     <script src="/static/js/main.js"></script>
 </body>
