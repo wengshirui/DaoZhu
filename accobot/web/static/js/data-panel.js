@@ -62,6 +62,15 @@ async function loadOverviewPanel() {
         // Anomaly alerts (data self-check)
         html += await renderAnomalyAlerts(overview);
 
+        // Degraded data warning
+        if (overview.degraded && overview.degraded_reasons && overview.degraded_reasons.length) {
+            html += '<div class="dp-degraded">';
+            for (const reason of overview.degraded_reasons) {
+                html += `<div class="dp-degraded-item">⚡ ${esc(reason)}</div>`;
+            }
+            html += '</div>';
+        }
+
         // Draft vouchers needing attention
         if (drafts.vouchers && drafts.vouchers.length > 0) {
             html += '<div class="dp-section-title">📋 待处理凭证</div>';
@@ -382,21 +391,68 @@ async function loadLedgerBalance() {
         if (!data.accounts.length) { container.innerHTML = '<div class="dp-empty">暂无账簿数据（需要有已过账的凭证）</div>'; return; }
 
         let html = `<div class="dp-filters"><span class="dp-count">${data.count} 个有发生额的科目</span></div>`;
-        html += `<table class="dp-table">
-            <thead><tr><th>科目</th><th>借方合计</th><th>贷方合计</th><th>余额</th></tr></thead>
-            <tbody>`;
-        for (const a of data.accounts) {
-            html += `<tr>
-                <td>${a.code} ${esc(a.name)}</td>
-                <td class="num">${formatNum(a.total_debit)}</td>
-                <td class="num">${formatNum(a.total_credit)}</td>
-                <td class="num">${formatNum(a.balance)}</td>
-            </tr>`;
+        if (data.degraded && data.degraded_reasons && data.degraded_reasons.length) {
+            html += '<div class="dp-degraded">';
+            for (const reason of data.degraded_reasons) {
+                html += `<div class="dp-degraded-item">⚡ ${esc(reason)}</div>`;
+            }
+            html += '</div>';
         }
-        html += '</tbody></table>';
+        html += '<div class="dp-list">';
+        for (const a of data.accounts) {
+            const balClass = a.balance >= 0 ? '' : 'dp-expense';
+            html += `<div class="dp-item dp-ledger-row" onclick="showAccountDetail('${a.code}')">
+                <span class="dp-name">${esc(a.name)}</span>
+                <span class="dp-balance num ${balClass}">${formatNum(a.balance)}</span>
+            </div>`;
+        }
+        html += '</div>';
         container.innerHTML = html;
     } catch (e) {
         container.innerHTML = '<div class="dp-empty">加载失败</div>';
+    }
+}
+
+async function showAccountDetail(code) {
+    try {
+        const r = await fetch(`/api/ledger/account-detail/${code}`);
+        const data = await r.json();
+        if (data.error) { alert(data.error); return; }
+
+        const periodLabel = data.period_id ? `期间: ${data.period_id}` : '全部期间';
+        let degradedHtml = '';
+        if (data.degraded && data.degraded_reasons && data.degraded_reasons.length) {
+            degradedHtml = '<div class="dp-degraded" style="margin-bottom:10px;">';
+            for (const reason of data.degraded_reasons) {
+                degradedHtml += `<div class="dp-degraded-item">⚡ ${esc(reason)}</div>`;
+            }
+            degradedHtml += '</div>';
+        }
+        let html = `<div class="detail-modal" onclick="if(event.target===this)closeDetailModal()">
+            <div class="detail-modal-content">
+                <div class="detail-modal-header">
+                    <h3>📒 ${esc(data.name)}</h3>
+                    <button class="detail-modal-close" onclick="closeDetailModal()">×</button>
+                </div>
+                <div style="font-size:11px;color:var(--dim);margin-bottom:12px;">${data.code} · ${periodLabel} · 余额方向: ${data.direction === 'debit' ? '借' : '贷'}</div>
+                ${degradedHtml}
+                <table class="dp-table">
+                    <tbody>
+                        <tr><td>期初余额</td><td class="num">${formatNum(data.opening_balance)}</td></tr>
+                        <tr><td>本期借方</td><td class="num">${formatNum(data.period_debit)}</td></tr>
+                        <tr><td>本期贷方</td><td class="num">${formatNum(data.period_credit)}</td></tr>
+                        <tr class="dp-total"><td>期末余额</td><td class="num">${formatNum(data.closing_balance)}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+
+        const div = document.createElement('div');
+        div.id = 'detail-modal-container';
+        div.innerHTML = html;
+        document.body.appendChild(div);
+    } catch (e) {
+        alert('加载科目明细失败');
     }
 }
 
