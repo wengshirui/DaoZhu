@@ -1,0 +1,54 @@
+{
+  "name": "现金流量表",
+  "standard": "small_enterprise",
+  "required": false,
+  "note": "小企业会计准则下现金流量表为可选报表，鼓励编制",
+  "method": "direct",
+  "cash_scope": ["1001", "1002", "1012"],
+  "items": {
+    "operating": {
+      "name": "一、经营活动产生的现金流量",
+      "inflows": [
+        {"row": 1, "name": "销售产成品、商品、提供劳务收到的现金", "related_accounts": ["5001", "5051", "1122", "2203"]},
+        {"row": 2, "name": "收到的税费返还", "related_accounts": ["2221"]},
+        {"row": 3, "name": "收到其他与经营活动有关的现金"}
+      ],
+      "outflows": [
+        {"row": 4, "name": "购买原材料、商品、接受劳务支付的现金", "related_accounts": ["1403", "1405", "2202", "1123"]},
+        {"row": 5, "name": "支付的职工薪酬", "related_accounts": ["2211"]},
+        {"row": 6, "name": "支付的税费", "related_accounts": ["2221"]},
+        {"row": 7, "name": "支付其他与经营活动有关的现金"}
+      ]
+    },
+    "investing": {
+      "name": "二、投资活动产生的现金流量",
+      "inflows": [
+        {"row": 8, "name": "收回短期投资、长期债券投资和长期股权投资收到的现金"},
+        {"row": 9, "name": "取得投资收益收到的现金"},
+        {"row": 10, "name": "处置固定资产、无形资产和其他非流动资产收回的现金净额"}
+      ],
+      "outflows": [
+        {"row": 11, "name": "短期投资、长期债券投资和长期股权投资支付的现金"},
+        {"row": 12, "name": "购建固定资产、无形资产和其他非流动资产支付的现金"}
+      ]
+    },
+    "financing": {
+      "name": "三、筹资活动产生的现金流量",
+      "inflows": [
+        {"row": 13, "name": "取得借款收到的现金"},
+        {"row": 14, "name": "吸收投资者投资收到的现金"}
+      ],
+      "outflows": [
+        {"row": 15, "name": "偿还借款本金支付的现金"},
+        {"row": 16, "name": "偿还借款利息支付的现金"},
+        {"row": 17, "name": "分配利润支付的现金"}
+      ]
+    },
+    "summary": {
+      "row": 18,
+      "name": "四、现金净增加额",
+      "formula": "经营活动净额 + 投资活动净额 + 筹资活动净额",
+      "is_calculated": true
+    }
+  }
+}
