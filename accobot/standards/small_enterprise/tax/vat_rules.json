@@ -1,0 +1,24 @@
+{
+  "tax_type": "增值税",
+  "taxpayer_type": "small_scale",
+  "rules": {
+    "rate": 0.03,
+    "preferential_rate": 0.01,
+    "preferential_period": "2023-01-01 至 2027-12-31",
+    "filing_period": "quarterly",
+    "filing_deadline_day": 15,
+    "exemption": {
+      "enabled": true,
+      "threshold_quarterly": 300000,
+      "threshold_monthly": 100000,
+      "scope": "普通发票部分免征，专用发票不免征",
+      "note": "开具专票的部分不享受免征，需正常缴纳"
+    },
+    "invoice_types": ["普通发票", "专用发票"],
+    "note": "小规模纳税人不得抵扣进项税额"
+  },
+  "accounts": {
+    "payable": "2221",
+    "expense": "5403"
+  }
+}

@@ -1,0 +1,42 @@
+[
+  {
+    "id": "period_end_carry_forward",
+    "name": "结转损益",
+    "keywords": ["结转损益", "月末结转", "结转本年利润"],
+    "entries": [
+      {"account_code": "5001", "direction": "debit", "description": "主营业务收入（转出）"},
+      {"account_code": "3103", "direction": "credit", "description": "本年利润"}
+    ],
+    "note": "收入类借方转出，费用类贷方转出，需逐科目结转"
+  },
+  {
+    "id": "period_end_depreciation",
+    "name": "计提折旧",
+    "keywords": ["折旧", "计提折旧", "固定资产折旧"],
+    "entries": [
+      {"account_code": "5602", "direction": "debit", "description": "管理费用"},
+      {"account_code": "1602", "direction": "credit", "description": "累计折旧"}
+    ],
+    "note": "需同时评估是否存在减值迹象"
+  },
+  {
+    "id": "period_end_amortization",
+    "name": "无形资产摊销",
+    "keywords": ["摊销", "无形资产摊销"],
+    "entries": [
+      {"account_code": "5602", "direction": "debit", "description": "管理费用"},
+      {"account_code": "1702", "direction": "credit", "description": "累计摊销"}
+    ],
+    "note": "需同时评估是否存在减值迹象"
+  },
+  {
+    "id": "period_end_cogs",
+    "name": "结转销售成本",
+    "keywords": ["结转成本", "销售成本"],
+    "entries": [
+      {"account_code": "5401", "direction": "debit", "description": "主营业务成本"},
+      {"account_code": "1405", "direction": "credit", "description": "库存商品"}
+    ],
+    "note": "需同时评估存货是否需要计提跌价准备"
+  }
+]

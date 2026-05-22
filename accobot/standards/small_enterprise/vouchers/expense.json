@@ -1,0 +1,92 @@
+[
+  {
+    "id": "expense_rent",
+    "name": "支付房租",
+    "keywords": ["付房租", "房租", "租金", "办公室租金", "场地租赁"],
+    "entries": [
+      {"account_code": "560203", "direction": "debit", "description": "管理费用-租赁费"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "如果是预付多月租金，先记预付账款，按月摊销"
+  },
+  {
+    "id": "expense_utilities",
+    "name": "支付水电费",
+    "keywords": ["水电费", "电费", "水费", "水电", "物业费"],
+    "entries": [
+      {"account_code": "560205", "direction": "debit", "description": "管理费用-水电费"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "生产用水电计入制造费用"
+  },
+  {
+    "id": "expense_office",
+    "name": "购买办公用品",
+    "keywords": ["办公用品", "文具", "打印纸", "办公耗材", "买文具"],
+    "entries": [
+      {"account_code": "560201", "direction": "debit", "description": "管理费用-办公费"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "金额较小直接费用化"
+  },
+  {
+    "id": "expense_travel",
+    "name": "差旅费报销",
+    "keywords": ["差旅费", "出差", "机票", "住宿费", "报销差旅"],
+    "entries": [
+      {"account_code": "560202", "direction": "debit", "description": "管理费用-差旅费"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "需附差旅费报销单、发票等原始凭证"
+  },
+  {
+    "id": "expense_telecom",
+    "name": "支付通讯费",
+    "keywords": ["话费", "通讯费", "网费", "宽带", "手机费"],
+    "entries": [
+      {"account_code": "560206", "direction": "debit", "description": "管理费用-通讯费"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": ""
+  },
+  {
+    "id": "expense_entertainment",
+    "name": "业务招待费",
+    "keywords": ["招待费", "请客吃饭", "餐费", "业务招待", "应酬"],
+    "entries": [
+      {"account_code": "560207", "direction": "debit", "description": "管理费用-业务招待费"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "业务招待费税前扣除限额：发生额60%且不超过营业收入5‰"
+  },
+  {
+    "id": "expense_purchase_goods",
+    "name": "采购商品/原材料",
+    "keywords": ["采购", "进货", "买货", "购买原材料", "进原材料"],
+    "entries": [
+      {"account_code": "1405", "direction": "debit", "description": "库存商品"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "如果是原材料加工企业，借方用1403原材料"
+  },
+  {
+    "id": "expense_purchase_payable",
+    "name": "采购挂应付账款",
+    "keywords": ["赊购", "欠供应商", "挂应付", "货到付款"],
+    "entries": [
+      {"account_code": "1405", "direction": "debit", "description": "库存商品"},
+      {"account_code": "2202", "direction": "credit", "description": "应付账款"}
+    ],
+    "note": "后续付款时：借应付账款，贷银行存款"
+  },
+  {
+    "id": "expense_pay_payable",
+    "name": "支付应付账款",
+    "keywords": ["付供应商", "付货款", "还欠款", "支付应付"],
+    "entries": [
+      {"account_code": "2202", "direction": "debit", "description": "应付账款"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "核销对应供应商的应付余额"
+  }
+]

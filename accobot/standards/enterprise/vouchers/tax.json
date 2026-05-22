@@ -1,0 +1,42 @@
+[
+  {
+    "id": "tax_vat_pay",
+    "name": "缴纳增值税",
+    "keywords": ["交增值税", "缴增值税"],
+    "entries": [
+      {"account_code": "2221", "direction": "debit", "description": "应交税费-未交增值税"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "一般纳税人：应交 = 销项 - 进项 - 留抵"
+  },
+  {
+    "id": "tax_surcharge_accrue",
+    "name": "计提附加税",
+    "keywords": ["计提附加税", "附加税计提"],
+    "entries": [
+      {"account_code": "5403", "direction": "debit", "description": "税金及附加"},
+      {"account_code": "2221", "direction": "credit", "description": "应交税费"}
+    ],
+    "note": "城建税7%+教育费附加3%+地方教育附加2%"
+  },
+  {
+    "id": "tax_income_quarterly",
+    "name": "计提企业所得税（季度）",
+    "keywords": ["计提所得税", "企业所得税"],
+    "entries": [
+      {"account_code": "5801", "direction": "debit", "description": "所得税费用"},
+      {"account_code": "2221", "direction": "credit", "description": "应交税费-应交企业所得税"}
+    ],
+    "note": "需考虑递延所得税的影响"
+  },
+  {
+    "id": "tax_deferred_asset",
+    "name": "确认递延所得税资产",
+    "keywords": ["递延所得税资产", "可抵扣暂时性差异"],
+    "entries": [
+      {"account_code": "1811", "direction": "debit", "description": "递延所得税资产"},
+      {"account_code": "5801", "direction": "credit", "description": "所得税费用"}
+    ],
+    "note": "因坏账准备、资产减值等产生的可抵扣暂时性差异"
+  }
+]

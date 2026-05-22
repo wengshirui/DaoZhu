@@ -1,0 +1,48 @@
+{
+  "name": "资产负债表",
+  "standard": "small_enterprise",
+  "items": {
+    "assets": [
+      {"row": 1, "name": "货币资金", "accounts": ["1001", "1002", "1012"], "direction": "debit"},
+      {"row": 2, "name": "短期投资", "accounts": ["1101"], "direction": "debit"},
+      {"row": 3, "name": "应收票据", "accounts": ["1121"], "direction": "debit"},
+      {"row": 4, "name": "应收账款", "accounts": ["1122"], "direction": "debit"},
+      {"row": 5, "name": "预付账款", "accounts": ["1123"], "direction": "debit"},
+      {"row": 6, "name": "其他应收款", "accounts": ["1221"], "direction": "debit"},
+      {"row": 7, "name": "存货", "accounts": ["1401", "1402", "1403", "1405", "1408", "1411"], "direction": "debit"},
+      {"row": 8, "name": "流动资产合计", "formula": "sum(row1:row7)", "is_calculated": true},
+      {"row": 9, "name": "长期债券投资", "accounts": ["1501"], "direction": "debit"},
+      {"row": 10, "name": "长期股权投资", "accounts": ["1511"], "direction": "debit"},
+      {"row": 11, "name": "固定资产原价", "accounts": ["1601"], "direction": "debit"},
+      {"row": 12, "name": "减：累计折旧", "accounts": ["1602"], "direction": "credit"},
+      {"row": 13, "name": "固定资产净值", "formula": "row(11) - row(12)", "is_calculated": true},
+      {"row": 14, "name": "在建工程", "accounts": ["1604"], "direction": "debit"},
+      {"row": 15, "name": "无形资产", "accounts": ["1701"], "direction": "debit", "offset_accounts": ["1702"]},
+      {"row": 16, "name": "长期待摊费用", "accounts": ["1801"], "direction": "debit"},
+      {"row": 17, "name": "非流动资产合计", "formula": "sum(row9:row16)", "is_calculated": true},
+      {"row": 18, "name": "资产总计", "formula": "row(8) + row(17)", "is_calculated": true}
+    ],
+    "liabilities": [
+      {"row": 19, "name": "短期借款", "accounts": ["2001"], "direction": "credit"},
+      {"row": 20, "name": "应付票据", "accounts": ["2201"], "direction": "credit"},
+      {"row": 21, "name": "应付账款", "accounts": ["2202"], "direction": "credit"},
+      {"row": 22, "name": "预收账款", "accounts": ["2203"], "direction": "credit"},
+      {"row": 23, "name": "应付职工薪酬", "accounts": ["2211"], "direction": "credit"},
+      {"row": 24, "name": "应交税费", "accounts": ["2221"], "direction": "credit", "include_children": true},
+      {"row": 25, "name": "其他应付款", "accounts": ["2241"], "direction": "credit"},
+      {"row": 26, "name": "流动负债合计", "formula": "sum(row19:row25)", "is_calculated": true},
+      {"row": 27, "name": "长期借款", "accounts": ["2501"], "direction": "credit"},
+      {"row": 28, "name": "长期应付款", "accounts": ["2701"], "direction": "credit"},
+      {"row": 29, "name": "非流动负债合计", "formula": "sum(row27:row28)", "is_calculated": true},
+      {"row": 30, "name": "负债合计", "formula": "row(26) + row(29)", "is_calculated": true}
+    ],
+    "equity": [
+      {"row": 31, "name": "实收资本", "accounts": ["3001"], "direction": "credit"},
+      {"row": 32, "name": "资本公积", "accounts": ["3002"], "direction": "credit"},
+      {"row": 33, "name": "盈余公积", "accounts": ["3101"], "direction": "credit"},
+      {"row": 34, "name": "未分配利润", "accounts": ["3104", "3103"], "direction": "credit"},
+      {"row": 35, "name": "所有者权益合计", "formula": "sum(row31:row34)", "is_calculated": true},
+      {"row": 36, "name": "负债和所有者权益总计", "formula": "row(30) + row(35)", "is_calculated": true}
+    ]
+  }
+}

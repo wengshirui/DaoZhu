@@ -1,0 +1,42 @@
+[
+  {
+    "id": "impairment_bad_debt",
+    "name": "计提坏账准备",
+    "keywords": ["坏账准备", "计提坏账", "应收减值"],
+    "entries": [
+      {"account_code": "5701", "direction": "debit", "description": "资产减值损失"},
+      {"account_code": "1231", "direction": "credit", "description": "坏账准备"}
+    ],
+    "note": "按预期信用损失模型计提，需评估应收账款的回收风险"
+  },
+  {
+    "id": "impairment_bad_debt_write_off",
+    "name": "核销坏账",
+    "keywords": ["核销坏账", "坏账核销", "确认坏账损失"],
+    "entries": [
+      {"account_code": "1231", "direction": "debit", "description": "坏账准备"},
+      {"account_code": "1122", "direction": "credit", "description": "应收账款"}
+    ],
+    "note": "需经审批，且已确认无法收回"
+  },
+  {
+    "id": "impairment_inventory",
+    "name": "计提存货跌价准备",
+    "keywords": ["存货跌价", "库存减值", "计提跌价"],
+    "entries": [
+      {"account_code": "5701", "direction": "debit", "description": "资产减值损失"},
+      {"account_code": "1471", "direction": "credit", "description": "存货跌价准备"}
+    ],
+    "note": "成本高于可变现净值时计提"
+  },
+  {
+    "id": "impairment_fixed_asset",
+    "name": "计提固定资产减值",
+    "keywords": ["固定资产减值", "设备减值"],
+    "entries": [
+      {"account_code": "5701", "direction": "debit", "description": "资产减值损失"},
+      {"account_code": "1603", "direction": "credit", "description": "固定资产减值准备"}
+    ],
+    "note": "固定资产减值一经计提不得转回"
+  }
+]

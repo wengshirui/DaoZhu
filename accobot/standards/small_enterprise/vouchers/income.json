@@ -1,0 +1,62 @@
+[
+  {
+    "id": "income_goods_bank",
+    "name": "销售商品收款（银行）",
+    "keywords": ["收货款", "销售收入", "卖货", "收到货款", "销售商品"],
+    "entries": [
+      {"account_code": "1002", "direction": "debit", "description": "银行存款"},
+      {"account_code": "5001", "direction": "credit", "description": "主营业务收入"}
+    ],
+    "note": "小规模纳税人价税合计入账；一般纳税人需拆分税额（贷应交增值税）"
+  },
+  {
+    "id": "income_goods_cash",
+    "name": "销售商品收款（现金）",
+    "keywords": ["现金收款", "收现金", "现金销售"],
+    "entries": [
+      {"account_code": "1001", "direction": "debit", "description": "库存现金"},
+      {"account_code": "5001", "direction": "credit", "description": "主营业务收入"}
+    ],
+    "note": "现金收款超过5万元需注意大额现金管理规定"
+  },
+  {
+    "id": "income_service",
+    "name": "提供服务收入",
+    "keywords": ["服务费", "咨询费", "设计费", "技术服务", "服务收入"],
+    "entries": [
+      {"account_code": "1002", "direction": "debit", "description": "银行存款"},
+      {"account_code": "5001", "direction": "credit", "description": "主营业务收入"}
+    ],
+    "note": "服务类收入确认时点：服务完成或按完工百分比"
+  },
+  {
+    "id": "income_other",
+    "name": "其他业务收入",
+    "keywords": ["租金收入", "出租", "废料收入", "材料销售"],
+    "entries": [
+      {"account_code": "1002", "direction": "debit", "description": "银行存款"},
+      {"account_code": "5051", "direction": "credit", "description": "其他业务收入"}
+    ],
+    "note": "非主营业务产生的收入"
+  },
+  {
+    "id": "income_receivable",
+    "name": "赊销（挂应收账款）",
+    "keywords": ["赊销", "挂账", "应收", "欠款", "还没收到钱"],
+    "entries": [
+      {"account_code": "1122", "direction": "debit", "description": "应收账款"},
+      {"account_code": "5001", "direction": "credit", "description": "主营业务收入"}
+    ],
+    "note": "后续收到款项时：借银行存款，贷应收账款"
+  },
+  {
+    "id": "income_collect_receivable",
+    "name": "收回应收账款",
+    "keywords": ["收回欠款", "客户付款", "收到应收", "回款"],
+    "entries": [
+      {"account_code": "1002", "direction": "debit", "description": "银行存款"},
+      {"account_code": "1122", "direction": "credit", "description": "应收账款"}
+    ],
+    "note": "核销对应客户的应收余额"
+  }
+]

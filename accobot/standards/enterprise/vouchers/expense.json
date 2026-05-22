@@ -1,0 +1,44 @@
+[
+  {
+    "id": "expense_rent",
+    "name": "支付房租",
+    "keywords": ["付房租", "房租", "租金", "办公室租金"],
+    "entries": [
+      {"account_code": "5602", "direction": "debit", "description": "管理费用"},
+      {"account_code": "2221", "direction": "debit", "description": "应交税费-应交增值税(进项)"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "一般纳税人取得专票可抵扣进项税额（9%）"
+  },
+  {
+    "id": "expense_purchase_goods",
+    "name": "采购商品/原材料",
+    "keywords": ["采购", "进货", "买货", "购买原材料"],
+    "entries": [
+      {"account_code": "1405", "direction": "debit", "description": "库存商品"},
+      {"account_code": "2221", "direction": "debit", "description": "应交税费-应交增值税(进项)"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "一般纳税人取得专票可抵扣进项税额（13%）"
+  },
+  {
+    "id": "expense_office",
+    "name": "购买办公用品",
+    "keywords": ["办公用品", "文具", "打印纸", "办公耗材"],
+    "entries": [
+      {"account_code": "5602", "direction": "debit", "description": "管理费用"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "金额较小直接费用化"
+  },
+  {
+    "id": "expense_travel",
+    "name": "差旅费报销",
+    "keywords": ["差旅费", "出差", "机票", "住宿费"],
+    "entries": [
+      {"account_code": "5602", "direction": "debit", "description": "管理费用"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "住宿费专票可抵扣进项（6%），交通费计算抵扣"
+  }
+]

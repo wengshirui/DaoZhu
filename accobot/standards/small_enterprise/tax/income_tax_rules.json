@@ -1,0 +1,30 @@
+{
+  "tax_type": "企业所得税",
+  "rules": {
+    "standard_rate": 0.25,
+    "small_micro_policy": {
+      "enabled": true,
+      "threshold_taxable_income": 3000000,
+      "effective_rate": 0.05,
+      "calculation": "应纳税所得额 × 25% × 20% = 实际税负5%",
+      "period": "2023-01-01 至 2027-12-31"
+    },
+    "filing_period": "quarterly_prepay",
+    "prepay_deadline_day": 15,
+    "prepay_months": [1, 4, 7, 10],
+    "annual_settlement": {
+      "deadline": "次年5月31日",
+      "name": "汇算清缴"
+    },
+    "deduction_limits": {
+      "business_entertainment": "发生额60%且不超过营业收入5‰",
+      "advertising": "营业收入15%（超出部分结转）",
+      "donation": "利润总额12%",
+      "r_and_d": "加计扣除100%"
+    }
+  },
+  "accounts": {
+    "expense": "5801",
+    "payable": "2221"
+  }
+}

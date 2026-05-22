@@ -1,0 +1,42 @@
+[
+  {
+    "id": "salary_accrue",
+    "name": "计提工资",
+    "keywords": ["计提工资", "工资计提", "本月工资"],
+    "entries": [
+      {"account_code": "560208", "direction": "debit", "description": "管理费用-工资薪金"},
+      {"account_code": "2211", "direction": "credit", "description": "应付职工薪酬"}
+    ],
+    "note": "销售人员工资计入销售费用，生产人员计入生产成本"
+  },
+  {
+    "id": "salary_pay",
+    "name": "发放工资",
+    "keywords": ["发工资", "付工资", "工资发放", "转工资"],
+    "entries": [
+      {"account_code": "2211", "direction": "debit", "description": "应付职工薪酬"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "实发金额 = 应发 - 个税 - 个人社保公积金"
+  },
+  {
+    "id": "salary_social_insurance",
+    "name": "缴纳社保（单位部分）",
+    "keywords": ["交社保", "社保", "社会保险", "五险"],
+    "entries": [
+      {"account_code": "560209", "direction": "debit", "description": "管理费用-社保费"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "单位承担部分计入费用；个人部分从工资中代扣"
+  },
+  {
+    "id": "salary_housing_fund",
+    "name": "缴纳公积金",
+    "keywords": ["公积金", "住房公积金", "交公积金"],
+    "entries": [
+      {"account_code": "560209", "direction": "debit", "description": "管理费用-社保费"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "单位和个人各承担一半，个人部分从工资代扣"
+  }
+]

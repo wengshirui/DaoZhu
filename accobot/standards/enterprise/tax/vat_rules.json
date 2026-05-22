@@ -1,0 +1,30 @@
+{
+  "tax_type": "增值税",
+  "taxpayer_type": "general",
+  "rules": {
+    "method": "一般计税（销项-进项）",
+    "rates": {
+      "goods": 0.13,
+      "construction": 0.09,
+      "service": 0.06,
+      "transport": 0.09
+    },
+    "input_deduction": true,
+    "filing_period": "monthly",
+    "filing_deadline_day": 15,
+    "exemption": {
+      "enabled": false,
+      "note": "一般纳税人不享受小规模免征优惠"
+    },
+    "special_rules": [
+      "取得增值税专用发票方可抵扣进项",
+      "用于免税项目、集体福利的进项不得抵扣",
+      "留抵税额可申请退还（增量留抵退税）"
+    ]
+  },
+  "accounts": {
+    "output_tax": "222101",
+    "input_tax": "222101",
+    "unpaid": "2221"
+  }
+}

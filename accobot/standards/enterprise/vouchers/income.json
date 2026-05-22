@@ -1,0 +1,45 @@
+[
+  {
+    "id": "income_goods_bank",
+    "name": "销售商品收款（银行）",
+    "keywords": ["收货款", "销售收入", "卖货", "收到货款", "销售商品"],
+    "entries": [
+      {"account_code": "1002", "direction": "debit", "description": "银行存款"},
+      {"account_code": "5001", "direction": "credit", "description": "主营业务收入"},
+      {"account_code": "2221", "direction": "credit", "description": "应交税费-应交增值税(销项)"}
+    ],
+    "note": "一般纳税人需价税分离，销项税额单独列示"
+  },
+  {
+    "id": "income_service",
+    "name": "提供服务收入",
+    "keywords": ["服务费", "咨询费", "设计费", "技术服务", "服务收入"],
+    "entries": [
+      {"account_code": "1002", "direction": "debit", "description": "银行存款"},
+      {"account_code": "5001", "direction": "credit", "description": "主营业务收入"},
+      {"account_code": "2221", "direction": "credit", "description": "应交税费-应交增值税(销项)"}
+    ],
+    "note": "按完工百分比或时点确认收入"
+  },
+  {
+    "id": "income_receivable",
+    "name": "赊销（挂应收账款）",
+    "keywords": ["赊销", "挂账", "应收", "欠款"],
+    "entries": [
+      {"account_code": "1122", "direction": "debit", "description": "应收账款"},
+      {"account_code": "5001", "direction": "credit", "description": "主营业务收入"},
+      {"account_code": "2221", "direction": "credit", "description": "应交税费-应交增值税(销项)"}
+    ],
+    "note": "需同时评估是否需要计提坏账准备"
+  },
+  {
+    "id": "income_collect_receivable",
+    "name": "收回应收账款",
+    "keywords": ["收回欠款", "客户付款", "收到应收", "回款"],
+    "entries": [
+      {"account_code": "1002", "direction": "debit", "description": "银行存款"},
+      {"account_code": "1122", "direction": "credit", "description": "应收账款"}
+    ],
+    "note": "收回后需重新评估坏账准备余额"
+  }
+]

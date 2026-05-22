@@ -30,6 +30,7 @@
 | `REQ-022-transparent-skill-learning.md` | Skill 透明化自动学习 |
 | `REQ-023-accounting-standard-config.md` | 账套会计准则维护 |
 | `REQ-024-business-data-panel.md` | 业务操作区（数据浏览与筛选） |
+| `REQ-025-standard-templates.md` | 会计准则完整配置（科目/凭证模板/报表规则） |
 
 ## 需求状态
 
@@ -68,6 +69,7 @@
 | REQ-022 Skill 透明化自动学习 | 📝 Draft | 纠正检测、主动提议记忆、透明创建、自动应用 |
 | REQ-023 账套会计准则维护 | ✔️ Done | 准则文档生成✔️、企业会计准则模板✔️、Agent动态加载✔️、准则切换（待做） |
 | REQ-024 业务操作区 | ✔️ Done | 面板改造✔️、凭证列表/筛选/详情✔️、科目浏览✔️、账簿余额表✔️、辅助项✔️、待办集中✔️ |
+| REQ-025 会计准则完整配置 | 📝 Draft | 凭证模板预置、模板匹配引擎、报表取数规则、准则差异化 |
 
 ## 目标用户
 

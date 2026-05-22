@@ -1,0 +1,52 @@
+[
+  {
+    "id": "tax_vat_pay",
+    "name": "缴纳增值税",
+    "keywords": ["交增值税", "缴增值税", "增值税缴纳"],
+    "entries": [
+      {"account_code": "2221", "direction": "debit", "description": "应交税费"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "小规模纳税人季度收入≤30万免征（普票部分）"
+  },
+  {
+    "id": "tax_surcharge_pay",
+    "name": "缴纳附加税",
+    "keywords": ["附加税", "城建税", "教育费附加", "交附加税"],
+    "entries": [
+      {"account_code": "5403", "direction": "debit", "description": "税金及附加"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "城建税7%+教育费附加3%+地方教育附加2%，小规模减半征收"
+  },
+  {
+    "id": "tax_income_tax_pay",
+    "name": "缴纳企业所得税",
+    "keywords": ["企业所得税", "交所得税", "所得税缴纳"],
+    "entries": [
+      {"account_code": "5801", "direction": "debit", "description": "所得税费用"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "小微企业优惠：应纳税所得额≤300万，实际税负5%"
+  },
+  {
+    "id": "tax_personal_pay",
+    "name": "代扣代缴个人所得税",
+    "keywords": ["个税", "个人所得税", "代扣个税"],
+    "entries": [
+      {"account_code": "2221", "direction": "debit", "description": "应交税费"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "从员工工资中代扣，申报后统一缴纳"
+  },
+  {
+    "id": "tax_stamp",
+    "name": "缴纳印花税",
+    "keywords": ["印花税", "交印花税"],
+    "entries": [
+      {"account_code": "5403", "direction": "debit", "description": "税金及附加"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "购销合同0.03%，租赁合同0.1%，小规模减半"
+  }
+]

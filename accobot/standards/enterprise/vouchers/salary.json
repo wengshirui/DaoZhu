@@ -1,0 +1,32 @@
+[
+  {
+    "id": "salary_accrue",
+    "name": "计提工资",
+    "keywords": ["计提工资", "工资计提", "本月工资"],
+    "entries": [
+      {"account_code": "5602", "direction": "debit", "description": "管理费用"},
+      {"account_code": "2211", "direction": "credit", "description": "应付职工薪酬"}
+    ],
+    "note": "销售人员计入销售费用，生产人员计入生产成本"
+  },
+  {
+    "id": "salary_pay",
+    "name": "发放工资",
+    "keywords": ["发工资", "付工资", "工资发放"],
+    "entries": [
+      {"account_code": "2211", "direction": "debit", "description": "应付职工薪酬"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "实发 = 应发 - 个税 - 个人社保公积金"
+  },
+  {
+    "id": "salary_social_insurance",
+    "name": "缴纳社保（单位部分）",
+    "keywords": ["交社保", "社保", "五险"],
+    "entries": [
+      {"account_code": "5602", "direction": "debit", "description": "管理费用"},
+      {"account_code": "1002", "direction": "credit", "description": "银行存款"}
+    ],
+    "note": "单位承担部分计入费用"
+  }
+]

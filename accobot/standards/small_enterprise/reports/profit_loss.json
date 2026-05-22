@@ -1,0 +1,91 @@
+{
+  "name": "利润表",
+  "standard": "small_enterprise",
+  "period_type": "monthly",
+  "items": [
+    {
+      "row": 1,
+      "name": "一、营业收入",
+      "formula": "credit_occur(5001) + credit_occur(5051)",
+      "accounts": ["5001", "5051"],
+      "direction": "credit"
+    },
+    {
+      "row": 2,
+      "name": "减：营业成本",
+      "formula": "debit_occur(5401) + debit_occur(5402)",
+      "accounts": ["5401", "5402"],
+      "direction": "debit"
+    },
+    {
+      "row": 3,
+      "name": "税金及附加",
+      "formula": "debit_occur(5403)",
+      "accounts": ["5403"],
+      "direction": "debit"
+    },
+    {
+      "row": 4,
+      "name": "销售费用",
+      "formula": "debit_occur(5601*)",
+      "accounts": ["5601"],
+      "direction": "debit",
+      "include_children": true
+    },
+    {
+      "row": 5,
+      "name": "管理费用",
+      "formula": "debit_occur(5602*)",
+      "accounts": ["5602"],
+      "direction": "debit",
+      "include_children": true
+    },
+    {
+      "row": 6,
+      "name": "财务费用",
+      "formula": "debit_occur(5603*)",
+      "accounts": ["5603"],
+      "direction": "debit",
+      "include_children": true
+    },
+    {
+      "row": 7,
+      "name": "二、营业利润",
+      "formula": "row(1) - row(2) - row(3) - row(4) - row(5) - row(6)",
+      "is_calculated": true
+    },
+    {
+      "row": 8,
+      "name": "加：营业外收入",
+      "formula": "credit_occur(5301)",
+      "accounts": ["5301"],
+      "direction": "credit"
+    },
+    {
+      "row": 9,
+      "name": "减：营业外支出",
+      "formula": "debit_occur(5711)",
+      "accounts": ["5711"],
+      "direction": "debit"
+    },
+    {
+      "row": 10,
+      "name": "三、利润总额",
+      "formula": "row(7) + row(8) - row(9)",
+      "is_calculated": true
+    },
+    {
+      "row": 11,
+      "name": "减：所得税费用",
+      "formula": "debit_occur(5801)",
+      "accounts": ["5801"],
+      "direction": "debit"
+    },
+    {
+      "row": 12,
+      "name": "四、净利润",
+      "formula": "row(10) - row(11)",
+      "is_calculated": true
+    }
+  ]
+}

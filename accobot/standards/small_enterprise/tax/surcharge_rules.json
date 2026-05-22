@@ -1,0 +1,28 @@
+{
+  "tax_type": "附加税",
+  "rules": {
+    "base": "以实际缴纳的增值税为计税依据",
+    "items": [
+      {"name": "城市维护建设税", "rate": 0.07, "note": "市区7%，县城5%，其他1%"},
+      {"name": "教育费附加", "rate": 0.03},
+      {"name": "地方教育附加", "rate": 0.02}
+    ],
+    "total_rate": 0.12,
+    "half_reduction": {
+      "enabled": true,
+      "scope": "小规模纳税人",
+      "effective_rate": 0.06,
+      "period": "2023-01-01 至 2027-12-31"
+    },
+    "exemption": {
+      "condition": "月销售额≤10万（季度≤30万）免征教育费附加和地方教育附加",
+      "city_tax_still_applies": false,
+      "note": "增值税免征时附加税也免征"
+    },
+    "filing_period": "随增值税一并申报"
+  },
+  "accounts": {
+    "expense": "5403",
+    "payable": "2221"
+  }
+}

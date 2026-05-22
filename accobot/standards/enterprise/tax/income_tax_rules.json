@@ -1,0 +1,33 @@
+{
+  "tax_type": "企业所得税",
+  "rules": {
+    "standard_rate": 0.25,
+    "high_tech_rate": 0.15,
+    "filing_period": "quarterly_prepay",
+    "prepay_deadline_day": 15,
+    "annual_settlement_deadline": "次年5月31日",
+    "deferred_tax": {
+      "required": true,
+      "note": "需识别暂时性差异，确认递延所得税资产/负债",
+      "common_differences": [
+        "坏账准备（税法不认可计提，实际发生时扣除）",
+        "资产减值准备（税法不认可）",
+        "固定资产折旧差异（会计年限 vs 税法年限）",
+        "预计负债（税法实际发生时扣除）"
+      ]
+    },
+    "adjustment_items": [
+      "业务招待费：发生额60%且不超过收入5‰",
+      "广告费：收入15%（超出结转）",
+      "罚款支出：不得扣除",
+      "税收滞纳金：不得扣除",
+      "赞助支出：不得扣除（非公益性）"
+    ]
+  },
+  "accounts": {
+    "current_expense": "5801",
+    "deferred_asset": "1811",
+    "deferred_liability": "2601",
+    "payable": "2221"
+  }
+}

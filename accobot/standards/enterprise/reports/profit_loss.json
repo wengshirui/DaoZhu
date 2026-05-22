@@ -1,0 +1,22 @@
+{
+  "name": "利润表",
+  "standard": "enterprise",
+  "period_type": "monthly",
+  "items": [
+    {"row": 1, "name": "一、营业收入", "accounts": ["5001", "5051"], "direction": "credit"},
+    {"row": 2, "name": "减：营业成本", "accounts": ["5401", "5402"], "direction": "debit"},
+    {"row": 3, "name": "税金及附加", "accounts": ["5403"], "direction": "debit"},
+    {"row": 4, "name": "销售费用", "accounts": ["5601"], "direction": "debit", "include_children": true},
+    {"row": 5, "name": "管理费用", "accounts": ["5602"], "direction": "debit", "include_children": true},
+    {"row": 6, "name": "财务费用", "accounts": ["5603"], "direction": "debit", "include_children": true},
+    {"row": 7, "name": "资产减值损失", "accounts": ["5701"], "direction": "debit"},
+    {"row": 8, "name": "加：公允价值变动收益", "accounts": ["5121"], "direction": "credit"},
+    {"row": 9, "name": "投资收益", "accounts": ["5111"], "direction": "credit"},
+    {"row": 10, "name": "二、营业利润", "formula": "row(1)-row(2)-row(3)-row(4)-row(5)-row(6)-row(7)+row(8)+row(9)", "is_calculated": true},
+    {"row": 11, "name": "加：营业外收入", "accounts": ["5301"], "direction": "credit"},
+    {"row": 12, "name": "减：营业外支出", "accounts": ["5711"], "direction": "debit"},
+    {"row": 13, "name": "三、利润总额", "formula": "row(10)+row(11)-row(12)", "is_calculated": true},
+    {"row": 14, "name": "减：所得税费用", "accounts": ["5801"], "direction": "debit"},
+    {"row": 15, "name": "四、净利润", "formula": "row(13)-row(14)", "is_calculated": true}
+  ]
+}
