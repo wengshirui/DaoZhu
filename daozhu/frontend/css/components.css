@@ -260,3 +260,19 @@
   transform: translateX(-50%) translateY(0);
   pointer-events: auto;
 }
+
+
+/* === 拖拽排序 === */
+.card[draggable="true"] {
+  cursor: grab;
+}
+
+.card--dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+.card--dragover {
+  border-top: 2px solid var(--accent);
+  padding-top: 10px;
+}

@@ -219,6 +219,31 @@ async def refresh_workspaces():
     return {"success": True, "count": len(manager.workspaces)}
 
 
+@app.post("/api/workspaces/reorder")
+async def reorder_workspaces(body: dict):
+    """更新工作区显示顺序"""
+    order = body.get("order", [])  # ["todo", "accobot", "forum"]
+    if not order:
+        raise HTTPException(400, "order 不能为空")
+
+    for i, ws_id in enumerate(order):
+        ws = manager.get_workspace(ws_id)
+        if ws:
+            # 更新 workspace.json 中的 sort_order
+            ws_json_path = ws.path / "workspace.json"
+            if ws_json_path.exists():
+                data = json.loads(ws_json_path.read_text(encoding="utf-8"))
+                data["sort_order"] = i
+                ws_json_path.write_text(
+                    json.dumps(data, ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
+
+    # 重新发现以更新内存中的顺序
+    manager.discover()
+    return {"success": True}
+
+
 # === 技能 API ===
 @app.get("/api/skills")
 async def get_skills():

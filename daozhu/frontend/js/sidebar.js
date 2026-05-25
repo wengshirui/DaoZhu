@@ -96,6 +96,50 @@ const Sidebar = {
 
   _bindWorkspaceClicks(container) {
     container.querySelectorAll('.card').forEach(card => {
+      // 启用拖拽
+      card.setAttribute('draggable', 'true');
+
+      card.addEventListener('dragstart', (e) => {
+        card.classList.add('card--dragging');
+        e.dataTransfer.setData('text/plain', card.dataset.id);
+        e.dataTransfer.effectAllowed = 'move';
+      });
+
+      card.addEventListener('dragend', () => {
+        card.classList.remove('card--dragging');
+        container.querySelectorAll('.card--dragover').forEach(c => c.classList.remove('card--dragover'));
+      });
+
+      card.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        card.classList.add('card--dragover');
+      });
+
+      card.addEventListener('dragleave', () => {
+        card.classList.remove('card--dragover');
+      });
+
+      card.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        card.classList.remove('card--dragover');
+        const draggedId = e.dataTransfer.getData('text/plain');
+        if (draggedId === card.dataset.id) return;
+
+        // 重新排列 DOM
+        const draggedEl = container.querySelector(`[data-id="${draggedId}"]`);
+        container.insertBefore(draggedEl, card);
+
+        // 收集新顺序并保存
+        const order = Array.from(container.querySelectorAll('.card')).map(c => c.dataset.id);
+        await fetch('/api/workspaces/reorder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order }),
+        });
+        Panel.addLog('info', '工作区顺序已更新');
+      });
+
       // 单击：显示 README
       card.addEventListener('click', async () => {
         const id = card.dataset.id;

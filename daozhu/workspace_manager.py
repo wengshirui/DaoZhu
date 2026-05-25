@@ -48,6 +48,7 @@ class WorkspaceInfo:
     start_mode: str = "manual"
     hidden: bool = False
     source: str = "self-built"
+    sort_order: int = 99
 
     # 运行时状态（不持久化）
     status: WorkspaceStatus = WorkspaceStatus.STOPPED
@@ -73,6 +74,7 @@ class WorkspaceInfo:
             "start_mode": self.start_mode,
             "status": self.status.value,
             "source": self.source,
+            "sort_order": self.sort_order,
         }
 
 
@@ -134,6 +136,7 @@ class WorkspaceManager:
             start_mode=data.get("start_mode", "manual"),
             hidden=data.get("hidden", False),
             source=data.get("source", "self-built"),
+            sort_order=data.get("sort_order", 99),
         )
 
     # === 端口分配 ===
@@ -389,12 +392,13 @@ class WorkspaceManager:
     # === 查询 ===
 
     def list_workspaces(self, include_hidden: bool = False) -> list[dict]:
-        """返回工作区列表（前端 API 用）"""
+        """返回工作区列表（前端 API 用），按 sort_order 排序"""
         result = []
         for ws in self.workspaces.values():
             if ws.status == WorkspaceStatus.HIDDEN and not include_hidden:
                 continue
             result.append(ws.to_dict())
+        result.sort(key=lambda x: x.get("sort_order", 99))
         return result
 
     def get_workspace(self, workspace_id: str) -> Optional[WorkspaceInfo]:
