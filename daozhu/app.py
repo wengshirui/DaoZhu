@@ -44,12 +44,26 @@ app = FastAPI(title="岛主 DaoZhu", version="0.1.0", lifespan=lifespan)
 # === 页面路由 ===
 @app.get("/")
 async def index():
-    """返回主界面（未配置时跳转引导页）"""
-    from .config import get_api_key, ENV_FILE
-    # 检查是否已配置 API Key
-    if not ENV_FILE.exists() or not get_api_key():
+    """返回主界面（未配置且未跳过引导时跳转引导页）"""
+    from fastapi import Request
+    from .config import get_api_key, ENV_FILE, PLATFORM_ROOT
+
+    # 检查是否已跳过引导（config.json 中标记）
+    config_file = PLATFORM_ROOT / "config.json"
+    skipped = False
+    if config_file.exists():
+        import json as _json
+        try:
+            cfg = _json.loads(config_file.read_text(encoding="utf-8"))
+            skipped = cfg.get("onboarding_skipped", False)
+        except Exception:
+            pass
+
+    # 未配置 API Key 且未跳过 → 跳转引导
+    if not skipped and (not ENV_FILE.exists() or not get_api_key()):
         from fastapi.responses import RedirectResponse
         return RedirectResponse("/onboarding")
+
     return FileResponse(FRONTEND_DIR / "index.html")
 
 

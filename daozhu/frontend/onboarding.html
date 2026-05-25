@@ -211,7 +211,14 @@
       },
 
       skip() {
-        this.next(2);
+        // 标记已跳过，后端不再强制跳转
+        fetch('/api/config/onboarding_skipped', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value: true }),
+        }).then(() => {
+          window.location.href = '/';
+        });
       },
 
       finish() {
