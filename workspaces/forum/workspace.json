@@ -1,0 +1,15 @@
+{
+  "id": "forum",
+  "name": "岛主论坛",
+  "icon": "🏝️",
+  "color": "#6366F1",
+  "version": "1.0.0",
+  "description": "岛民交流，分享经验",
+  "port": 7802,
+  "entry": "app.py",
+  "python": ".venv",
+  "tags": ["社区", "交流"],
+  "start_mode": "on-demand",
+  "hidden": false,
+  "source": "self-built"
+}

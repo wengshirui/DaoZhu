@@ -1,0 +1,262 @@
+/* components.css — 卡片、列表、徽章：岛屿有机风格 */
+
+/* === 工作区卡片 === */
+.card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 6px;
+  border: 1px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--accent-light), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.card:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-color);
+  box-shadow: var(--shadow-sm);
+  transform: translateX(3px);
+}
+
+.card:hover::before {
+  opacity: 1;
+}
+
+.card:active {
+  transform: translateX(1px) scale(0.98);
+}
+
+.card__icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  transition: transform 0.3s;
+}
+
+.card:hover .card__icon {
+  transform: scale(1.1) rotate(-3deg);
+}
+
+.card__body {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.card__name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.card__desc {
+  font-size: 0.73rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* === 状态徽章 === */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  padding: 3px 8px;
+  border-radius: 20px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.badge--running {
+  background: rgba(61, 168, 122, 0.12);
+  color: var(--success);
+}
+
+.badge--stopped {
+  background: rgba(155, 176, 168, 0.12);
+  color: var(--text-muted);
+}
+
+.badge--connected {
+  background: rgba(45, 155, 131, 0.1);
+  color: var(--accent);
+}
+
+.badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.badge--running .badge__dot {
+  animation: breathe 2s ease-in-out infinite;
+}
+
+/* === 历史对话列表 === */
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.history-item:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-light);
+  transform: translateX(2px);
+}
+
+.history-item__icon {
+  color: var(--text-muted);
+  font-size: 1rem;
+  transition: transform 0.2s;
+}
+
+.history-item:hover .history-item__icon {
+  transform: scale(1.15);
+}
+
+.history-item__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-item__title {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-item__time {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* === 日志列表 === */
+.log-entry {
+  font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  border-radius: 4px;
+  margin-bottom: 3px;
+  line-height: 1.7;
+  border-left: 2px solid transparent;
+  transition: background 0.2s;
+}
+
+.log-entry:hover {
+  background: var(--bg-hover);
+}
+
+.log-entry--info {
+  color: var(--text-secondary);
+  border-left-color: var(--ocean);
+}
+
+.log-entry--success {
+  color: var(--success);
+  border-left-color: var(--success);
+}
+
+.log-entry--warning {
+  color: var(--warning);
+  border-left-color: var(--warning);
+}
+
+.log-entry--error {
+  color: var(--error);
+  border-left-color: var(--error);
+}
+
+/* === 空状态 === */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.empty-state__icon {
+  font-size: 2.8rem;
+  margin-bottom: 14px;
+  animation: gentleFloat 3s ease-in-out infinite;
+}
+
+.empty-state__title {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.empty-state__desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* === 错误提示 === */
+.error-toast {
+  position: fixed;
+  top: 68px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-10px);
+  background: var(--error);
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: var(--radius-lg);
+  font-size: 0.85rem;
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+}
+
+.error-toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}

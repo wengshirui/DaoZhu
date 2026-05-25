@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>个人待办 📋</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <div class="app">
+    <!-- 侧边栏：项目列表 -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__header">
+        <h1 class="sidebar__title">📋 待办</h1>
+      </div>
+      <nav class="sidebar__nav">
+        <button class="nav-item nav-item--active" data-filter="all">
+          <span class="nav-item__icon">📥</span>
+          <span class="nav-item__text">全部任务</span>
+          <span class="nav-item__count" id="count-all">0</span>
+        </button>
+        <button class="nav-item" data-filter="today">
+          <span class="nav-item__icon">☀️</span>
+          <span class="nav-item__text">今日聚焦</span>
+          <span class="nav-item__count" id="count-today">0</span>
+        </button>
+        <button class="nav-item" data-filter="in_progress">
+          <span class="nav-item__icon">🔥</span>
+          <span class="nav-item__text">进行中</span>
+          <span class="nav-item__count" id="count-progress">0</span>
+        </button>
+        <button class="nav-item" data-filter="done">
+          <span class="nav-item__icon">✅</span>
+          <span class="nav-item__text">已完成</span>
+          <span class="nav-item__count" id="count-done">0</span>
+        </button>
+      </nav>
+      <div class="sidebar__divider"></div>
+      <div class="sidebar__section">
+        <h3 class="sidebar__label">项目</h3>
+        <div id="project-list"></div>
+      </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main">
+      <header class="main__header">
+        <h2 class="main__title" id="view-title">全部任务</h2>
+        <div class="main__actions">
+          <select class="filter-select" id="priority-filter">
+            <option value="">全部优先级</option>
+            <option value="urgent">🔴 紧急</option>
+            <option value="high">🟠 高</option>
+            <option value="medium">🟡 中</option>
+            <option value="low">🟢 低</option>
+          </select>
+        </div>
+      </header>
+
+      <!-- 新建任务输入 -->
+      <form class="task-input" id="task-form">
+        <input
+          type="text"
+          class="task-input__field"
+          id="task-title"
+          placeholder="添加新任务... 按 Enter 创建"
+          autocomplete="off"
+        >
+        <button type="submit" class="task-input__btn">添加</button>
+      </form>
+
+      <!-- 任务列表 -->
+      <div class="task-list" id="task-list">
+        <!-- 动态渲染 -->
+      </div>
+    </main>
+  </div>
+
+  <!-- 任务详情弹窗 -->
+  <dialog class="modal" id="task-modal">
+    <form class="modal__content" id="modal-form">
+      <header class="modal__header">
+        <h3 class="modal__title">任务详情</h3>
+        <button type="button" class="modal__close" id="modal-close">✕</button>
+      </header>
+      <div class="modal__body">
+        <input type="text" class="modal__input" id="modal-title" placeholder="任务标题">
+        <textarea class="modal__textarea" id="modal-desc" placeholder="添加描述..." rows="3"></textarea>
+        <div class="modal__row">
+          <label>优先级</label>
+          <select id="modal-priority" class="modal__select">
+            <option value="low">🟢 低</option>
+            <option value="medium">🟡 中</option>
+            <option value="high">🟠 高</option>
+            <option value="urgent">🔴 紧急</option>
+          </select>
+        </div>
+        <div class="modal__row">
+          <label>截止日期</label>
+          <input type="date" id="modal-due" class="modal__date">
+        </div>
+        <div class="modal__row">
+          <label>项目</label>
+          <select id="modal-project" class="modal__select"></select>
+        </div>
+      </div>
+      <footer class="modal__footer">
+        <button type="button" class="btn btn--danger" id="modal-delete">删除</button>
+        <button type="submit" class="btn btn--primary">保存</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

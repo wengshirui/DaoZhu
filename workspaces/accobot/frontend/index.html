@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>财务助手 💰</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <h1 class="sidebar__title">💰 财务助手</h1>
+      <nav class="sidebar__nav">
+        <button class="nav-btn active" data-view="overview">📊 总览</button>
+        <button class="nav-btn" data-view="accounts">📋 科目</button>
+        <button class="nav-btn" data-view="vouchers">📝 凭证</button>
+        <button class="nav-btn" data-view="companies">🏢 公司</button>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <!-- 总览 -->
+      <section class="view active" id="view-overview">
+        <h2>📊 财务总览</h2>
+        <div class="stats" id="stats"></div>
+        <h3>最近凭证</h3>
+        <div id="recent-vouchers"></div>
+      </section>
+
+      <!-- 科目 -->
+      <section class="view" id="view-accounts">
+        <h2>📋 会计科目</h2>
+        <div class="toolbar">
+          <input type="text" id="account-search" placeholder="搜索科目...">
+          <button class="btn" id="btn-add-account">+ 新增科目</button>
+        </div>
+        <div id="account-list"></div>
+      </section>
+
+      <!-- 凭证 -->
+      <section class="view" id="view-vouchers">
+        <h2>📝 记账凭证</h2>
+        <div class="toolbar">
+          <button class="btn btn--primary" id="btn-add-voucher">+ 新建凭证</button>
+        </div>
+        <div id="voucher-list"></div>
+      </section>
+
+      <!-- 公司 -->
+      <section class="view" id="view-companies">
+        <h2>🏢 公司管理</h2>
+        <div id="company-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

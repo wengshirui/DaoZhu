@@ -1,0 +1,15 @@
+{
+  "id": "todo",
+  "name": "个人待办",
+  "icon": "📋",
+  "color": "#10B981",
+  "version": "1.0.0",
+  "description": "任务管理，待办清单",
+  "port": 7801,
+  "entry": "app.py",
+  "python": ".venv",
+  "tags": ["效率", "待办"],
+  "start_mode": "manual",
+  "hidden": false,
+  "source": "self-built"
+}

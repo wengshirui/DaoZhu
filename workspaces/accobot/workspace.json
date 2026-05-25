@@ -1,0 +1,15 @@
+{
+  "id": "accobot",
+  "name": "财务助手",
+  "icon": "💰",
+  "color": "#2563EB",
+  "version": "1.0.0",
+  "description": "公司财务信息管理：科目、凭证、账簿、报表",
+  "port": 7803,
+  "entry": "app.py",
+  "python": ".venv",
+  "tags": ["财务", "记账", "报表"],
+  "start_mode": "manual",
+  "hidden": false,
+  "source": "https://gitee.com/yumen2278/accobot"
+}

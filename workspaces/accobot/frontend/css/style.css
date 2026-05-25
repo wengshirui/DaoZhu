@@ -1,0 +1,112 @@
+/* 财务助手 — 专业蓝色调 */
+@import url('https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f0f4f8;
+  --card: #ffffff;
+  --sidebar-bg: #1e3a5f;
+  --sidebar-text: #e2e8f0;
+  --text: #1e293b;
+  --muted: #64748b;
+  --accent: #2563eb;
+  --accent-light: #eff6ff;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --border: #e2e8f0;
+  --radius: 8px;
+}
+
+body {
+  font-family: "LXGW WenKai", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app { display: flex; height: 100vh; }
+
+/* 侧栏 */
+.sidebar {
+  width: 200px;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar__title { font-size: 1.1rem; padding: 0 8px; }
+
+.sidebar__nav { display: flex; flex-direction: column; gap: 4px; }
+
+.nav-btn {
+  text-align: left;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  color: var(--sidebar-text);
+  border-radius: var(--radius);
+  font: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: all 0.2s;
+}
+
+.nav-btn:hover { opacity: 1; background: rgba(255,255,255,0.1); }
+.nav-btn.active { opacity: 1; background: rgba(255,255,255,0.15); font-weight: 500; }
+
+/* 主区域 */
+.main {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.main h2 { font-size: 1.3rem; margin-bottom: 16px; }
+.main h3 { font-size: 1rem; margin: 16px 0 8px; color: var(--muted); }
+
+.view { display: none; }
+.view.active { display: block; }
+
+/* 工具栏 */
+.toolbar { display: flex; gap: 8px; margin-bottom: 16px; }
+.toolbar input {
+  flex: 1; padding: 8px 12px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  font: inherit;
+}
+
+/* 按钮 */
+.btn {
+  padding: 8px 14px; border: 1px solid var(--border);
+  border-radius: var(--radius); font: inherit; cursor: pointer;
+  background: var(--card);
+}
+.btn--primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn--primary:hover { background: #1d4ed8; }
+
+/* 统计卡片 */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.stat-card {
+  background: var(--card); padding: 16px; border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+.stat-card__label { font-size: 0.8rem; color: var(--muted); }
+.stat-card__value { font-size: 1.4rem; font-weight: 600; margin-top: 4px; }
+
+/* 表格 */
+.table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.table th, .table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+.table th { background: var(--bg); color: var(--muted); font-weight: 500; }
+.table tr:hover { background: var(--accent-light); }
+
+/* 状态标签 */
+.tag { padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
+.tag--draft { background: #fef3c7; color: #92400e; }
+.tag--posted { background: #d1fae5; color: #065f46; }
+.tag--void { background: #fee2e2; color: #991b1b; }

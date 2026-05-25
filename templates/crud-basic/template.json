@@ -1,0 +1,29 @@
+{
+  "id": "crud-basic",
+  "name": "基础增删改查",
+  "description": "最简单的 CRUD 工作区模板：列表 + 表单 + SQLite",
+  "icon": "📝",
+  "variables": {
+    "id": "工作区 ID（kebab-case）",
+    "name": "显示名称",
+    "icon": "emoji 图标",
+    "color": "主题色 HEX",
+    "port": "端口号",
+    "description": "一句话描述",
+    "table_name": "数据库主表名",
+    "entity_name": "实体名称（中文）",
+    "tags": "标签数组 JSON",
+    "date": "创建日期"
+  },
+  "files": [
+    "app.py.tmpl",
+    "db.py.tmpl",
+    "schema.sql.tmpl",
+    "workspace.json.tmpl",
+    "routes/__init__.py.tmpl",
+    "routes/items.py.tmpl",
+    "frontend/index.html.tmpl",
+    "frontend/css/style.css.tmpl",
+    "frontend/js/app.js.tmpl"
+  ]
+}

@@ -1,0 +1,153 @@
+/* base.css — 个人待办：工业实用 × 温暖纸质美学 */
+
+@import url('https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css');
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* 纸质暖色调 */
+  --bg-page: #f9f6f0;
+  --bg-card: #fffdf8;
+  --bg-sidebar: #f3efe6;
+  --bg-hover: rgba(139, 90, 43, 0.05);
+  --bg-input: #ffffff;
+
+  /* 墨水色文字 */
+  --text-ink: #2c2416;
+  --text-body: #5c4d3c;
+  --text-muted: #9c8b78;
+  --text-light: #c4b5a2;
+
+  /* 功能色 */
+  --accent: #c0713a;
+  --accent-hover: #a85f2e;
+  --accent-light: rgba(192, 113, 58, 0.1);
+  --success: #5a8a5e;
+  --danger: #b54a4a;
+  --progress: #c49a3c;
+
+  /* 优先级色 */
+  --priority-urgent: #c0392b;
+  --priority-high: #d35400;
+  --priority-medium: #c49a3c;
+  --priority-low: #5a8a5e;
+
+  /* 边框 */
+  --border: rgba(139, 90, 43, 0.12);
+  --border-strong: rgba(139, 90, 43, 0.25);
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 3px rgba(44, 36, 22, 0.06);
+  --shadow-md: 0 3px 10px rgba(44, 36, 22, 0.08);
+  --shadow-lg: 0 8px 24px rgba(44, 36, 22, 0.12);
+
+  /* 圆角 */
+  --radius: 8px;
+  --radius-lg: 12px;
+
+  /* 布局 */
+  --sidebar-w: 240px;
+}
+
+html {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+body {
+  font-family: "LXGW WenKai", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg-page);
+  color: var(--text-body);
+  height: 100vh;
+  overflow: hidden;
+  /* 纸张纹理 */
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(192, 113, 58, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(90, 138, 94, 0.03) 0%, transparent 40%);
+}
+
+.app {
+  display: flex;
+  height: 100vh;
+}
+
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input, textarea, select {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  background: var(--bg-input);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+/* 通用按钮 */
+.btn {
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  font-weight: 500;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn--primary:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn--danger {
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.btn--danger:hover {
+  background: var(--danger);
+  color: #fff;
+}
+
+/* 滚动条 */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--text-light); border-radius: 3px; }
+
+/* 动画 */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes strikethrough {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+@keyframes checkPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
