@@ -1,0 +1,689 @@
+/* ═══════════════════════════════════════════════
+   数据看板 — 优化版样式
+   设计方向: 精致数据玩具 · 杂志感排版 · 微动效
+   字体: LXGW WenKai 标题 + Inter 数据
+   主题色由模板变量 {{color}} 驱动
+   ═══════════════════════════════════════════════ */
+
+/* ── CSS 变量 ── */
+:root {
+    --accent: {{color}};
+    --accent-light: color-mix(in srgb, var(--accent) 15%, #fff);
+    --accent-glow: color-mix(in srgb, var(--accent) 30%, transparent);
+
+    --bg: #f4f3f0;
+    --bg-card: #ffffff;
+    --text: #1a1a1a;
+    --text-secondary: #8a8a8e;
+    --border: #e8e6e3;
+    --radius-sm: 8px;
+    --radius: 14px;
+    --radius-lg: 20px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow: 0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.06);
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Reset + Base ── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap');
+
+body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 32px min(48px, 5vw);
+    max-width: 1280px;
+    margin: 0 auto;
+    min-height: 100vh;
+    line-height: 1.5;
+    /* 细微点阵纹理背景 */
+    background-image:
+        radial-gradient(circle, rgba(0,0,0,0.03) 1px, transparent 1px);
+    background-size: 24px 24px;
+}
+
+/* ── 头部 ── */
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.app-header h1 {
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-icon {
+    font-size: 28px;
+    line-height: 1;
+}
+
+.header-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* ── 按钮系统 ── */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s var(--ease);
+    background: var(--bg-card);
+    color: var(--text);
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.btn:hover {
+    box-shadow: var(--shadow);
+    transform: translateY(-1px);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+
+.btn-primary:hover {
+    box-shadow: 0 4px 16px var(--accent-glow);
+}
+
+.btn-outline {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-light);
+}
+
+.btn-ghost {
+    border-color: transparent;
+    background: transparent;
+}
+.btn-ghost:hover {
+    background: var(--bg);
+    box-shadow: none;
+}
+
+/* ── 指标卡片网格 ── */
+.metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+/* 卡片交错入场动画 */
+@keyframes card-in {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.metric-card {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s var(--ease);
+    animation: card-in 0.5s var(--ease) both;
+}
+
+.metric-card:nth-child(1) { animation-delay: 0s; }
+.metric-card:nth-child(2) { animation-delay: 0.06s; }
+.metric-card:nth-child(3) { animation-delay: 0.12s; }
+.metric-card:nth-child(4) { animation-delay: 0.18s; }
+.metric-card:nth-child(5) { animation-delay: 0.24s; }
+.metric-card:nth-child(6) { animation-delay: 0.30s; }
+
+.metric-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-3px);
+}
+
+/* 卡片顶部色带 */
+.metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.3s var(--ease);
+}
+
+.metric-card:hover::before {
+    opacity: 1;
+}
+
+.metric-card .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.metric-card .card-icon {
+    font-size: 32px;
+    line-height: 1;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.08));
+}
+
+.metric-card .card-category {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--bg);
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.3px;
+}
+
+.metric-card .card-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    letter-spacing: 0.2px;
+}
+
+.metric-card .card-value {
+    font-size: 32px;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.8px;
+    margin-bottom: 2px;
+}
+
+.metric-card .card-unit {
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    margin-left: 4px;
+}
+
+.metric-card .card-target-bar {
+    height: 4px;
+    background: var(--bg);
+    border-radius: 2px;
+    margin-top: 12px;
+    overflow: hidden;
+}
+
+.metric-card .card-target-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #fff));
+    transition: width 0.8s var(--ease);
+}
+
+.metric-card .card-target-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.metric-card .card-trend {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+
+.trend-up {
+    color: #16a34a;
+}
+.trend-up .trend-badge {
+    background: #dcfce7;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.trend-down {
+    color: #dc2626;
+}
+.trend-down .trend-badge {
+    background: #fef2f2;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.trend-flat {
+    color: var(--text-secondary);
+}
+.trend-flat .trend-badge {
+    background: var(--bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.metric-card .card-note {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    font-style: italic;
+}
+
+.metric-card .card-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 14px;
+    opacity: 0;
+    transition: opacity 0.2s var(--ease);
+}
+
+.metric-card:hover .card-actions,
+.metric-card:focus-within .card-actions {
+    opacity: 1;
+}
+
+.metric-card .card-actions button {
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.15s var(--ease);
+    line-height: 1;
+}
+
+.metric-card .card-actions button:hover {
+    color: var(--text);
+    border-color: var(--text);
+    background: var(--bg);
+}
+
+/* ── 空状态 ── */
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text-secondary);
+}
+
+.empty-state .empty-icon {
+    font-size: 56px;
+    margin-bottom: 16px;
+    opacity: 0.6;
+}
+
+.empty-state p {
+    font-size: 15px;
+    line-height: 1.8;
+}
+
+/* ── 加载骨架屏 ── */
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.loading {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+}
+
+.skeleton-card {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+}
+
+.skeleton-line {
+    height: 14px;
+    border-radius: 7px;
+    background: linear-gradient(90deg,
+        var(--bg) 25%,
+        var(--border) 50%,
+        var(--bg) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    margin-bottom: 12px;
+}
+
+.skeleton-line:first-child { width: 40%; height: 12px; }
+.skeleton-line:nth-child(2) { width: 70%; height: 28px; }
+.skeleton-line:nth-child(3) { width: 55%; height: 12px; }
+.skeleton-line:last-child { width: 90%; height: 12px; margin-bottom: 0; }
+
+/* ── 分类栏 ── */
+.category-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.category-chip {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s var(--ease);
+    color: var(--text-secondary);
+}
+
+.category-chip:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+.category-chip.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    box-shadow: 0 2px 12px var(--accent-glow);
+}
+
+/* ── 记录表格 ── */
+.table-section {
+    margin-top: 8px;
+}
+
+.table-section h2 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.record-table table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    font-size: 13px;
+}
+
+.record-table th {
+    text-align: left;
+    padding: 14px 18px;
+    background: var(--bg);
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+}
+
+.record-table td {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+
+.record-table tr:last-child td {
+    border-bottom: none;
+}
+
+.record-table tbody tr:hover td {
+    background: color-mix(in srgb, var(--accent) 3%, var(--bg-card));
+}
+
+.record-table .del-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 18px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.15s;
+    line-height: 1;
+}
+
+.record-table .del-btn:hover {
+    color: #dc2626;
+    background: #fef2f2;
+}
+
+.record-table .record-value {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── 弹窗 ── */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    animation: fade-in 0.2s var(--ease);
+}
+
+@keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes modal-in {
+    from {
+        opacity: 0;
+        transform: scale(0.92) translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modal {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    width: 500px;
+    max-width: 92vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.2);
+    animation: modal-in 0.25s var(--ease);
+}
+
+.modal h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    letter-spacing: -0.3px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border);
+    font-size: 14px;
+    background: var(--bg-card);
+    color: var(--text);
+    transition: all 0.2s var(--ease);
+    font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.form-row {
+    display: flex;
+    gap: 14px;
+}
+
+.form-row .form-group { flex: 1; }
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.form-actions .btn { flex: 1; justify-content: center; }
+
+/* ── 暗色主题适配 ── */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #1a1a1e;
+        --bg-card: #252528;
+        --text: #f0f0f2;
+        --text-secondary: #99999e;
+        --border: #333336;
+    }
+
+    body {
+        background-image:
+            radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
+    }
+
+    .modal-overlay {
+        background: rgba(0,0,0,0.6);
+    }
+}
+
+/* ── 响应式 ── */
+@media (max-width: 768px) {
+    body { padding: 20px 16px; }
+
+    .app-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .header-actions {
+        justify-content: stretch;
+    }
+
+    .header-actions .btn { flex: 1; justify-content: center; }
+
+    .metric-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .metric-card .card-actions {
+        opacity: 1;
+    }
+
+    .modal {
+        padding: 20px;
+        width: 100vw;
+        max-width: 100vw;
+        max-height: 100vh;
+        border-radius: var(--radius) var(--radius) 0 0;
+        margin-top: auto;
+        animation: modal-up 0.3s var(--ease);
+    }
+
+    @keyframes modal-up {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+    }
+
+    .modal-overlay {
+        align-items: flex-end;
+    }
+
+    .record-table {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .record-table table { font-size: 12px; }
+    .record-table th,
+    .record-table td { padding: 10px 12px; }
+}
+
+/* ── toast 反馈 ── */
+.toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    padding: 12px 24px;
+    border-radius: var(--radius-sm);
+    background: var(--text);
+    color: var(--bg-card);
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: var(--shadow-lg);
+    z-index: 200;
+    transition: transform 0.3s var(--ease);
+    pointer-events: none;
+}
+
+.toast.show {
+    transform: translateX(-50%) translateY(0);
+}

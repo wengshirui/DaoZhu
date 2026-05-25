@@ -1,0 +1,413 @@
+/* ═══════════════════════════════════════════════
+   数据看板 — 交互逻辑
+   优化: Toast 通知替代 alert · 骨架屏 · 流畅交互
+   ═══════════════════════════════════════════════ */
+
+const Dashboard = {
+    currentCategory: '',
+
+    /* ── 初始化 ── */
+    async init() {
+        // 默认今天日期
+        const dateInput = document.querySelector('input[name="recorded_at"]');
+        if (dateInput) {
+            dateInput.value = new Date().toISOString().slice(0, 10);
+        }
+        await this.loadSummary();
+        await this.loadCategories();
+        await this.loadRecentRecords();
+    },
+
+    /* ── Toast 通知 ── */
+    toast(message, type = 'info') {
+        // 移除已有 toast
+        const existing = document.querySelector('.toast');
+        if (existing) existing.remove();
+
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        // 触发动画
+        requestAnimationFrame(() => toast.classList.add('show'));
+
+        // 自动消失
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 2500);
+    },
+
+    /* ── 加载数据 ── */
+    async loadSummary() {
+        const grid = document.getElementById('metric-grid');
+        // 骨架屏
+        grid.innerHTML = Array(4).fill('').map(() => `
+            <div class="skeleton-card">
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line"></div>
+            </div>`).join('');
+
+        try {
+            const params = this.currentCategory
+                ? `?category=${encodeURIComponent(this.currentCategory)}`
+                : '';
+            const res = await fetch(`/api/metrics/summary${params}`);
+            if (!res.ok) throw new Error('请求失败');
+            const data = await res.json();
+            this.renderCards(data);
+        } catch (e) {
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">⚠️</div>
+                    <p>加载失败</p>
+                    <p style="margin-top:6px;font-size:13px">${e.message}</p>
+                    <button class="btn btn-outline" style="margin-top:16px"
+                            onclick="Dashboard.loadSummary()">重试</button>
+                </div>`;
+        }
+    },
+
+    async loadCategories() {
+        try {
+            const res = await fetch('/api/metrics/categories');
+            const data = await res.json();
+            this.renderCategories(data);
+        } catch (_) { /* 非关键接口，静默 */ }
+    },
+
+    async loadRecentRecords(metricId) {
+        const container = document.getElementById('record-table');
+        container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-secondary)">⏳ 加载中...</div>';
+
+        try {
+            // 获取所有指标
+            const res = await fetch('/api/metrics');
+            const metrics = await res.json();
+
+            // 并行拉取记录
+            const recordPromises = metrics.map(async m => {
+                try {
+                    const r = await fetch(`/api/metrics/${m.id}/records?limit=5`);
+                    const records = await r.json();
+                    return records.map(rec => ({
+                        ...rec,
+                        metric_name: m.name,
+                        metric_unit: m.unit,
+                        metric_icon: m.icon
+                    }));
+                } catch {
+                    return [];
+                }
+            });
+
+            let allRecords = (await Promise.all(recordPromises)).flat();
+
+            // 按指标筛选
+            if (metricId) {
+                allRecords = allRecords.filter(r => r.metric_id === metricId);
+            }
+
+            // 排序: 日期倒序 + ID 倒序, 取 20 条
+            allRecords.sort((a, b) =>
+                b.recorded_at.localeCompare(a.recorded_at) || b.id - a.id
+            );
+
+            this.renderRecords(allRecords.slice(0, 20));
+        } catch (e) {
+            container.innerHTML =
+                `<div style="text-align:center;padding:24px;color:var(--text-secondary)">
+                    ⚠️ 加载失败: ${e.message}</div>`;
+        }
+    },
+
+    /* ── 渲染 ── */
+    renderCards(metrics) {
+        const grid = document.getElementById('metric-grid');
+
+        if (!metrics || metrics.length === 0) {
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📊</div>
+                    <p>还没有指标</p>
+                    <p style="margin-top:8px;font-size:13px">
+                        点击右上角「<strong>新建指标</strong>」开始追踪你的数据
+                    </p>
+                </div>`;
+            return;
+        }
+
+        grid.innerHTML = metrics.map(m => {
+            const val = (m.latest_value != null)
+                ? Number(m.latest_value).toLocaleString(undefined, {
+                      maximumFractionDigits: 2
+                  })
+                : '--';
+
+            const trend = this.calcTrend(m.latest_value, m.prev_value);
+            let trendHtml = '';
+            if (trend > 0) {
+                trendHtml = `<span class="trend-up"><span class="trend-badge">📈 +${trend.toFixed(1)}%</span> 上升</span>`;
+            } else if (trend < 0) {
+                trendHtml = `<span class="trend-down"><span class="trend-badge">📉 ${trend.toFixed(1)}%</span> 下降</span>`;
+            } else {
+                trendHtml = `<span class="trend-flat"><span class="trend-badge">➡️ 持平</span></span>`;
+            }
+
+            // 目标进度条
+            let targetHtml = '';
+            if (m.target != null) {
+                const pct = m.latest_value != null
+                    ? Math.min(100, Math.round((m.latest_value / m.target) * 100))
+                    : 0;
+                targetHtml = `
+                    <div class="card-target-bar">
+                        <div class="card-target-fill" style="width:${pct}%"></div>
+                    </div>
+                    <div class="card-target-label">
+                        <span>🎯 ${Number(m.target).toLocaleString()} ${m.unit || ''}</span>
+                        <span>${pct}%</span>
+                    </div>`;
+            }
+
+            const noteHtml = m.latest_note
+                ? `<div class="card-note">${m.latest_note}</div>`
+                : '';
+
+            return `
+                <div class="metric-card" style="--accent:${m.color || '{{color}}'}"
+                     data-metric-id="${m.id}">
+                    <div class="card-top">
+                        <span class="card-icon">${m.icon || '📈'}</span>
+                        <span class="card-category">${m.category || 'default'}</span>
+                    </div>
+                    <div class="card-name">${m.name}</div>
+                    <div class="card-value">
+                        ${val}<span class="card-unit">${m.unit || ''}</span>
+                    </div>
+                    ${targetHtml}
+                    ${noteHtml}
+                    <div class="card-trend">
+                        ${trendHtml}
+                        <span style="margin-left:auto;font-size:11px;color:var(--text-secondary)">
+                            ${m.latest_date || '—'} · ${m.record_count}次记录
+                        </span>
+                    </div>
+                    <div class="card-actions">
+                        <button onclick="Dashboard.showAddRecordFor(${m.id}, '${m.name}')">
+                            + 录入
+                        </button>
+                        <button onclick="Dashboard.viewRecords(${m.id})">
+                            📋 记录
+                        </button>
+                        <button onclick="Dashboard.deleteMetric(${m.id})">
+                            🗑️
+                        </button>
+                    </div>
+                </div>`;
+        }).join('');
+    },
+
+    renderCategories(categories) {
+        const bar = document.getElementById('category-bar');
+        if (!categories || categories.length <= 1) {
+            bar.innerHTML = '';
+            return;
+        }
+        bar.innerHTML = `
+            <button class="category-chip ${!this.currentCategory ? 'active' : ''}"
+                    onclick="Dashboard.filterCategory('')">全部</button>
+            ${categories.map(c => `
+                <button class="category-chip ${this.currentCategory === c.category ? 'active' : ''}"
+                        onclick="Dashboard.filterCategory('${c.category}')">
+                    ${c.category} <span style="opacity:0.6">(${c.count})</span>
+                </button>`).join('')}`;
+    },
+
+    renderRecords(records) {
+        const container = document.getElementById('record-table');
+        if (!records || records.length === 0) {
+            container.innerHTML =
+                `<div style="text-align:center;padding:24px;color:var(--text-secondary)">
+                    暂无数据记录</div>`;
+            return;
+        }
+        container.innerHTML = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>指标</th>
+                        <th>数值</th>
+                        <th>日期</th>
+                        <th>备注</th>
+                        <th style="width:40px"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${records.map(r => `
+                        <tr>
+                            <td>${r.metric_icon || '📈'} ${r.metric_name || ''}</td>
+                            <td><span class="record-value">${Number(r.value).toLocaleString()}</span>
+                                ${r.metric_unit || ''}</td>
+                            <td style="color:var(--text-secondary)">${r.recorded_at}</td>
+                            <td style="color:var(--text-secondary);max-width:200px;
+                                       overflow:hidden;text-overflow:ellipsis;
+                                       white-space:nowrap">${r.note || ''}</td>
+                            <td><button class="del-btn" onclick="Dashboard.deleteRecord(${r.id})"
+                                        title="删除记录">×</button></td>
+                        </tr>`).join('')}
+                </tbody>
+            </table>`;
+    },
+
+    /* ── 趋势计算 ── */
+    calcTrend(current, previous) {
+        if (current == null || previous == null) return 0;
+        if (previous === 0) return current > 0 ? 100 : 0;
+        return ((current - previous) / Math.abs(previous)) * 100;
+    },
+
+    /* ── 分类筛选 ── */
+    filterCategory(category) {
+        this.currentCategory = category;
+        this.loadSummary();
+        this.loadCategories();
+    },
+
+    /* ── 弹窗控制 ── */
+    showAddMetric() {
+        document.getElementById('add-metric-modal').style.display = 'flex';
+    },
+
+    hideAddMetric() {
+        document.getElementById('add-metric-modal').style.display = 'none';
+        document.getElementById('add-metric-form').reset();
+    },
+
+    showAddRecord() {
+        this.populateMetricSelect();
+        document.getElementById('add-record-modal').style.display = 'flex';
+    },
+
+    showAddRecordFor(metricId, metricName) {
+        this.populateMetricSelect(metricId);
+        document.getElementById('add-record-modal').style.display = 'flex';
+    },
+
+    hideAddRecord() {
+        document.getElementById('add-record-modal').style.display = 'none';
+        document.getElementById('add-record-form').reset();
+    },
+
+    async populateMetricSelect(selectedId) {
+        const select = document.getElementById('record-metric-select');
+        select.innerHTML = '<option>加载中...</option>';
+        try {
+            const res = await fetch('/api/metrics');
+            const data = await res.json();
+            select.innerHTML = data.map(m =>
+                `<option value="${m.id}" ${m.id === selectedId ? 'selected' : ''}>
+                    ${m.icon || '📈'} ${m.name}${m.unit ? ` (${m.unit})` : ''}
+                </option>`
+            ).join('');
+        } catch (_) {
+            select.innerHTML = '<option>加载失败</option>';
+        }
+    },
+
+    /* ── API 调用 ── */
+    async createMetric(event) {
+        event.preventDefault();
+        const form = event.target;
+        const data = Object.fromEntries(new FormData(form));
+        if (data.target === '') data.target = null;
+
+        try {
+            const res = await fetch('/api/metrics', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    name: data.name,
+                    unit: data.unit,
+                    target: data.target ? parseFloat(data.target) : null,
+                    category: data.category || 'default',
+                    icon: data.icon || '📈',
+                    color: data.color || '#6366F1'
+                })
+            });
+            if (!res.ok) throw new Error('创建失败');
+            this.hideAddMetric();
+            this.toast(`✅ 指标「${data.name}」已创建`);
+            await this.loadSummary();
+            await this.loadCategories();
+        } catch (e) {
+            this.toast(`⚠️ ${e.message}`, 'error');
+        }
+        return false;
+    },
+
+    async createRecord(event) {
+        event.preventDefault();
+        const form = event.target;
+        const data = Object.fromEntries(new FormData(form));
+
+        try {
+            const res = await fetch('/api/metrics/records', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    metric_id: parseInt(data.metric_id),
+                    value: parseFloat(data.value),
+                    note: data.note || '',
+                    recorded_at: data.recorded_at || new Date().toISOString().slice(0, 10)
+                })
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || '录入失败');
+            }
+            this.hideAddRecord();
+            this.toast('✅ 数据已录入');
+            await this.loadSummary();
+            await this.loadRecentRecords();
+        } catch (e) {
+            this.toast(`⚠️ ${e.message}`, 'error');
+        }
+        return false;
+    },
+
+    async deleteMetric(metricId) {
+        if (!confirm('确定要删除此指标及其所有历史记录？此操作不可撤销。')) return;
+        try {
+            const res = await fetch(`/api/metrics/${metricId}`, {method: 'DELETE'});
+            if (!res.ok) throw new Error('删除失败');
+            this.toast('🗑️ 指标已删除');
+            await this.loadSummary();
+            await this.loadCategories();
+        } catch (e) {
+            this.toast(`⚠️ ${e.message}`, 'error');
+        }
+    },
+
+    async deleteRecord(recordId) {
+        if (!confirm('确定删除此条记录？')) return;
+        try {
+            const res = await fetch(`/api/metrics/records/${recordId}`, {method: 'DELETE'});
+            if (!res.ok) throw new Error('删除失败');
+            this.toast('🗑️ 记录已删除');
+            await this.loadRecentRecords();
+        } catch (e) {
+            this.toast(`⚠️ ${e.message}`, 'error');
+        }
+    },
+
+    async viewRecords(metricId) {
+        this.toast('📋 加载记录...');
+        await this.loadRecentRecords(metricId);
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => Dashboard.init());

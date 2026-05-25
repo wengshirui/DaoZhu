@@ -1,0 +1,258 @@
+"""数据看板 — 指标 CRUD + 汇总统计"""
+
+from datetime import date, timedelta
+from typing import Optional
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+
+from db import get_db
+
+router = APIRouter()
+
+
+# === Pydantic 模型 ===
+
+class MetricCreate(BaseModel):
+    name: str
+    unit: str = ""
+    target: Optional[float] = None
+    category: str = "default"
+    icon: str = "📈"
+    color: str = "#6366F1"
+    sort_order: int = 0
+
+
+class MetricUpdate(BaseModel):
+    name: Optional[str] = None
+    unit: Optional[str] = None
+    target: Optional[float] = None
+    category: Optional[str] = None
+    icon: Optional[str] = None
+    color: Optional[str] = None
+    sort_order: Optional[int] = None
+
+
+class RecordCreate(BaseModel):
+    metric_id: int
+    value: float
+    note: str = ""
+    recorded_at: Optional[str] = None
+
+
+# === 指标 CRUD ===
+
+@router.get("/")
+def list_metrics(category: str = ""):
+    """获取指标列表，支持按分类筛选"""
+    db = get_db()
+    if category:
+        rows = db.execute(
+            "SELECT * FROM {{id}}_metrics WHERE category = ? ORDER BY sort_order, id",
+            (category,)
+        ).fetchall()
+    else:
+        rows = db.execute(
+            "SELECT * FROM {{id}}_metrics ORDER BY sort_order, id"
+        ).fetchall()
+    db.close()
+    return [dict(r) for r in rows]
+
+
+@router.get("/categories")
+def list_categories():
+    """获取所有分类及其指标数量"""
+    db = get_db()
+    rows = db.execute(
+        "SELECT category, COUNT(*) as count FROM {{id}}_metrics GROUP BY category ORDER BY category"
+    ).fetchall()
+    db.close()
+    return [dict(r) for r in rows]
+
+
+@router.get("/summary")
+def get_summary(days: int = 7):
+    """获取汇总数据：各指标最新值 + 趋势"""
+    db = get_db()
+    cutoff = (date.today() - timedelta(days=days)).isoformat()
+
+    metrics = db.execute(
+        "SELECT * FROM {{id}}_metrics ORDER BY sort_order, id"
+    ).fetchall()
+
+    result = []
+    for m in metrics:
+        m_dict = dict(m)
+        # 最新记录
+        latest = db.execute(
+            "SELECT value, recorded_at, note FROM {{id}}_records "
+            "WHERE metric_id = ? ORDER BY recorded_at DESC, id DESC LIMIT 1",
+            (m["id"],)
+        ).fetchone()
+
+        # 上一周期的值（用于计算趋势）
+        prev_val = db.execute(
+            "SELECT value FROM {{id}}_records WHERE metric_id = ? "
+            "AND recorded_at < ? ORDER BY recorded_at DESC LIMIT 1",
+            (m["id"], cutoff)
+        ).fetchone()
+
+        # 最近 N 天记录数
+        recent_count = db.execute(
+            "SELECT COUNT(*) as c FROM {{id}}_records "
+            "WHERE metric_id = ? AND recorded_at >= ?",
+            (m["id"], cutoff)
+        ).fetchone()
+
+        m_dict["latest_value"] = latest["value"] if latest else None
+        m_dict["latest_date"] = latest["recorded_at"] if latest else None
+        m_dict["latest_note"] = latest["note"] if latest else ""
+        m_dict["prev_value"] = prev_val["value"] if prev_val else None
+        m_dict["record_count"] = recent_count["c"]
+        result.append(m_dict)
+
+    db.close()
+    return result
+
+
+@router.get("/{metric_id}")
+def get_metric(metric_id: int):
+    """获取单个指标详情"""
+    db = get_db()
+    row = db.execute(
+        "SELECT * FROM {{id}}_metrics WHERE id = ?", (metric_id,)
+    ).fetchone()
+    db.close()
+    if not row:
+        raise HTTPException(404, "指标不存在")
+    return dict(row)
+
+
+@router.post("/")
+def create_metric(body: MetricCreate):
+    """创建新指标"""
+    db = get_db()
+    cur = db.execute(
+        "INSERT INTO {{id}}_metrics (name, unit, target, category, icon, color, sort_order) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (body.name, body.unit, body.target, body.category,
+         body.icon, body.color, body.sort_order)
+    )
+    db.commit()
+    metric = db.execute(
+        "SELECT * FROM {{id}}_metrics WHERE id = ?", (cur.lastrowid,)
+    ).fetchone()
+    db.close()
+    return dict(metric)
+
+
+@router.put("/{metric_id}")
+def update_metric(metric_id: int, body: MetricUpdate):
+    """更新指标"""
+    db = get_db()
+    existing = db.execute(
+        "SELECT * FROM {{id}}_metrics WHERE id = ?", (metric_id,)
+    ).fetchone()
+    if not existing:
+        db.close()
+        raise HTTPException(404, "指标不存在")
+
+    fields = {}
+    for key in ("name", "unit", "target", "category", "icon", "color", "sort_order"):
+        val = getattr(body, key, None)
+        if val is not None:
+            fields[key] = val
+
+    if fields:
+        fields["updated_at"] = date.today().isoformat()
+        set_clause = ", ".join(f"{k} = ?" for k in fields)
+        values = list(fields.values()) + [metric_id]
+        db.execute(f"UPDATE {{id}}_metrics SET {set_clause} WHERE id = ?", values)
+        db.commit()
+
+    updated = db.execute(
+        "SELECT * FROM {{id}}_metrics WHERE id = ?", (metric_id,)
+    ).fetchone()
+    db.close()
+    return dict(updated)
+
+
+@router.delete("/{metric_id}")
+def delete_metric(metric_id: int):
+    """删除指标（级联删除其所有记录）"""
+    db = get_db()
+    existing = db.execute(
+        "SELECT * FROM {{id}}_metrics WHERE id = ?", (metric_id,)
+    ).fetchone()
+    if not existing:
+        db.close()
+        raise HTTPException(404, "指标不存在")
+    db.execute("DELETE FROM {{id}}_metrics WHERE id = ?", (metric_id,))
+    db.commit()
+    db.close()
+    return {"success": True}
+
+
+# === 数据记录 API ===
+
+@router.get("/{metric_id}/records")
+def list_records(metric_id: int, limit: int = 30):
+    """获取指定指标的记录列表"""
+    db = get_db()
+    rows = db.execute(
+        "SELECT * FROM {{id}}_records WHERE metric_id = ? "
+        "ORDER BY recorded_at DESC, id DESC LIMIT ?",
+        (metric_id, limit)
+    ).fetchall()
+    db.close()
+    return [dict(r) for r in rows]
+
+
+@router.post("/records")
+def create_record(body: RecordCreate):
+    """添加数据记录"""
+    db = get_db()
+    # 验证指标存在
+    metric = db.execute(
+        "SELECT id FROM {{id}}_metrics WHERE id = ?", (body.metric_id,)
+    ).fetchone()
+    if not metric:
+        db.close()
+        raise HTTPException(404, "指标不存在")
+
+    recorded_at = body.recorded_at or date.today().isoformat()
+    cur = db.execute(
+        "INSERT INTO {{id}}_records (metric_id, value, note, recorded_at) "
+        "VALUES (?, ?, ?, ?)",
+        (body.metric_id, body.value, body.note, recorded_at)
+    )
+    db.commit()
+
+    # 更新指标的 updated_at
+    db.execute(
+        "UPDATE {{id}}_metrics SET updated_at = datetime('now') WHERE id = ?",
+        (body.metric_id,)
+    )
+    db.commit()
+
+    record = db.execute(
+        "SELECT * FROM {{id}}_records WHERE id = ?", (cur.lastrowid,)
+    ).fetchone()
+    db.close()
+    return dict(record)
+
+
+@router.delete("/records/{record_id}")
+def delete_record(record_id: int):
+    """删除某条记录"""
+    db = get_db()
+    existing = db.execute(
+        "SELECT * FROM {{id}}_records WHERE id = ?", (record_id,)
+    ).fetchone()
+    if not existing:
+        db.close()
+        raise HTTPException(404, "记录不存在")
+    db.execute("DELETE FROM {{id}}_records WHERE id = ?", (record_id,))
+    db.commit()
+    db.close()
+    return {"success": True}

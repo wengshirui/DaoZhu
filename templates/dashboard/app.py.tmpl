@@ -1,0 +1,39 @@
+"""{{name}} — 数据看板工作区"""
+
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+from db import init_db
+
+FRONTEND_DIR = Path(__file__).parent / "frontend"
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+
+app = FastAPI(title="{{name}}", version="1.0.0", lifespan=lifespan)
+
+# 静态资源
+app.mount("/css", StaticFiles(directory=FRONTEND_DIR / "css"), name="css")
+app.mount("/js", StaticFiles(directory=FRONTEND_DIR / "js"), name="js")
+
+# API 路由
+from routes import router as api_router
+app.include_router(api_router, prefix="/api")
+
+
+@app.get("/")
+async def index():
+    return FileResponse(FRONTEND_DIR / "index.html")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port={{port}})

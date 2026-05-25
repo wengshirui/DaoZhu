@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{name}}</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="app-header">
+        <h1><span class="header-icon">{{icon}}</span> {{name}}</h1>
+        <div class="header-actions">
+            <button class="btn btn-primary" onclick="Dashboard.showAddMetric()">+ 新建指标</button>
+            <button class="btn btn-outline" onclick="Dashboard.showAddRecord()">+ 录入数据</button>
+            <button class="btn btn-ghost" onclick="Dashboard.loadSummary()">🔄 刷新</button>
+        </div>
+    </div>
+
+    <!-- 指标卡片区 -->
+    <div id="metric-grid" class="metric-grid">
+        <div class="loading">加载中...</div>
+    </div>
+
+    <!-- 分类筛选 -->
+    <div id="category-bar" class="category-bar"></div>
+
+    <!-- 数据表格 -->
+    <div class="table-section">
+        <h2>📋 最近记录</h2>
+        <div id="record-table" class="record-table">
+            <div class="loading">加载中...</div>
+        </div>
+    </div>
+
+    <!-- 新建指标弹窗 -->
+    <div id="add-metric-modal" class="modal-overlay" style="display:none">
+        <div class="modal">
+            <h2>新建指标</h2>
+            <form id="add-metric-form" onsubmit="return Dashboard.createMetric(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>指标名称</label>
+                        <input name="name" required placeholder="如：日活用户">
+                    </div>
+                    <div class="form-group">
+                        <label>图标</label>
+                        <input name="icon" value="📈" maxlength="2">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>单位</label>
+                        <input name="unit" placeholder="如：人/元/%">
+                    </div>
+                    <div class="form-group">
+                        <label>目标值</label>
+                        <input name="target" type="number" step="any" placeholder="可选">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>分类</label>
+                        <input name="category" value="default" placeholder="如：运营/财务">
+                    </div>
+                    <div class="form-group">
+                        <label>卡片颜色</label>
+                        <input name="color" type="color" value="#6366F1">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">创建</button>
+                    <button type="button" class="btn btn-ghost" onclick="Dashboard.hideAddMetric()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 录入数据弹窗 -->
+    <div id="add-record-modal" class="modal-overlay" style="display:none">
+        <div class="modal">
+            <h2>录入数据</h2>
+            <form id="add-record-form" onsubmit="return Dashboard.createRecord(event)">
+                <div class="form-group">
+                    <label>指标</label>
+                    <select name="metric_id" id="record-metric-select" required></select>
+                </div>
+                <div class="form-group">
+                    <label>数值</label>
+                    <input name="value" type="number" step="any" required placeholder="输入数值">
+                </div>
+                <div class="form-group">
+                    <label>日期</label>
+                    <input name="recorded_at" type="date">
+                </div>
+                <div class="form-group">
+                    <label>备注</label>
+                    <input name="note" placeholder="可选备注">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">录入</button>
+                    <button type="button" class="btn btn-ghost" onclick="Dashboard.hideAddRecord()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>

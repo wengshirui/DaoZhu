@@ -1,0 +1,25 @@
+"""数据看板 — SQLite 数据库连接"""
+
+import sqlite3
+from pathlib import Path
+
+DB_PATH = Path(__file__).parent / "data.db"
+
+
+def get_db() -> sqlite3.Connection:
+    db = sqlite3.connect(str(DB_PATH))
+    db.row_factory = sqlite3.Row
+    db.execute("PRAGMA journal_mode=WAL")
+    db.execute("PRAGMA foreign_keys=ON")
+    return db
+
+
+def init_db():
+    """首次启动时执行 schema.sql 初始化数据库"""
+    if DB_PATH.exists():
+        return
+    schema = (Path(__file__).parent / "schema.sql").read_text(encoding="utf-8")
+    db = get_db()
+    db.executescript(schema)
+    db.commit()
+    db.close()

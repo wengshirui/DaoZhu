@@ -21,6 +21,8 @@ build-backend = "hatchling.build"
 
 [project.optional-dependencies]
 dev = ["pyinstaller>=6.0,<7", "pytest>=8.0,<9", "ruff>=0.4,<1"]
+
+[tool.ruff]
 line-length = 100
 target-version = "py311"
 

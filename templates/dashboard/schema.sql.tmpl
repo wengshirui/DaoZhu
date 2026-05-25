@@ -1,0 +1,36 @@
+-- schema.sql — {{name}} 数据库设计
+-- 创建时间: {{date}}
+-- 说明: 数据看板，记录指标数据和每日快照
+
+-- === 表: {{id}}_metrics ===
+-- 用途: 指标定义（如"用户数/收入/访问量"）
+CREATE TABLE {{id}}_metrics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,                -- 指标名称
+    unit TEXT DEFAULT '',              -- 单位（如"人/元/次/%"）
+    target REAL,                       -- 目标值（可选）
+    category TEXT DEFAULT 'default',   -- 分类（如"运营/财务/技术"）
+    icon TEXT DEFAULT '📈',            -- 显示图标
+    sort_order INTEGER DEFAULT 0,      -- 排序
+    color TEXT DEFAULT '#6366F1',      -- 卡片颜色
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- === 表: {{id}}_records ===
+-- 用途: 指标数据记录（每次录入的值）
+CREATE TABLE {{id}}_records (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    metric_id INTEGER NOT NULL,        -- 关联指标
+    value REAL NOT NULL,               -- 数值
+    note TEXT DEFAULT '',              -- 备注说明
+    recorded_at DATE DEFAULT (date('now')),  -- 记录日期
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (metric_id) REFERENCES {{id}}_metrics(id) ON DELETE CASCADE
+);
+
+-- === 索引 ===
+CREATE INDEX idx_{{id}}_metrics_cat ON {{id}}_metrics(category);
+CREATE INDEX idx_{{id}}_metrics_sort ON {{id}}_metrics(sort_order);
+CREATE INDEX idx_{{id}}_records_mid ON {{id}}_records(metric_id);
+CREATE INDEX idx_{{id}}_records_date ON {{id}}_records(recorded_at);
