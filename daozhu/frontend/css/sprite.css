@@ -1,0 +1,140 @@
+/* sprite.css — 像素图书管理员动画 */
+
+/* === 管理员容器 === */
+.librarian {
+  width: 32px;
+  height: 32px;
+  position: relative;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* === 纯 CSS 像素管理员（box-shadow 像素画）=== */
+.librarian__pixel {
+  width: 4px;
+  height: 4px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* 8x8 像素画：图书管理员（戴眼镜、拿书） */
+  box-shadow:
+    /* 头发 */
+    8px 0 #5c3d2e, 12px 0 #5c3d2e, 16px 0 #5c3d2e, 20px 0 #5c3d2e,
+    4px 4px #5c3d2e, 8px 4px #5c3d2e, 12px 4px #5c3d2e, 16px 4px #5c3d2e, 20px 4px #5c3d2e, 24px 4px #5c3d2e,
+    /* 脸 */
+    8px 8px #fdd8b5, 12px 8px #fdd8b5, 16px 8px #fdd8b5, 20px 8px #fdd8b5,
+    /* 眼镜 */
+    8px 12px #333, 12px 12px #6cf, 16px 12px #333, 20px 12px #6cf,
+    /* 嘴 */
+    12px 16px #e88, 16px 16px #e88,
+    /* 身体（绿色马甲） */
+    4px 20px #2d8a4e, 8px 20px #2d8a4e, 12px 20px #fff, 16px 20px #fff, 20px 20px #2d8a4e, 24px 20px #2d8a4e,
+    4px 24px #2d8a4e, 8px 24px #2d8a4e, 12px 24px #2d8a4e, 16px 24px #2d8a4e, 20px 24px #2d8a4e, 24px 24px #2d8a4e,
+    /* 书本（右手） */
+    24px 16px #c0713a, 28px 16px #c0713a, 24px 20px #c0713a, 28px 20px #e8dcc8,
+    /* 腿 */
+    8px 28px #334, 12px 28px #334, 16px 28px #334, 20px 28px #334;
+  background: transparent;
+}
+
+/* === 动画状态 === */
+
+/* 空闲：轻微呼吸 */
+.librarian--idle .librarian__pixel {
+  animation: librarianBreathe 3s ease-in-out infinite;
+}
+
+/* 思考：翻书 */
+.librarian--thinking .librarian__pixel {
+  animation: librarianThink 0.8s ease-in-out infinite;
+}
+
+/* 工作：搬运 */
+.librarian--working .librarian__pixel {
+  animation: librarianWork 0.5s ease-in-out infinite;
+}
+
+/* 庆祝 */
+.librarian--celebrate .librarian__pixel {
+  animation: librarianCelebrate 0.6s ease-in-out 3;
+}
+
+@keyframes librarianBreathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1px); }
+}
+
+@keyframes librarianThink {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-2deg) translateY(-1px); }
+  75% { transform: rotate(2deg) translateY(-1px); }
+}
+
+@keyframes librarianWork {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(2px) translateY(-1px); }
+}
+
+@keyframes librarianCelebrate {
+  0% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-4px) scale(1.1); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* === 聊天头像中的管理员 === */
+.message--assistant .message__avatar {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* === 欢迎区域的大管理员 === */
+.librarian--large {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+}
+
+.librarian--large .librarian__pixel {
+  width: 8px;
+  height: 8px;
+  box-shadow:
+    16px 0 #5c3d2e, 24px 0 #5c3d2e, 32px 0 #5c3d2e, 40px 0 #5c3d2e,
+    8px 8px #5c3d2e, 16px 8px #5c3d2e, 24px 8px #5c3d2e, 32px 8px #5c3d2e, 40px 8px #5c3d2e, 48px 8px #5c3d2e,
+    16px 16px #fdd8b5, 24px 16px #fdd8b5, 32px 16px #fdd8b5, 40px 16px #fdd8b5,
+    16px 24px #333, 24px 24px #6cf, 32px 24px #333, 40px 24px #6cf,
+    24px 32px #e88, 32px 32px #e88,
+    8px 40px #2d8a4e, 16px 40px #2d8a4e, 24px 40px #fff, 32px 40px #fff, 40px 40px #2d8a4e, 48px 40px #2d8a4e,
+    8px 48px #2d8a4e, 16px 48px #2d8a4e, 24px 48px #2d8a4e, 32px 48px #2d8a4e, 40px 48px #2d8a4e, 48px 48px #2d8a4e,
+    48px 32px #c0713a, 56px 32px #c0713a, 48px 40px #c0713a, 56px 40px #e8dcc8,
+    16px 56px #334, 24px 56px #334, 32px 56px #334, 40px 56px #334;
+}
+
+/* === 状态栏精灵（小版本走动）=== */
+.librarian--mini {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.librarian--mini .librarian__pixel {
+  width: 2px;
+  height: 2px;
+  box-shadow:
+    4px 0 #5c3d2e, 6px 0 #5c3d2e, 8px 0 #5c3d2e,
+    4px 2px #fdd8b5, 6px 2px #fdd8b5, 8px 2px #fdd8b5,
+    4px 4px #333, 6px 4px #6cf, 8px 4px #6cf,
+    2px 6px #2d8a4e, 4px 6px #2d8a4e, 6px 6px #fff, 8px 6px #2d8a4e, 10px 6px #2d8a4e,
+    2px 8px #2d8a4e, 4px 8px #2d8a4e, 6px 8px #2d8a4e, 8px 8px #2d8a4e, 10px 8px #2d8a4e,
+    4px 10px #334, 6px 10px #334, 8px 10px #334;
+  animation: librarianWalk 2s steps(2) infinite;
+}
+
+@keyframes librarianWalk {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(1px) translateY(-1px); }
+}

@@ -127,7 +127,9 @@ const Chat = {
 
   _addMessageElement(role, content) {
     const container = document.getElementById('chat-messages');
-    const avatar = role === 'user' ? '👤' : '🤵';
+    const avatar = role === 'user'
+      ? '<span>👤</span>'
+      : '<div class="librarian librarian--idle"><div class="librarian__pixel"></div></div>';
 
     const msgEl = document.createElement('div');
     msgEl.className = `message message--${role}`;
@@ -146,11 +148,16 @@ const Chat = {
     const container = document.getElementById('chat-messages');
     container.innerHTML = `
       <div class="chat__welcome" id="chat-welcome">
-        <div class="chat__welcome-icon">🤵</div>
-        <div class="chat__welcome-title">你好，我是管家</div>
+        <div class="librarian librarian--large librarian--idle">
+          <div class="librarian__pixel"></div>
+        </div>
+        <div class="chat__welcome-title">你好，我是图书管理员</div>
         <div class="chat__welcome-desc">
           告诉我你想建造什么工作区，或者问我任何问题。<br>
-          比如："帮我建一个读书笔记工作区"
+          比如："帮我建一个读书笔记工作区"<br>
+          <small style="color:var(--text-muted);margin-top:8px;display:block">
+            💡 单击左侧资源查看说明 · 双击工作区打开
+          </small>
         </div>
       </div>
     `;
@@ -169,7 +176,9 @@ const Chat = {
     typing.id = 'typing-indicator';
     typing.className = 'message message--assistant';
     typing.innerHTML = `
-      <div class="message__avatar">🤵</div>
+      <div class="message__avatar">
+        <div class="librarian librarian--thinking"><div class="librarian__pixel"></div></div>
+      </div>
       <div class="typing-indicator">
         <div class="typing-indicator__dot"></div>
         <div class="typing-indicator__dot"></div>

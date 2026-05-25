@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/chat.css">
+  <link rel="stylesheet" href="css/sprite.css">
 </head>
 <body>
   <!-- 顶部标题栏 -->
@@ -83,8 +84,11 @@
 
   <!-- 底部状态栏 -->
   <footer class="statusbar">
-    <span class="statusbar__info" id="status-info">加载中...</span>
-    <span class="statusbar__connection" id="status-connection">● 连接正常</span>
+    <span class="statusbar__info">
+      <span class="librarian librarian--mini"><span class="librarian__pixel"></span></span>
+      <span id="status-info">加载中...</span>
+    </span>
+    <span class="statusbar__connection" id="status-connection">连接正常</span>
   </footer>
 
   <!-- JS 模块 -->
