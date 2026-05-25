@@ -43,24 +43,29 @@ const Chat = {
   // === 发送消息 ===
   async _handleSend() {
     const textarea = document.getElementById('chat-input');
+    const sendBtn = document.querySelector('.chat__send');
     const text = textarea.value.trim();
-    if (!text || this.isTyping) return;
 
-    // 清空输入框
+    // 如果正在输出，点击停止
+    if (this.isTyping) {
+      this._stopGeneration();
+      return;
+    }
+
+    if (!text) return;
+
     textarea.value = '';
     textarea.style.height = 'auto';
-
-    // 移除欢迎消息
     this._removeWelcome();
-
-    // 添加用户消息
     this._addMessage('user', text);
 
-    // 显示打字指示器
-    this._showTyping();
+    // 切换为停止按钮
+    sendBtn.textContent = '⏹ 停止';
+    sendBtn.classList.add('chat__send--stop');
+    this.isTyping = true;
+    this._abortController = new AbortController();
 
     try {
-      // SSE 流式请求
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -68,20 +73,15 @@ const Chat = {
           message: text,
           conversation_id: this.conversationId || null,
         }),
+        signal: this._abortController.signal,
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      this._hideTyping();
-
-      // 创建助手消息容器
       const msgEl = this._addMessageElement('assistant', '');
       const bubble = msgEl.querySelector('.message__bubble');
       let fullText = '';
 
-      // 读取 SSE 流
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
 
@@ -96,6 +96,13 @@ const Chat = {
           if (!line.startsWith('data: ')) continue;
           try {
             const data = JSON.parse(line.slice(6));
+            if (data.tool) {
+              // 显示工具调用状态
+              bubble.innerHTML = fullText.replace(/\n/g, '<br>') +
+                `<div style="color:var(--accent);font-size:0.8rem;margin-top:8px">🔧 正在使用 ${data.tool} 工具...</div>`;
+              this._scrollToBottom();
+              continue;
+            }
             if (data.chunk) {
               fullText += data.chunk;
               bubble.textContent = fullText;
@@ -109,12 +116,27 @@ const Chat = {
       }
 
       this.messages.push({ role: 'assistant', content: fullText });
-      Panel.addLog('info', `管家回复: ${fullText.substring(0, 30)}...`);
+      Panel.addLog('info', `管理员回复: ${fullText.substring(0, 30)}...`);
 
     } catch (err) {
-      this._hideTyping();
-      this._addMessage('assistant', `抱歉，出了点问题：${err.message}`);
-      Panel.addLog('error', `发送失败: ${err.message}`);
+      if (err.name === 'AbortError') {
+        this._addMessage('assistant', '（已停止）');
+        Panel.addLog('info', '用户打断了输出');
+      } else {
+        this._addMessage('assistant', `抱歉，出了点问题：${err.message}`);
+        Panel.addLog('error', `发送失败: ${err.message}`);
+      }
+    } finally {
+      this.isTyping = false;
+      sendBtn.textContent = '发送';
+      sendBtn.classList.remove('chat__send--stop');
+      this._abortController = null;
+    }
+  },
+
+  _stopGeneration() {
+    if (this._abortController) {
+      this._abortController.abort();
     }
   },
 
@@ -151,7 +173,7 @@ const Chat = {
         <div class="librarian librarian--large librarian--idle">
           <div class="librarian__pixel"></div>
         </div>
-        <div class="chat__welcome-title">你好，我是图书管理员</div>
+        <div class="chat__welcome-title">你好，我是岛管理员</div>
         <div class="chat__welcome-desc">
           告诉我你想建造什么工作区，或者问我任何问题。<br>
           比如："帮我建一个读书笔记工作区"<br>
@@ -211,23 +233,44 @@ const Chat = {
 
 // === README 展示 ===
 const ReadmeViewer = {
-  show(content, title) {
+  show(content, title, workspaceId) {
     Chat.showingReadme = true;
     const container = document.getElementById('chat-messages');
     const form = document.getElementById('chat-form');
     form.style.display = 'none';
 
-    // 简单 Markdown 渲染（标题、列表、代码块、粗体）
+    const openBtn = workspaceId
+      ? `<button onclick="ReadmeViewer.openWorkspace('${workspaceId}')" style="padding:6px 14px;background:var(--success);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:0.85rem">▶ 打开工作区</button>`
+      : '';
+
     const html = this._renderMarkdown(content);
     container.innerHTML = `
       <div style="padding:20px;overflow-y:auto;height:100%">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:8px">
           <h2 style="font-size:1.2rem;color:var(--text-primary)">${title || '文档'}</h2>
-          <button onclick="ReadmeViewer.hide()" style="padding:6px 14px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:0.85rem">← 返回聊天</button>
+          <div style="display:flex;gap:8px">
+            ${openBtn}
+            <button onclick="ReadmeViewer.hide()" style="padding:6px 14px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:0.85rem">← 返回聊天</button>
+          </div>
         </div>
         <div class="readme-content" style="line-height:1.8;color:var(--text-secondary)">${html}</div>
       </div>
     `;
+  },
+
+  async openWorkspace(id) {
+    App.showToast('正在启动...');
+    try {
+      const res = await fetch(`/api/workspaces/${id}/start`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        window.open(`http://localhost:${data.workspace.port}`, '_blank');
+      } else {
+        App.showToast('启动失败');
+      }
+    } catch (e) {
+      App.showToast('启动失败: ' + e.message);
+    }
   },
 
   hide() {

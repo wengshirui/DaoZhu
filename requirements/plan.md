@@ -33,6 +33,12 @@
 | 023 | 工作区软删除（隐藏）前端 | 0 | S(3) | ✅ 已完成 | [023](./023-workspace-soft-delete.md) |
 | 024 | 实体 CRUD 代码规范 | 1 | XS(1) | ✅ 已完成 | [024](./024-entity-crud-standard.md) |
 | 025 | 岛主论坛对接 Gitee Issues | 1 | M(5) | ✅ 已完成 | [025](./025-forum-gitee-issues.md) |
+| 026 | 工作区拖动排序 | 1 | S(3) | 📐 已提炼 | [026](./026-workspace-drag-sort.md) |
+| 027 | 管理员改名（岛管理员） | 0 | XS(1) | 📐 已提炼 | [027](./027-librarian-rename.md) |
+| 028 | AI 根据记忆建议工作区 | 2 | M(5) | 📐 已提炼 | [028](./028-ai-suggest-workspace.md) |
+| 029 | AI 工作状态 + 打断输出 | 0 | S(3) | 📐 已提炼 | [029](./029-ai-status-and-stop.md) |
+| 030 | README 页增加打开按钮 | 0 | XS(1) | 📐 已提炼 | [030](./030-readme-open-workspace.md) |
+| 031 | 设置页面（Key + Gitee） | 0 | S(3) | 📐 已提炼 | [031](./031-settings-page.md) |
 
 ---
 

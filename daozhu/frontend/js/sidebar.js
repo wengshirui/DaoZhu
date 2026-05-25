@@ -102,7 +102,7 @@ const Sidebar = {
         try {
           const res = await fetch(`/api/workspaces/${id}/readme`);
           const data = await res.json();
-          ReadmeViewer.show(data.content, card.querySelector('.card__name').textContent);
+          ReadmeViewer.show(data.content, card.querySelector('.card__name').textContent, id);
         } catch (e) {
           App.showToast('加载说明失败');
         }

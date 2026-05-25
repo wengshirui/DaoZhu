@@ -108,6 +108,33 @@ async def save_api_key(body: dict):
     return {"success": True}
 
 
+@app.post("/api/onboarding/save-gitee-token")
+async def save_gitee_token(body: dict):
+    """保存 Gitee Token 到 .env 文件"""
+    token = body.get("token", "").strip()
+    if not token:
+        raise HTTPException(400, "Token 不能为空")
+
+    from .config import PLATFORM_ROOT
+    env_path = PLATFORM_ROOT / ".env"
+    existing = ""
+    if env_path.exists():
+        existing = env_path.read_text(encoding="utf-8")
+
+    lines = existing.split("\n")
+    found = False
+    for i, line in enumerate(lines):
+        if line.startswith("GITEE_TOKEN="):
+            lines[i] = f"GITEE_TOKEN={token}"
+            found = True
+            break
+    if not found:
+        lines.append(f"GITEE_TOKEN={token}")
+
+    env_path.write_text("\n".join(lines), encoding="utf-8")
+    return {"success": True}
+
+
 # === 静态资源 ===
 app.mount("/css", StaticFiles(directory=FRONTEND_DIR / "css"), name="css")
 app.mount("/js", StaticFiles(directory=FRONTEND_DIR / "js"), name="js")

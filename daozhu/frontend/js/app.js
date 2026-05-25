@@ -39,6 +39,107 @@ const App = {
       localStorage.setItem('daozhu-theme', next);
       Panel.addLog('info', `主题切换为: ${next === 'dark' ? '暗色' : '亮色'}`);
     });
+
+    // 设置按钮 → 打开设置面板
+    const settingsBtn = document.getElementById('btn-settings');
+    settingsBtn.addEventListener('click', () => this._showSettings());
+  },
+
+  // === 设置面板 ===
+  async _showSettings() {
+    const container = document.getElementById('chat-messages');
+    const form = document.getElementById('chat-form');
+    form.style.display = 'none';
+    Chat.showingReadme = true;
+
+    // 读取当前配置
+    let config = {};
+    try {
+      const res = await fetch('/api/config');
+      config = (await res.json()).config || {};
+    } catch (e) {}
+
+    container.innerHTML = `
+      <div style="padding:24px;overflow-y:auto;height:100%">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <h2 style="font-size:1.2rem">⚙️ 设置</h2>
+          <button onclick="ReadmeViewer.hide()" style="padding:6px 14px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:0.85rem">← 返回</button>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px;max-width:400px">
+          <div>
+            <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🧠 DeepSeek API Key</label>
+            <input type="password" id="settings-apikey" placeholder="sk-xxxxxxxx" value=""
+              style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
+          </div>
+
+          <div>
+            <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🔗 Gitee Token（论坛发帖用）</label>
+            <input type="password" id="settings-gitee" placeholder="xxxxxxxx" value=""
+              style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
+          </div>
+
+          <div>
+            <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🎨 主题</label>
+            <select id="settings-theme" style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
+              <option value="light">☀️ 亮色</option>
+              <option value="dark">🌙 暗色</option>
+            </select>
+          </div>
+
+          <button onclick="App._saveSettings()" style="padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font:inherit;font-weight:500;margin-top:8px">
+            保存设置
+          </button>
+          <div id="settings-status" style="font-size:0.85rem;min-height:20px"></div>
+        </div>
+      </div>
+    `;
+
+    // 填充当前主题
+    document.getElementById('settings-theme').value =
+      document.documentElement.getAttribute('data-theme') || 'light';
+  },
+
+  async _saveSettings() {
+    const status = document.getElementById('settings-status');
+    const apiKey = document.getElementById('settings-apikey').value.trim();
+    const giteeToken = document.getElementById('settings-gitee').value.trim();
+    const theme = document.getElementById('settings-theme').value;
+
+    try {
+      // 保存 API Key
+      if (apiKey) {
+        await fetch('/api/onboarding/save-key', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: apiKey }),
+        });
+      }
+
+      // 保存 Gitee Token
+      if (giteeToken) {
+        await fetch('/api/onboarding/save-gitee-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: giteeToken }),
+        });
+      }
+
+      // 保存主题
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('daozhu-theme', theme);
+      await fetch('/api/config/display.theme', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: theme }),
+      });
+
+      status.textContent = '✅ 设置已保存';
+      status.style.color = 'var(--success)';
+    } catch (e) {
+      status.textContent = '❌ 保存失败: ' + e.message;
+      status.style.color = 'var(--error)';
+    }
   },
 
   // === 状态栏 ===
