@@ -224,3 +224,52 @@
 .chat__send--stop:hover {
   background: #b54a4a !important;
 }
+
+
+/* === 工具调用折叠块（参考 AccoBot）=== */
+.tool-block {
+  margin: 6px 0;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 0.8rem;
+}
+
+.tool-block__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.tool-block__header:hover {
+  background: var(--bg-hover);
+}
+
+.tool-block__toggle {
+  transition: transform 0.2s;
+  font-size: 0.7rem;
+}
+
+.tool-block--open .tool-block__toggle {
+  transform: rotate(90deg);
+}
+
+.tool-block__body {
+  display: none;
+  padding: 8px 12px;
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.tool-block--open .tool-block__body {
+  display: block;
+}

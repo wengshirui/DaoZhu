@@ -97,9 +97,17 @@ const Chat = {
           try {
             const data = JSON.parse(line.slice(6));
             if (data.tool) {
-              // 显示工具调用状态
-              bubble.innerHTML = fullText.replace(/\n/g, '<br>') +
-                `<div style="color:var(--accent);font-size:0.8rem;margin-top:8px">🔧 正在使用 ${data.tool} 工具...</div>`;
+              // 工具调用折叠块（参考 AccoBot）
+              const toolBlock = document.createElement('div');
+              toolBlock.className = 'tool-block';
+              toolBlock.innerHTML = `
+                <div class="tool-block__header" onclick="this.parentElement.classList.toggle('tool-block--open')">
+                  <span>🔧 ${data.tool}</span>
+                  <span class="tool-block__toggle">▶</span>
+                </div>
+                <div class="tool-block__body">执行中...</div>
+              `;
+              bubble.parentElement.insertBefore(toolBlock, bubble);
               this._scrollToBottom();
               continue;
             }

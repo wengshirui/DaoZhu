@@ -276,3 +276,41 @@
   border-top: 2px solid var(--accent);
   padding-top: 10px;
 }
+
+
+/* === 历史对话分组 === */
+.history-group {
+  margin-bottom: 12px;
+}
+
+.history-date {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  padding: 4px 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.history-item--active {
+  background: var(--accent-light) !important;
+  border-color: var(--accent) !important;
+}
+
+.history-new-btn {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1.5px dashed var(--border-color);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.history-new-btn:hover {
+  background: var(--accent-light);
+  border-color: var(--accent);
+}

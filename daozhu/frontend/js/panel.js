@@ -58,12 +58,43 @@ const Panel = {
           <div class="empty-state">
             <div class="empty-state__icon">💬</div>
             <div class="empty-state__title">暂无对话</div>
-            <div class="empty-state__desc">开始和管家聊天吧</div>
+            <div class="empty-state__desc">开始和管理员聊天吧</div>
           </div>
         `;
         return;
       }
-      container.innerHTML = conversations.map(c => this._renderHistoryItem(c)).join('');
+
+      // 按日期分组
+      const groups = this._groupByDate(conversations);
+      let html = '';
+      for (const [label, convs] of Object.entries(groups)) {
+        html += `<div class="history-group"><div class="history-date">${label}</div>`;
+        for (const c of convs) {
+          const active = c.id === Chat.conversationId ? ' history-item--active' : '';
+          html += `
+            <div class="history-item${active}" data-id="${c.id}">
+              <span class="history-item__icon">💬</span>
+              <div class="history-item__body">
+                <div class="history-item__title">${c.title}</div>
+              </div>
+            </div>`;
+        }
+        html += '</div>';
+      }
+
+      // 新建对话按钮
+      html = `<button class="history-new-btn" onclick="Panel.newChat()">+ 新对话</button>` + html;
+      container.innerHTML = html;
+
+      // 绑定点击切换
+      container.querySelectorAll('.history-item').forEach(item => {
+        item.addEventListener('click', () => this.switchConversation(item.dataset.id));
+      });
+
+      // 首次加载：如果没有当前对话，加载第一个
+      if (!Chat.conversationId && conversations.length > 0) {
+        this.switchConversation(conversations[0].id);
+      }
     } catch (err) {
       container.innerHTML = `
         <div class="empty-state">
@@ -75,29 +106,67 @@ const Panel = {
     }
   },
 
-  _renderHistoryItem(conv) {
-    const time = this._formatTime(conv.updated_at);
-    return `
-      <div class="history-item" data-id="${conv.id}">
-        <span class="history-item__icon">💬</span>
-        <div class="history-item__body">
-          <div class="history-item__title">${conv.title}</div>
-          <div class="history-item__time">${time}</div>
-        </div>
-      </div>
-    `;
+  async switchConversation(convId) {
+    Chat.conversationId = convId;
+
+    // 更新高亮
+    document.querySelectorAll('.history-item').forEach(i => i.classList.remove('history-item--active'));
+    const active = document.querySelector(`.history-item[data-id="${convId}"]`);
+    if (active) active.classList.add('history-item--active');
+
+    // 加载对话消息
+    try {
+      const res = await fetch(`/api/conversations/${convId}`);
+      const data = await res.json();
+      const container = document.getElementById('chat-messages');
+      const form = document.getElementById('chat-form');
+      form.style.display = 'flex';
+      Chat.showingReadme = false;
+      container.innerHTML = '';
+
+      if (data.messages && data.messages.length > 0) {
+        for (const msg of data.messages) {
+          if (msg.role === 'user' || msg.role === 'assistant') {
+            Chat._addMessageElement(msg.role, msg.content);
+          }
+        }
+        Chat.messages = data.messages;
+      } else {
+        Chat._showWelcome();
+      }
+    } catch (e) {
+      App.showToast('加载对话失败');
+    }
   },
 
-  _formatTime(isoStr) {
-    const date = new Date(isoStr);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  newChat() {
+    Chat.conversationId = null;
+    Chat.messages = [];
+    Chat.showingReadme = false;
+    const form = document.getElementById('chat-form');
+    form.style.display = 'flex';
+    Chat._showWelcome();
+    this.loadHistory();
+  },
 
-    if (diffDays === 0) return '今天';
-    if (diffDays === 1) return '昨天';
-    if (diffDays < 7) return `${diffDays} 天前`;
-    return date.toLocaleDateString('zh-CN');
+  _groupByDate(conversations) {
+    const groups = {};
+    const today = new Date().toDateString();
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+
+    for (const c of conversations) {
+      const d = new Date(c.updated_at).toDateString();
+      let label = '更早';
+      if (d === today) label = '今天';
+      else if (d === yesterday) label = '昨天';
+      else {
+        const date = new Date(c.updated_at);
+        label = `${date.getMonth() + 1}月${date.getDate()}日`;
+      }
+      if (!groups[label]) groups[label] = [];
+      groups[label].push(c);
+    }
+    return groups;
   },
 
   // === 输出日志 ===
