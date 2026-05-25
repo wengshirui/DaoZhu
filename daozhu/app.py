@@ -69,7 +69,16 @@ async def index():
 
 @app.get("/favicon.svg")
 async def favicon():
-    """返回 favicon"""
+    """返回 favicon SVG"""
+    return FileResponse(FRONTEND_DIR / "favicon.svg", media_type="image/svg+xml")
+
+
+@app.get("/favicon.ico")
+async def favicon_ico():
+    """返回 favicon ICO"""
+    ico_path = FRONTEND_DIR / "favicon.ico"
+    if ico_path.exists():
+        return FileResponse(ico_path, media_type="image/x-icon")
     return FileResponse(FRONTEND_DIR / "favicon.svg", media_type="image/svg+xml")
 
 

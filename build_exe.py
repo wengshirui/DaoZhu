@@ -35,7 +35,7 @@ def build():
         "--hidden-import=uvicorn.lifespan",
         "--hidden-import=uvicorn.lifespan.on",
         # 图标
-        # "--icon=daozhu/frontend/favicon.ico",
+        f"--icon={ROOT / 'daozhu' / 'frontend' / 'favicon.ico'}",
         # 输出目录
         f"--distpath={ROOT / 'dist'}",
         f"--workpath={ROOT / 'build'}",
