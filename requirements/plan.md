@@ -21,6 +21,13 @@
 | 011 | PyInstaller 打包发布 | 3 | M(5) | 🆕 待录入 | [011](./011-packaging.md) |
 | 012 | AccoBot 适配迁移 | 0 | M(5) | ✅ 已完成 | [012](./012-accobot-migration.md) |
 | 013 | 对话记忆与 Skill 自动优化 | 1 | L(8) | ✅ 已完成 | [013](./013-memory-and-skill-evolution.md) |
+| 014 | 用户引导页面 | 0 | S(3) | ✅ 已完成 | [014](./014-user-onboarding.md) |
+| 015 | 像素图书管理员（管家形象） | 1 | M(5) | 📐 已提炼 | [015](./015-pixel-librarian.md) |
+| 016 | UI 紧急修复（字体/折叠/favicon） | 0 | XS(1) | ✅ 已完成 | [016](./016-ui-fixes.md) |
+| 017 | 管家操作工作区数据 | 1 | M(5) | ✅ 已完成 | [017](./017-workspace-data-interaction.md) |
+| 018 | 好玩 + 游戏化（精灵/成就/等级） | 2 | L(8) | 📐 已提炼 | [018](./018-fun-and-gamification.md) |
+| 019 | 孕期管理 + 学习辅助工作区 | 3 | L(8) | ❌ 已取消 | [019](./019-pregnancy-learning-workspace.md) |
+| 020 | 本地性能检测 + 智能推荐 | 2 | S(3) | 🆕 待录入 | [020](./020-local-performance-detection.md) |
 
 ---
 

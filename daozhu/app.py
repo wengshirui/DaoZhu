@@ -48,6 +48,47 @@ async def index():
     return FileResponse(FRONTEND_DIR / "index.html")
 
 
+@app.get("/favicon.svg")
+async def favicon():
+    """返回 favicon"""
+    return FileResponse(FRONTEND_DIR / "favicon.svg", media_type="image/svg+xml")
+
+
+@app.get("/onboarding")
+async def onboarding_page():
+    """引导页面"""
+    return FileResponse(FRONTEND_DIR / "onboarding.html")
+
+
+@app.post("/api/onboarding/save-key")
+async def save_api_key(body: dict):
+    """保存 API Key 到 .env 文件"""
+    key = body.get("key", "").strip()
+    if not key:
+        raise HTTPException(400, "Key 不能为空")
+
+    from .config import PLATFORM_ROOT
+    env_path = PLATFORM_ROOT / ".env"
+    # 读取现有内容
+    existing = ""
+    if env_path.exists():
+        existing = env_path.read_text(encoding="utf-8")
+
+    # 替换或追加
+    lines = existing.split("\n")
+    found = False
+    for i, line in enumerate(lines):
+        if line.startswith("DEEPSEEK_API_KEY="):
+            lines[i] = f"DEEPSEEK_API_KEY={key}"
+            found = True
+            break
+    if not found:
+        lines.append(f"DEEPSEEK_API_KEY={key}")
+
+    env_path.write_text("\n".join(lines), encoding="utf-8")
+    return {"success": True}
+
+
 # === 静态资源 ===
 app.mount("/css", StaticFiles(directory=FRONTEND_DIR / "css"), name="css")
 app.mount("/js", StaticFiles(directory=FRONTEND_DIR / "js"), name="js")

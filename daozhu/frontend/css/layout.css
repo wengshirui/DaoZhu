@@ -94,8 +94,12 @@
 
 .sidebar.collapsed {
   width: 0;
-  overflow: hidden;
   border-right: none;
+}
+
+.sidebar.collapsed .sidebar__tabs,
+.sidebar.collapsed .sidebar__content {
+  display: none;
 }
 
 .sidebar__tabs {
@@ -164,8 +168,12 @@
 
 .infopanel.collapsed {
   width: 0;
-  overflow: hidden;
   border-left: none;
+}
+
+.infopanel.collapsed .infopanel__tabs,
+.infopanel.collapsed .infopanel__content {
+  display: none;
 }
 
 .infopanel__tabs {

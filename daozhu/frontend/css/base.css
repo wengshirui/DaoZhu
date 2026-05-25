@@ -11,8 +11,8 @@
 }
 
 html {
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 15px;
+  line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -32,16 +32,16 @@ body {
 /* === CSS Variables — Light Theme (沙滩日光) === */
 :root {
   /* 背景层次：从温暖沙色到纯白 */
-  --bg-primary: #faf7f2;
+  --bg-primary: #f9f5ee;
   --bg-secondary: #ffffff;
-  --bg-tertiary: #f5f0e8;
+  --bg-tertiary: #f3ede4;
   --bg-hover: rgba(180, 140, 80, 0.08);
   --bg-active: rgba(56, 140, 120, 0.08);
 
-  /* 文字：深海墨色 */
-  --text-primary: #2c3e3a;
-  --text-secondary: #5f7a74;
-  --text-muted: #9bb0a8;
+  /* 文字：深墨色，提高对比度 */
+  --text-primary: #1a1a1a;
+  --text-secondary: #4a4a4a;
+  --text-muted: #7a7a7a;
 
   /* 边框：贝壳般柔和 */
   --border-color: rgba(180, 160, 120, 0.2);

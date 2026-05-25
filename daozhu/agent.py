@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 from .tools import workspace_tools  # noqa: F401
 from .tools import template_tools  # noqa: F401
 from .tools import file_tools  # noqa: F401
+from .tools import workspace_api_tools  # noqa: F401
 
 MAX_ITERATIONS = 10  # 工具调用最大循环次数
 
