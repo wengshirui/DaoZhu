@@ -210,9 +210,22 @@ const Sidebar = {
         return;
       }
       container.innerHTML = tools.map(t => this._renderToolCard(t)).join('');
+      this._bindToolClicks(container);
     } catch (err) {
       container.innerHTML = this._renderEmpty('⚠️', '加载失败', err.message);
     }
+  },
+
+  _bindToolClicks(container) {
+    container.querySelectorAll('.card[data-type="tool"]').forEach(card => {
+      card.addEventListener('click', () => {
+        const name = card.querySelector('.card__name').textContent;
+        const desc = card.dataset.desc || '暂无说明';
+        const id = card.dataset.id;
+        const content = `# 🔧 ${name}\n\n## 工具 ID\n\n\`${id}\`\n\n## 说明\n\n${desc}\n\n## 使用方式\n\n此工具由岛管理员在对话中自动调用，无需手动操作。`;
+        ReadmeViewer.show(content, name, null);
+      });
+    });
   },
 
   _renderToolCard(tool) {
@@ -220,7 +233,7 @@ const Sidebar = {
     const statusText = tool.status === 'connected' ? '已连接' : '未连接';
 
     return `
-      <div class="card" data-id="${tool.id}">
+      <div class="card" data-id="${tool.id}" data-type="tool" data-desc="${(tool.description || '').replace(/"/g, '&quot;')}">
         <div class="card__icon">${tool.icon}</div>
         <div class="card__body">
           <div class="card__name">${tool.name}</div>

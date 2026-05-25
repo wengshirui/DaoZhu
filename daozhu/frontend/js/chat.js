@@ -243,17 +243,19 @@ const ReadmeViewer = {
       ? `<button onclick="ReadmeViewer.openWorkspace('${workspaceId}')" style="padding:6px 14px;background:var(--success);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:0.85rem">▶ 打开工作区</button>`
       : '';
 
+    const deleteBtn = workspaceId
+      ? `<button onclick="ReadmeViewer.hideWorkspace('${workspaceId}')" style="padding:6px 14px;background:transparent;color:var(--error);border:1px solid var(--error);border-radius:8px;cursor:pointer;font-size:0.8rem">🗑 隐藏工作区</button>`
+      : '';
+
     const html = this._renderMarkdown(content);
     container.innerHTML = `
-      <div style="padding:20px;overflow-y:auto;height:100%">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:8px">
-          <h2 style="font-size:1.2rem;color:var(--text-primary)">${title || '文档'}</h2>
-          <div style="display:flex;gap:8px">
-            ${openBtn}
-            <button onclick="ReadmeViewer.hide()" style="padding:6px 14px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:0.85rem">← 返回聊天</button>
-          </div>
+      <div style="padding:20px;overflow-y:auto;height:100%;display:flex;flex-direction:column">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <button onclick="ReadmeViewer.hide()" style="padding:6px 14px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:0.85rem">← 返回聊天</button>
+          ${openBtn}
         </div>
-        <div class="readme-content" style="line-height:1.8;color:var(--text-secondary)">${html}</div>
+        <div class="readme-content" style="line-height:1.8;color:var(--text-secondary);flex:1">${html}</div>
+        ${workspaceId ? `<div style="padding-top:16px;border-top:1px solid var(--border-color);margin-top:16px;text-align:right">${deleteBtn}</div>` : ''}
       </div>
     `;
   },
@@ -270,6 +272,18 @@ const ReadmeViewer = {
       }
     } catch (e) {
       App.showToast('启动失败: ' + e.message);
+    }
+  },
+
+  async hideWorkspace(id) {
+    if (!confirm('隐藏此工作区？\n\n隐藏后可在设置中恢复，文件不会删除。')) return;
+    try {
+      await fetch(`/api/workspaces/${id}/hide`, { method: 'POST' });
+      ReadmeViewer.hide();
+      Sidebar.loadWorkspaces();
+      Panel.addLog('info', '工作区已隐藏');
+    } catch (e) {
+      App.showToast('操作失败');
     }
   },
 

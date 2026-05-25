@@ -239,9 +239,9 @@ async def get_tools():
     """获取已注册工具列表"""
     from .tools.registry import registry
     tools = registry.list_tools()
-    # 转为前端期望的格式
     result = [
-        {"id": t["name"], "name": t["description"][:20], "icon": t["emoji"], "status": "connected"}
+        {"id": t["name"], "name": t["description"][:20], "icon": t["emoji"],
+         "status": "connected", "description": t["description"]}
         for t in tools
     ]
     return {"tools": result}
