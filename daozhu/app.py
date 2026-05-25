@@ -44,7 +44,12 @@ app = FastAPI(title="岛主 DaoZhu", version="0.1.0", lifespan=lifespan)
 # === 页面路由 ===
 @app.get("/")
 async def index():
-    """返回主界面"""
+    """返回主界面（未配置时跳转引导页）"""
+    from .config import get_api_key, ENV_FILE
+    # 检查是否已配置 API Key
+    if not ENV_FILE.exists() or not get_api_key():
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse("/onboarding")
     return FileResponse(FRONTEND_DIR / "index.html")
 
 
@@ -134,6 +139,19 @@ async def hide_workspace(workspace_id: str):
         raise HTTPException(status_code=404, detail=str(e))
 
 
+@app.get("/api/workspaces/{workspace_id}/readme")
+async def get_workspace_readme(workspace_id: str):
+    """获取工作区的 README.md 内容"""
+    ws = manager.get_workspace(workspace_id)
+    if not ws:
+        raise HTTPException(404, "工作区不存在")
+    readme_path = ws.path / "README.md"
+    if not readme_path.exists():
+        return {"id": workspace_id, "content": f"# {ws.name}\n\n暂无说明文档。"}
+    content = readme_path.read_text(encoding="utf-8")
+    return {"id": workspace_id, "content": content}
+
+
 @app.post("/api/workspaces/{workspace_id}/unhide")
 async def unhide_workspace(workspace_id: str):
     """取消隐藏工作区"""
@@ -157,12 +175,21 @@ async def get_skills():
     """获取技能列表（从 skills/ 目录扫描）"""
     from .skill_loader import discover_skills
     skills = discover_skills()
-    # 转为前端期望的格式
     result = [
         {"id": s["id"], "name": s["name"], "icon": "📖", "status": "active"}
         for s in skills
     ]
     return {"skills": result}
+
+
+@app.get("/api/skills/{skill_id}/readme")
+async def get_skill_readme(skill_id: str):
+    """获取技能的 SKILL.md 内容"""
+    from .skill_loader import load_skill
+    content = load_skill(skill_id)
+    if not content:
+        raise HTTPException(404, "技能不存在")
+    return {"id": skill_id, "content": content}
 
 
 # === 工具 API ===

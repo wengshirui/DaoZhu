@@ -96,7 +96,36 @@ const Sidebar = {
 
   _bindWorkspaceClicks(container) {
     container.querySelectorAll('.card').forEach(card => {
+      // 单击：显示 README
       card.addEventListener('click', async () => {
+        const id = card.dataset.id;
+        try {
+          const res = await fetch(`/api/workspaces/${id}/readme`);
+          const data = await res.json();
+          ReadmeViewer.show(data.content, card.querySelector('.card__name').textContent);
+        } catch (e) {
+          App.showToast('加载说明失败');
+        }
+      });
+
+      // 右键：隐藏工作区
+      card.addEventListener('contextmenu', async (e) => {
+        e.preventDefault();
+        const id = card.dataset.id;
+        const name = card.querySelector('.card__name').textContent;
+        if (confirm(`隐藏「${name}」？\n\n隐藏后可在设置中恢复，文件不会删除。`)) {
+          try {
+            await fetch(`/api/workspaces/${id}/hide`, { method: 'POST' });
+            await Sidebar.loadWorkspaces();
+            Panel.addLog('info', `工作区「${name}」已隐藏`);
+          } catch (e) {
+            App.showToast('隐藏失败');
+          }
+        }
+      });
+
+      // 双击：启动并打开工作区
+      card.addEventListener('dblclick', async () => {
         const status = card.dataset.status;
         const port = card.dataset.port;
         const id = card.dataset.id;
@@ -104,17 +133,15 @@ const Sidebar = {
         if (status === 'running') {
           window.open(`http://localhost:${port}`, '_blank');
         } else {
-          // 尝试启动工作区
           App.showToast('正在启动工作区...');
           try {
             const res = await fetch(`/api/workspaces/${id}/start`, { method: 'POST' });
             if (res.ok) {
               const data = await res.json();
               window.open(`http://localhost:${data.workspace.port}`, '_blank');
-              // 刷新列表
               await Sidebar.loadWorkspaces();
             } else {
-              App.showToast('启动失败，请检查工作区配置');
+              App.showToast('启动失败');
             }
           } catch (e) {
             App.showToast('启动失败: ' + e.message);
@@ -134,9 +161,25 @@ const Sidebar = {
         return;
       }
       container.innerHTML = skills.map(s => this._renderSkillCard(s)).join('');
+      this._bindSkillClicks(container);
     } catch (err) {
       container.innerHTML = this._renderEmpty('⚠️', '加载失败', err.message);
     }
+  },
+
+  _bindSkillClicks(container) {
+    container.querySelectorAll('.card[data-type="skill"]').forEach(card => {
+      card.addEventListener('click', async () => {
+        const id = card.dataset.id;
+        try {
+          const res = await fetch(`/api/skills/${id}/readme`);
+          const data = await res.json();
+          ReadmeViewer.show(data.content, card.querySelector('.card__name').textContent);
+        } catch (e) {
+          App.showToast('加载技能说明失败');
+        }
+      });
+    });
   },
 
   _renderSkillCard(skill) {
@@ -144,7 +187,7 @@ const Sidebar = {
     const statusText = skill.status === 'active' ? '已启用' : '未启用';
 
     return `
-      <div class="card" data-id="${skill.id}">
+      <div class="card" data-id="${skill.id}" data-type="skill">
         <div class="card__icon">${skill.icon}</div>
         <div class="card__body">
           <div class="card__name">${skill.name}</div>

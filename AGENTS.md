@@ -207,6 +207,23 @@ CREATE TABLE records (
 );
 ```
 
+### 实体 CRUD 标准
+
+每个实体（数据库表）必须提供以下 API，除非有特殊业务要求：
+
+| 操作 | 路由 | 说明 |
+|------|------|------|
+| 列表 | `GET /api/{entity}/` | 支持筛选参数 |
+| 详情 | `GET /api/{entity}/{id}` | 含关联数据 |
+| 创建 | `POST /api/{entity}/` | 含数据校验 |
+| 更新 | `PUT /api/{entity}/{id}` | 部分更新（exclude_unset） |
+| 删除 | `DELETE /api/{entity}/{id}` | 含关联影响处理 |
+
+**关联影响规则：**
+- 删除父实体 → 子实体级联删除（`ON DELETE CASCADE`）
+- 删除被引用实体 → 拒绝并提示"被 N 条记录引用"
+- 状态变更 → 通知关联实体
+
 ---
 
 ## 项目结构约定
