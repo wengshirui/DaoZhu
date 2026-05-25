@@ -218,10 +218,18 @@ uv venv .venv --python 3.11
 uv pip install -e .
 
 # 启动平台
-daozhu serve
+python daozhu_main.py
 ```
 
-浏览器打开 `http://localhost:7788`，看到你的书架。
+浏览器打开 `http://localhost:7788`，首次会进入引导页配置 API Key。
+
+### 打包为 exe
+
+```bash
+uv pip install -e ".[dev]"
+python build_exe.py
+# 输出: dist/daozhu/daozhu.exe
+```
 
 ---
 

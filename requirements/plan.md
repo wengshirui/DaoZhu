@@ -18,7 +18,7 @@
 | 008 | 工作区代码生成 | 1 | XL(13) | ✅ 已完成 | [008](./008-workspace-codegen.md) |
 | 009 | 工作区市场（Gitee） | 2 | L(8) | 🆕 待录入 | [009](./009-workspace-market.md) |
 | 010 | 工作区模板规范 | 2 | S(3) | ✅ 已完成 | [010](./010-workspace-templates.md) |
-| 011 | PyInstaller 打包发布 | 3 | M(5) | 🆕 待录入 | [011](./011-packaging.md) |
+| 011 | PyInstaller 打包发布 | 3 | M(5) | ✅ 已完成 | [011](./011-packaging.md) |
 | 012 | AccoBot 适配迁移 | 0 | M(5) | ✅ 已完成 | [012](./012-accobot-migration.md) |
 | 013 | 对话记忆与 Skill 自动优化 | 1 | L(8) | ✅ 已完成 | [013](./013-memory-and-skill-evolution.md) |
 | 014 | 用户引导页面 | 0 | S(3) | ✅ 已完成 | [014](./014-user-onboarding.md) |
