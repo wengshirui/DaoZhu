@@ -2,14 +2,14 @@
   "id": "forum",
   "name": "岛主论坛",
   "icon": "🏝️",
-  "color": "#6366F1",
+  "color": "#2d8a4e",
   "version": "1.0.0",
-  "description": "岛民交流，分享经验",
+  "description": "岛民交流，分享经验 · 对接 Gitee Issues",
   "port": 7802,
   "entry": "app.py",
   "python": ".venv",
-  "tags": ["社区", "交流"],
+  "tags": ["社区", "交流", "反馈"],
   "start_mode": "on-demand",
   "hidden": false,
-  "source": "self-built"
+  "source": "https://gitee.com/yumen2278/DaoZhu/issues"
 }

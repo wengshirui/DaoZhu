@@ -1,0 +1,66 @@
+/* 岛主论坛 — 社区绿色调 */
+@import url('https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f4f9f4;
+  --card: #ffffff;
+  --text: #1a2e1a;
+  --muted: #6b8a6b;
+  --accent: #2d8a4e;
+  --accent-light: #e8f5e9;
+  --border: #d4e8d4;
+  --radius: 10px;
+}
+
+body {
+  font-family: "LXGW WenKai", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.header { margin-bottom: 20px; }
+.header h1 { font-size: 1.4rem; }
+.header__desc { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+
+.toolbar { display: flex; gap: 8px; margin-bottom: 16px; align-items: center; }
+
+.tab-btn {
+  padding: 6px 14px; border: 1px solid var(--border); border-radius: 20px;
+  background: var(--card); font: inherit; cursor: pointer; font-size: 0.82rem;
+}
+.tab-btn.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+
+.btn { padding: 8px 14px; border: none; border-radius: var(--radius); font: inherit; cursor: pointer; }
+.btn--primary { background: var(--accent); color: #fff; margin-left: auto; }
+
+.issue-list { display: flex; flex-direction: column; gap: 8px; }
+
+.issue-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 16px; cursor: pointer; transition: all 0.2s;
+}
+.issue-card:hover { border-color: var(--accent); transform: translateX(3px); }
+.issue-card__title { font-size: 0.95rem; font-weight: 500; margin-bottom: 4px; }
+.issue-card__meta { font-size: 0.75rem; color: var(--muted); display: flex; gap: 12px; }
+
+.issue-detail { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.issue-detail__back { color: var(--accent); cursor: pointer; font-size: 0.85rem; margin-bottom: 12px; display: inline-block; }
+.issue-detail__title { font-size: 1.2rem; font-weight: 600; margin-bottom: 12px; }
+.issue-detail__body { line-height: 1.8; margin-bottom: 20px; white-space: pre-wrap; }
+
+.comment { border-top: 1px solid var(--border); padding: 12px 0; }
+.comment__author { font-size: 0.8rem; color: var(--accent); font-weight: 500; }
+.comment__body { margin-top: 4px; line-height: 1.7; }
+.comment__time { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+
+.comment-form { margin-top: 16px; display: flex; gap: 8px; }
+.comment-form textarea { flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius); font: inherit; min-height: 60px; resize: vertical; }
+.comment-form button { align-self: flex-end; }
+
+.empty { text-align: center; padding: 40px; color: var(--muted); }

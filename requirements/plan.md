@@ -28,10 +28,10 @@
 | 018 | 好玩 + 游戏化（精灵/成就/等级） | 2 | L(8) | 📐 已提炼 | [018](./018-fun-and-gamification.md) |
 | 019 | 孕期管理 + 学习辅助工作区 | 3 | L(8) | ❌ 已取消 | [019](./019-pregnancy-learning-workspace.md) |
 | 020 | 本地性能检测 + 智能推荐 | 2 | S(3) | 🆕 待录入 | [020](./020-local-performance-detection.md) |
-| 021 | 资源 README 展示（点击查看说明） | 0 | S(3) | 📐 已提炼 | [021](./021-resource-readme-display.md) |
-| 022 | 未配置时自动跳转引导页 | 0 | XS(1) | 📐 已提炼 | [022](./022-auto-onboarding-redirect.md) |
-| 023 | 工作区软删除（隐藏）前端 | 0 | S(3) | 📐 已提炼 | [023](./023-workspace-soft-delete.md) |
-| 024 | 实体 CRUD 代码规范 | 1 | XS(1) | 📐 已提炼 | [024](./024-entity-crud-standard.md) |
+| 021 | 资源 README 展示（点击查看说明） | 0 | S(3) | ✅ 已完成 | [021](./021-resource-readme-display.md) |
+| 022 | 未配置时自动跳转引导页 | 0 | XS(1) | ✅ 已完成 | [022](./022-auto-onboarding-redirect.md) |
+| 023 | 工作区软删除（隐藏）前端 | 0 | S(3) | ✅ 已完成 | [023](./023-workspace-soft-delete.md) |
+| 024 | 实体 CRUD 代码规范 | 1 | XS(1) | ✅ 已完成 | [024](./024-entity-crud-standard.md) |
 | 025 | 岛主论坛对接 Gitee Issues | 1 | M(5) | 📐 已提炼 | [025](./025-forum-gitee-issues.md) |
 
 ---

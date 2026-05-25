@@ -1,6 +1,7 @@
 """
-读书笔记 — 工作区入口
-端口: 7804
+岛主论坛 — 工作区入口
+端口: 7802
+对接 Gitee Issues 作为论坛服务
 """
 
 import sqlite3
@@ -31,7 +32,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="读书笔记", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="岛主论坛", version="1.0.0", lifespan=lifespan)
 app.include_router(api_router, prefix="/api")
 app.mount("/css", StaticFiles(directory=FRONTEND_DIR / "css"), name="css")
 app.mount("/js", StaticFiles(directory=FRONTEND_DIR / "js"), name="js")
@@ -44,4 +45,4 @@ async def index():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=7804)
+    uvicorn.run(app, host="0.0.0.0", port=7802)
