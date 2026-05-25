@@ -21,11 +21,30 @@ else:
 
 def main():
     import uvicorn
+    import signal
+    import atexit
     from daozhu.app import app
     from daozhu.config import get_config_value
+    from daozhu.workspace_manager import manager
 
     port = get_config_value("platform.port", 7788)
     host = "127.0.0.1"
+
+    # 退出时清理所有子进程
+    def cleanup():
+        import asyncio
+        try:
+            loop = asyncio.new_event_loop()
+            loop.run_until_complete(manager.shutdown())
+            loop.close()
+        except Exception:
+            # 最后手段：强杀所有子进程
+            for ws in manager.workspaces.values():
+                if ws.process:
+                    ws.process.kill()
+
+    atexit.register(cleanup)
+    signal.signal(signal.SIGINT, lambda *_: (cleanup(), exit(0)))
 
     # 1.5 秒后自动打开浏览器
     def open_browser():

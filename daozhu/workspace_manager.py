@@ -372,7 +372,10 @@ class WorkspaceManager:
                 try:
                     await self.stop_workspace(ws.id)
                 except Exception:
-                    pass
+                    # 强制杀掉
+                    if ws.process:
+                        ws.process.kill()
+                        ws.process = None
 
     async def _health_loop(self):
         """后台健康检查循环"""
