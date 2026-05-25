@@ -1,6 +1,6 @@
 [project]
 name = "daozhu"
-version = "0.1.0"
+version = "0.2.0"
 description = "岛主 DaoZhu — 本地 AI 工作台平台"
 readme = "README.md"
 license = {text = "MIT"}
