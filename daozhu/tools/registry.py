@@ -69,6 +69,10 @@ class ToolRegistry:
         if not tool:
             return json.dumps({"error": f"工具不存在: {name}"})
 
+        # 防御性检查：确保 arguments 是 dict
+        if not isinstance(arguments, dict):
+            arguments = {}
+
         start = time.monotonic()
         try:
             result = await tool.handler(**arguments)
@@ -88,6 +92,8 @@ class ToolRegistry:
             track_skill_usage(name, "call", success=False, duration_ms=duration_ms)
 
             error_msg = f"工具执行失败 [{name}]: {str(e)}"
+            if "missing" in str(e) and "positional argument" in str(e):
+                error_msg += f" (收到的参数: {list(arguments.keys())})"
             logger.error(error_msg)
             return json.dumps({"error": error_msg}, ensure_ascii=False)
 

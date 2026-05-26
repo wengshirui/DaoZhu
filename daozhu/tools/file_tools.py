@@ -11,8 +11,19 @@ from ..config import get_workspace_dir
 
 
 def _safe_path(file_path: str) -> Path:
-    """确保路径在 workspaces/ 目录内（安全边界）"""
+    """确保路径在 workspaces/ 或 skills/ 目录内（安全边界）"""
     workspace_dir = get_workspace_dir()
+    from ..config import PLATFORM_ROOT
+    skills_dir = PLATFORM_ROOT / "skills"
+
+    # 支持 skills/ 前缀
+    if file_path.startswith("skills/"):
+        target = (PLATFORM_ROOT / file_path).resolve()
+        if not str(target).startswith(str(skills_dir.resolve())):
+            raise ValueError("路径越界：只能操作 skills/ 目录内的文件")
+        return target
+
+    # 默认 workspaces/ 目录
     target = (workspace_dir / file_path).resolve()
     if not str(target).startswith(str(workspace_dir.resolve())):
         raise ValueError("路径越界：只能操作 workspaces/ 目录内的文件")
@@ -75,11 +86,11 @@ async def list_files_tool(directory: str = "") -> str:
 
 registry.register(
     name="write_file",
-    description="在工作区目录内创建或覆盖文件。路径相对于 workspaces/ 目录，如 'todo/schema.sql'。用于生成工作区代码。",
+    description="在工作区或技能目录内创建或覆盖文件。路径支持 'workspaces/xxx/file' 或 'skills/xxx/SKILL.md'。用于生成工作区代码或创建新技能。",
     parameters={
         "type": "object",
         "properties": {
-            "file_path": {"type": "string", "description": "相对于 workspaces/ 的文件路径，如 'myapp/app.py'"},
+            "file_path": {"type": "string", "description": "文件路径，如 'myapp/app.py'（workspaces下）或 'skills/weather/SKILL.md'（skills下）"},
             "content": {"type": "string", "description": "文件内容"},
         },
         "required": ["file_path", "content"],

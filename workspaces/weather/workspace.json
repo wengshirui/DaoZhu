@@ -1,0 +1,12 @@
+{
+  "id": "weather",
+  "name": "天气预报",
+  "icon": "🌤️",
+  "color": "#3B82F6",
+  "version": "1.0.0",
+  "description": "查询城市天气，支持实时天气、未来预报、空气质量",
+  "port": 7805,
+  "tags": ["天气", "查询", "生活"],
+  "start_mode": "on-demand",
+  "mode": "standard"
+}

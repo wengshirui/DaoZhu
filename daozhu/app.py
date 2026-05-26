@@ -400,6 +400,14 @@ async def chat_api(body: dict):
                 tool_name = chunk[6:-1]
                 yield f"data: {json.dumps({'tool': tool_name, 'conversation_id': conv_id})}\n\n"
                 continue
+            if chunk.startswith("[TOOL_OK:"):
+                tool_name = chunk[9:-1]
+                yield f"data: {json.dumps({'tool_done': tool_name, 'status': 'ok', 'conversation_id': conv_id})}\n\n"
+                continue
+            if chunk.startswith("[TOOL_ERR:"):
+                parts = chunk[10:-1].split(":", 1)
+                yield f"data: {json.dumps({'tool_done': parts[0], 'status': 'error', 'error': parts[1] if len(parts) > 1 else '', 'conversation_id': conv_id})}\n\n"
+                continue
 
             full_response += chunk
             yield f"data: {json.dumps({'chunk': chunk, 'conversation_id': conv_id})}\n\n"

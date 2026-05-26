@@ -109,6 +109,15 @@ const Chat = {
               `;
               bubble.parentElement.insertBefore(toolBlock, bubble);
               this._scrollToBottom();
+              // 同步到日志面板
+              Panel.addLog('info', `🔧 调用工具: ${data.tool}`);
+              continue;
+            }
+            if (data.tool_done) {
+              // 工具执行完成，更新日志
+              const icon = data.status === 'ok' ? '✅' : '❌';
+              Panel.addLog(data.status === 'ok' ? 'success' : 'error',
+                `${icon} ${data.tool_done} ${data.error || '完成'}`);
               continue;
             }
             if (data.chunk) {

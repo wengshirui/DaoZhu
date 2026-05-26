@@ -191,6 +191,16 @@ async def agent_chat_stream(
                         # 执行工具
                         result = await registry.dispatch(tool_name, tool_args)
 
+                        # 推送工具结果状态
+                        try:
+                            r = json.loads(result)
+                            if r.get("error"):
+                                yield f"[TOOL_ERR:{tool_name}:{r['error'][:50]}]"
+                            else:
+                                yield f"[TOOL_OK:{tool_name}]"
+                        except (json.JSONDecodeError, TypeError):
+                            yield f"[TOOL_OK:{tool_name}]"
+
                         # 添加工具结果到消息
                         full_messages.append({
                             "role": "tool",
