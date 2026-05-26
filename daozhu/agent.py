@@ -25,6 +25,13 @@ from .tools import workspace_api_tools  # noqa: F401
 
 MAX_ITERATIONS = 10  # 工具调用最大循环次数
 
+
+def _get_disabled_tools() -> set:
+    """从配置中读取被禁用的工具列表"""
+    from .config import get_config_value
+    disabled = get_config_value("disabled_tools", [])
+    return set(disabled) if disabled else set()
+
 SYSTEM_PROMPT = """你是岛主平台的岛管理员。你帮助用户管理他们的数字岛屿。
 
 你的能力：
@@ -82,8 +89,11 @@ async def agent_chat_stream(
     # 构建完整消息列表
     full_messages = [{"role": "system", "content": system_content}] + messages
 
-    # 获取工具 schema
+    # 获取工具 schema（排除禁用的）
     tool_schemas = registry.get_schemas()
+    disabled = _get_disabled_tools()
+    if disabled:
+        tool_schemas = [t for t in tool_schemas if t["function"]["name"] not in disabled]
 
     headers = {
         "Authorization": f"Bearer {api_key}",

@@ -273,12 +273,36 @@ async def get_tools():
     """获取已注册工具列表"""
     from .tools.registry import registry
     tools = registry.list_tools()
+    disabled = set(get_config_value("disabled_tools", []) or [])
     result = [
         {"id": t["name"], "name": t["description"][:20], "icon": t["emoji"],
-         "status": "connected", "description": t["description"]}
+         "status": "disabled" if t["name"] in disabled else "connected",
+         "description": t["description"]}
         for t in tools
     ]
+    # 禁用的排后面
+    result.sort(key=lambda x: 1 if x["status"] == "disabled" else 0)
     return {"tools": result}
+
+
+@app.post("/api/tools/{tool_id}/disable")
+async def disable_tool(tool_id: str):
+    """禁用工具"""
+    disabled = get_config_value("disabled_tools", []) or []
+    if tool_id not in disabled:
+        disabled.append(tool_id)
+        set_config_value("disabled_tools", disabled)
+    return {"success": True}
+
+
+@app.post("/api/tools/{tool_id}/enable")
+async def enable_tool(tool_id: str):
+    """启用工具"""
+    disabled = get_config_value("disabled_tools", []) or []
+    if tool_id in disabled:
+        disabled.remove(tool_id)
+        set_config_value("disabled_tools", disabled)
+    return {"success": True}
 
 
 # === 对话 API ===
