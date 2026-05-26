@@ -103,7 +103,7 @@ async def extract_memories(messages: list[dict], conversation_id: str = None):
     if not api_key:
         return  # 无 API Key，跳过提取
 
-    prompt = EXTRACT_PROMPT.format(conversation=conversation_text)
+    prompt = EXTRACT_PROMPT.replace("{conversation}", conversation_text)
 
     try:
         async with httpx.AsyncClient(timeout=30) as client:
