@@ -137,6 +137,7 @@ async def agent_chat_stream(
     }
 
     iteration = 0
+    _consecutive_failures = {}  # 追踪连续失败次数
 
     while iteration < MAX_ITERATIONS:
         iteration += 1
@@ -192,6 +193,22 @@ async def agent_chat_stream(
 
                         # 执行工具
                         result = await registry.dispatch(tool_name, tool_args)
+
+                        # 连续失败检测
+                        try:
+                            r = json.loads(result)
+                            if r.get("error"):
+                                _consecutive_failures[tool_name] = _consecutive_failures.get(tool_name, 0) + 1
+                                if _consecutive_failures[tool_name] >= 2:
+                                    # 连续失败2次，注入提示让LLM换策略
+                                    result = json.dumps({
+                                        "error": r["error"],
+                                        "hint": f"工具 {tool_name} 已连续失败 {_consecutive_failures[tool_name]} 次。请换一种方式完成任务，或直接告诉用户当前遇到的问题。不要再重复调用同样的参数。"
+                                    }, ensure_ascii=False)
+                            else:
+                                _consecutive_failures[tool_name] = 0
+                        except (json.JSONDecodeError, TypeError):
+                            _consecutive_failures[tool_name] = 0
 
                         # 推送工具结果状态
                         try:
