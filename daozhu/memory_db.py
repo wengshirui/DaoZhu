@@ -49,6 +49,19 @@ CREATE TABLE IF NOT EXISTS skill_usage (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- === 工作区创建进度 ===
+-- 用途: 记录创建步骤，支持断点续做
+CREATE TABLE IF NOT EXISTS creation_progress (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    workspace_id TEXT NOT NULL,
+    step_name TEXT NOT NULL,
+    step_order INTEGER NOT NULL,
+    status TEXT DEFAULT 'pending',
+    result TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    completed_at DATETIME
+);
+
 -- === FTS5 全文搜索索引 ===
 CREATE VIRTUAL TABLE IF NOT EXISTS knowledge_fts USING fts5(
     title, content, keywords,
@@ -210,6 +223,59 @@ def get_stale_skills(days: int = 30) -> list[dict]:
            HAVING MAX(created_at) < ?
            ORDER BY last_used""",
         (cutoff,),
+    ).fetchall()
+    db.close()
+    return [dict(r) for r in rows]
+
+
+# === 创建进度记录 ===
+
+def start_creation(workspace_id: str, steps: list[str]) -> None:
+    """开始创建工作区，记录步骤清单"""
+    db = _get_db()
+    # 清除旧的未完成记录
+    db.execute("DELETE FROM creation_progress WHERE workspace_id = ? AND status != 'done'",
+               (workspace_id,))
+    for i, step in enumerate(steps):
+        db.execute(
+            "INSERT INTO creation_progress (workspace_id, step_name, step_order, status) VALUES (?, ?, ?, 'pending')",
+            (workspace_id, step, i),
+        )
+    db.commit()
+    db.close()
+
+
+def complete_step(workspace_id: str, step_name: str, result: str = "") -> None:
+    """标记步骤完成"""
+    db = _get_db()
+    db.execute(
+        "UPDATE creation_progress SET status = 'done', result = ?, completed_at = ? WHERE workspace_id = ? AND step_name = ?",
+        (result, datetime.now().isoformat(), workspace_id, step_name),
+    )
+    db.commit()
+    db.close()
+
+
+def get_pending_steps(workspace_id: str) -> list[dict]:
+    """获取未完成的步骤（断点续做）"""
+    db = _get_db()
+    rows = db.execute(
+        "SELECT * FROM creation_progress WHERE workspace_id = ? AND status = 'pending' ORDER BY step_order",
+        (workspace_id,),
+    ).fetchall()
+    db.close()
+    return [dict(r) for r in rows]
+
+
+def get_incomplete_creations() -> list[dict]:
+    """获取所有未完成的创建任务"""
+    db = _get_db()
+    rows = db.execute(
+        """SELECT workspace_id, COUNT(*) as total_steps,
+                  SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) as done_steps
+           FROM creation_progress
+           GROUP BY workspace_id
+           HAVING done_steps < total_steps"""
     ).fetchall()
     db.close()
     return [dict(r) for r in rows]
