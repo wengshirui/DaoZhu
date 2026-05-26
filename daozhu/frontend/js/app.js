@@ -79,13 +79,13 @@ const App = {
           </div>
 
           <div>
-            <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🧠 DeepSeek API Key</label>
+            <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🧠 DeepSeek API Key <span id="status-apikey" style="font-size:0.75rem"></span></label>
             <input type="password" id="settings-apikey" placeholder="sk-xxxxxxxx" value=""
               style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
           </div>
 
           <div>
-            <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🔗 Gitee Token（论坛发帖用）</label>
+            <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🔗 Gitee Token（论坛发帖用）<span id="status-gitee" style="font-size:0.75rem"></span></label>
             <input type="password" id="settings-gitee" placeholder="xxxxxxxx" value=""
               style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
           </div>
@@ -123,6 +123,14 @@ const App = {
     fetch('/api/config').then(r => r.json()).then(data => {
       const name = data.config?.island_name;
       if (name) document.getElementById('settings-island-name').value = name;
+    }).catch(() => {});
+
+    // 显示配置状态
+    fetch('/api/config/secrets-status').then(r => r.json()).then(data => {
+      const apiEl = document.getElementById('status-apikey');
+      const giteeEl = document.getElementById('status-gitee');
+      if (apiEl) apiEl.innerHTML = data.deepseek ? '<span style="color:var(--success)">✓ 已配置</span>' : '<span style="color:var(--error)">✗ 未配置</span>';
+      if (giteeEl) giteeEl.innerHTML = data.gitee ? '<span style="color:var(--success)">✓ 已配置</span>' : '<span style="color:var(--error)">✗ 未配置</span>';
     }).catch(() => {});
   },
 

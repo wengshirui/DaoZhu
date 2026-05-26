@@ -481,6 +481,16 @@ async def get_memory_profile():
     return {"profiles": get_all_profiles()}
 
 
+@app.get("/api/config/secrets-status")
+async def get_secrets_status():
+    """获取密钥配置状态（不返回值，只返回是否已配置）"""
+    from .config_db import get_secret
+    return {
+        "deepseek": bool(get_secret("DEEPSEEK_API_KEY")),
+        "gitee": bool(get_secret("GITEE_TOKEN")),
+    }
+
+
 @app.get("/api/memory/knowledge")
 async def get_memory_knowledge(q: str = ""):
     """搜索/获取知识库"""

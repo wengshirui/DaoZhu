@@ -15,17 +15,26 @@ BASE_URL = "https://gitee.com/api/v5"
 
 
 def _get_token() -> Optional[str]:
-    """从环境变量或 .env 获取 Gitee Token"""
+    """从 config.db 获取 Gitee Token"""
+    # 优先从 config.db 读取
+    try:
+        import sqlite3
+        from pathlib import Path
+        config_db = Path(__file__).parent.parent.parent / "config.db"
+        if config_db.exists():
+            conn = sqlite3.connect(str(config_db))
+            conn.row_factory = sqlite3.Row
+            row = conn.execute("SELECT value FROM config WHERE key = 'GITEE_TOKEN'").fetchone()
+            conn.close()
+            if row:
+                return row["value"]
+    except Exception:
+        pass
+
+    # 降级：环境变量
     token = os.environ.get("GITEE_TOKEN")
     if token:
         return token
-    # 尝试从项目 .env 读取
-    from pathlib import Path
-    env_file = Path(__file__).parent.parent.parent / ".env"
-    if env_file.exists():
-        for line in env_file.read_text(encoding="utf-8").split("\n"):
-            if line.startswith("GITEE_TOKEN="):
-                return line.split("=", 1)[1].strip().strip("'\"")
     return None
 
 

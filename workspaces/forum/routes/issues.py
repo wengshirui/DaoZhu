@@ -78,7 +78,7 @@ async def add_comment(number: int, data: CommentCreate):
     """发表评论"""
     result = await gitee_client.create_comment(number, data.body)
     if result is None:
-        raise HTTPException(403, "请先配置 Gitee Token（在 .env 中设置 GITEE_TOKEN）")
+        raise HTTPException(403, "请先在主平台设置页面()配置 Gitee Token")
     return {"success": True, "comment": result}
 
 
@@ -87,7 +87,7 @@ async def create_issue(data: IssueCreate):
     """创建新 Issue"""
     result = await gitee_client.create_issue(data.title, data.body)
     if result is None:
-        raise HTTPException(403, "请先配置 Gitee Token（在 .env 中设置 GITEE_TOKEN）")
+        raise HTTPException(403, "请先在主平台设置页面()配置 Gitee Token")
     return {"success": True, "issue": result}
 
 
