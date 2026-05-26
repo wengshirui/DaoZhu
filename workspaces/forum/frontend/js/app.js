@@ -1,6 +1,14 @@
 /**
  * 岛主论坛 — 前端主逻辑
  */
+// 自动检测 API base path（兼容轻挂载和独立运行）
+const API_BASE = (() => {
+  const path = window.location.pathname;
+  // 确保以 / 结尾
+  const base = path.endsWith('/') ? path : path + '/';
+  return base + 'api/';
+})();
+
 const App = {
   currentState: 'open',
 
@@ -28,7 +36,7 @@ const App = {
     list.style.display = 'block';
 
     try {
-      const res = await fetch(`/api/issues/?state=${this.currentState}`);
+      const res = await fetch(`${API_BASE}issues/?state=${this.currentState}`);
       const data = await res.json();
 
       if (data.issues.length === 0) {
@@ -58,7 +66,7 @@ const App = {
     detail.style.display = 'block';
 
     try {
-      const res = await fetch(`/api/issues/${number}`);
+      const res = await fetch(`${API_BASE}issues/${number}`);
       const data = await res.json();
 
       const comments = (data.comments || []).map(c => `
@@ -91,7 +99,7 @@ const App = {
     if (!body) return;
 
     try {
-      const res = await fetch(`/api/issues/${number}/comments`, {
+      const res = await fetch(`${API_BASE}issues/${number}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ body }),
@@ -131,7 +139,7 @@ const App = {
     if (!title) { this.showMsg('标题不能为空', 'error'); return; }
 
     try {
-      const res = await fetch('/api/issues/', {
+      const res = await fetch(`${API_BASE}issues/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, body }),
