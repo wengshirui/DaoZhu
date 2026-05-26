@@ -282,6 +282,24 @@ def get_db() -> sqlite3.Connection:
 | 轻挂载 from routes import 失败 | sys.path 没保持 | 主平台已修复，不需要工作区处理 |
 | Playwright 在 async 中报错 | 用了 sync_playwright | 必须用 `async_playwright` |
 | 工作区需要平台配置时 | 不知道怎么获取 | 优先选 lightweight 模式，可直接 import daozhu 模块 |
+| 前端 API 路径在轻挂载后 404 | 写了绝对路径 `/api/xxx` | 用动态 API_BASE（见下方） |
+
+### 前端 API 路径兼容方案
+
+轻挂载后工作区 URL 从 `localhost:7802/` 变为 `localhost:7788/ws/forum/`，前端 JS 中的 API 路径必须动态计算：
+
+```javascript
+// 在 app.js 开头加入（兼容轻挂载和独立运行）
+const API_BASE = (() => {
+  const path = window.location.pathname;
+  const base = path.endsWith('/') ? path : path + '/';
+  return base + 'api/';
+})();
+
+// 使用时：
+fetch(`${API_BASE}issues/?state=open`)  // ✅ 正确
+fetch('/api/issues/')                    // ❌ 轻挂载后 404
+```
 
 ### 选择 mode 的决策树
 

@@ -375,3 +375,4 @@ ruff format .                   # format
 | sync_playwright 在 async 报错 | 用 `async_playwright` |
 | DeepSeek 返回空 arguments | registry.dispatch 前置校验必填参数 |
 | 工具连续失败无限循环 | 连续 2 次失败后注入 hint 让 LLM 换策略 |
+| 前端 API 路径轻挂载后 404 | 用动态 `API_BASE`（基于 `window.location.pathname`） |
