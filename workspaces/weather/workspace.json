@@ -4,6 +4,8 @@
   "icon": "🌤",
   "color": "#0EA5E9",
   "description": "查询全球各地实时天气，支持温度、湿度、风速、紫外线等信息",
-  "port": 9020,
-  "version": "1.0.0"
+  "port": 7801,
+  "version": "1.0.0",
+  "hidden": true,
+  "start_mode": "manual"
 }
