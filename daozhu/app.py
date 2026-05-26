@@ -177,6 +177,7 @@ async def save_gitee_token(body: dict):
 # === 静态资源 ===
 app.mount("/css", StaticFiles(directory=FRONTEND_DIR / "css"), name="css")
 app.mount("/js", StaticFiles(directory=FRONTEND_DIR / "js"), name="js")
+app.mount("/img", StaticFiles(directory=FRONTEND_DIR / "img"), name="img")
 
 
 # === 工作区 API ===

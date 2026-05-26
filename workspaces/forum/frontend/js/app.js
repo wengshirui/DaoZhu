@@ -98,20 +98,37 @@ const App = {
       });
       if (!res.ok) {
         const err = await res.json();
-        alert(err.detail || '发送失败');
+        this.showMsg(err.detail || '发送失败', 'error');
         return;
       }
       input.value = '';
+      this.showMsg('✅ 回复成功', 'success');
       await this.showIssue(number);
     } catch (e) {
-      alert('发送失败: ' + e.message);
+      this.showMsg('发送失败: ' + e.message, 'error');
     }
   },
 
   async createIssue() {
-    const title = prompt('帖子标题：');
-    if (!title) return;
-    const body = prompt('帖子内容（可选）：') || '';
+    // 用内联表单替代 prompt
+    const list = document.getElementById('issue-list');
+    list.innerHTML = `
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+        <h3 style="margin-bottom:12px">📝 发布新帖</h3>
+        <input type="text" id="new-issue-title" placeholder="帖子标题" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius);font:inherit;margin-bottom:8px">
+        <textarea id="new-issue-body" placeholder="帖子内容（可选）" rows="4" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius);font:inherit;resize:vertical;margin-bottom:12px"></textarea>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn--primary" onclick="App.submitNewIssue()">发布</button>
+          <button class="btn" onclick="App.loadIssues()">取消</button>
+        </div>
+      </div>
+    `;
+  },
+
+  async submitNewIssue() {
+    const title = document.getElementById('new-issue-title').value.trim();
+    const body = document.getElementById('new-issue-body').value.trim();
+    if (!title) { this.showMsg('标题不能为空', 'error'); return; }
 
     try {
       const res = await fetch('/api/issues/', {
@@ -121,13 +138,22 @@ const App = {
       });
       if (!res.ok) {
         const err = await res.json();
-        alert(err.detail || '创建失败');
+        this.showMsg(err.detail || '创建失败', 'error');
         return;
       }
+      this.showMsg('✅ 发布成功', 'success');
       await this.loadIssues();
     } catch (e) {
-      alert('创建失败: ' + e.message);
+      this.showMsg('创建失败: ' + e.message, 'error');
     }
+  },
+
+  showMsg(text, type) {
+    const el = document.createElement('div');
+    el.style.cssText = `position:fixed;top:20px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:8px;font-size:0.85rem;z-index:9999;color:#fff;background:${type === 'error' ? '#c75450' : '#2d8a4e'}`;
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
   },
 
   formatTime(str) {

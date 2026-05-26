@@ -273,3 +273,53 @@
 .tool-block--open .tool-block__body {
   display: block;
 }
+
+
+/* === 聊天背景模式 === */
+
+/* 度假模式：海岛 + 波浪 */
+.chat[data-bg="vacation"] .chat__messages {
+  background:
+    linear-gradient(180deg, transparent 60%, rgba(45, 155, 131, 0.03) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,60 C200,90 400,30 600,60 C800,90 1000,30 1200,60 L1200,120 L0,120 Z' fill='rgba(45,155,131,0.04)'/%3E%3C/svg%3E") repeat-x bottom;
+  background-size: auto, 600px 40px;
+}
+
+/* 工作模式：书架 */
+.chat[data-bg="work"] .chat__messages {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 80px,
+      rgba(139, 90, 43, 0.03) 80px,
+      rgba(139, 90, 43, 0.03) 82px
+    ),
+    linear-gradient(180deg, var(--bg-primary) 0%, rgba(232, 220, 200, 0.1) 100%);
+}
+
+/* 书架上的"书"（工作区数量对应） */
+.chat[data-bg="work"] .chat__messages::after {
+  content: '';
+  position: absolute;
+  bottom: 10px;
+  left: 20px;
+  right: 20px;
+  height: 4px;
+  background: rgba(139, 90, 43, 0.08);
+  border-radius: 2px;
+}
+
+
+/* === SVG 管理员头像动画 === */
+.librarian-avatar {
+  transition: transform 0.3s;
+}
+
+.librarian-avatar--float {
+  animation: gentleFloat 3s ease-in-out infinite;
+}
+
+.message--assistant:hover .librarian-avatar {
+  transform: scale(1.1) rotate(-3deg);
+}

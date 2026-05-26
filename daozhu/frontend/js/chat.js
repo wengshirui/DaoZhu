@@ -159,7 +159,7 @@ const Chat = {
     const container = document.getElementById('chat-messages');
     const avatar = role === 'user'
       ? '<span>👤</span>'
-      : '<div class="librarian librarian--idle"><div class="librarian__pixel"></div></div>';
+      : '<img src="/img/librarian.svg" alt="岛管理员" style="width:28px;height:28px;image-rendering:pixelated" class="librarian-avatar">';
 
     const msgEl = document.createElement('div');
     msgEl.className = `message message--${role}`;
@@ -178,9 +178,7 @@ const Chat = {
     const container = document.getElementById('chat-messages');
     container.innerHTML = `
       <div class="chat__welcome" id="chat-welcome">
-        <div class="librarian librarian--large librarian--idle">
-          <div class="librarian__pixel"></div>
-        </div>
+        <img src="/img/librarian.svg" alt="岛管理员" style="width:80px;height:80px;image-rendering:pixelated;margin-bottom:16px" class="librarian-avatar librarian-avatar--float">
         <div class="chat__welcome-title">你好，我是岛管理员</div>
         <div class="chat__welcome-desc">
           告诉我你想建造什么工作区，或者问我任何问题。<br>
@@ -271,6 +269,15 @@ const ReadmeViewer = {
   async openWorkspace(id) {
     App.showToast('正在启动...');
     try {
+      // 检查是否是 lightweight 模式
+      const wsRes = await fetch(`/api/workspaces`);
+      const wsData = await wsRes.json();
+      const ws = wsData.workspaces.find(w => w.id === id);
+      if (ws && ws.mode === 'lightweight') {
+        window.open(`/ws/${id}`, '_blank');
+        return;
+      }
+
       const res = await fetch(`/api/workspaces/${id}/start`, { method: 'POST' });
       if (res.ok) {
         const data = await res.json();

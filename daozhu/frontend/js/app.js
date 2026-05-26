@@ -28,6 +28,11 @@ const App = {
   _initTheme() {
     const saved = localStorage.getItem('daozhu-theme') || 'light';
     document.documentElement.setAttribute('data-theme', saved);
+    // 恢复聊天背景
+    const chatBg = localStorage.getItem('daozhu-chatbg') || '';
+    if (chatBg) {
+      document.querySelector('.chat')?.setAttribute('data-bg', chatBg);
+    }
   },
 
   _bindThemeToggle() {
@@ -93,6 +98,15 @@ const App = {
             </select>
           </div>
 
+          <div>
+            <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🖼️ 聊天背景</label>
+            <select id="settings-chatbg" style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
+              <option value="">无背景</option>
+              <option value="vacation">🏝️ 度假海岛</option>
+              <option value="work">📚 书架</option>
+            </select>
+          </div>
+
           <button onclick="App._saveSettings()" style="padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font:inherit;font-weight:500;margin-top:8px">
             保存设置
           </button>
@@ -155,6 +169,11 @@ const App = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ value: theme }),
       });
+
+      // 保存聊天背景
+      const chatBg = document.getElementById('settings-chatbg').value;
+      document.querySelector('.chat').setAttribute('data-bg', chatBg);
+      localStorage.setItem('daozhu-chatbg', chatBg);
 
       status.textContent = '✅ 设置已保存';
       status.style.color = 'var(--success)';

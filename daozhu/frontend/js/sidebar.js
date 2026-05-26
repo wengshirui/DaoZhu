@@ -78,7 +78,7 @@ const Sidebar = {
     const statusText = workspace.status === 'running' ? '运行中' : '已停止';
 
     return `
-      <div class="card" data-id="${workspace.id}" data-port="${workspace.port}" data-status="${workspace.status}">
+      <div class="card" data-id="${workspace.id}" data-port="${workspace.port}" data-status="${workspace.status}" data-mode="${workspace.mode || 'standard'}">
         <div class="card__icon" style="background: ${workspace.color}20">
           ${workspace.icon}
         </div>
@@ -173,6 +173,13 @@ const Sidebar = {
         const status = card.dataset.status;
         const port = card.dataset.port;
         const id = card.dataset.id;
+        const mode = card.dataset.mode;
+
+        // lightweight 模式：打开主进程子路由
+        if (mode === 'lightweight') {
+          window.open(`/ws/${id}`, '_blank');
+          return;
+        }
 
         if (status === 'running') {
           window.open(`http://localhost:${port}`, '_blank');
