@@ -97,25 +97,30 @@ const Chat = {
           try {
             const data = JSON.parse(line.slice(6));
             if (data.tool) {
-              // 工具调用折叠块 — 插入到消息列表（独立行）
+              // 工具调用状态行（简洁，参考 AccoBot）
               const container = document.getElementById('chat-messages');
-              const toolBlock = document.createElement('div');
-              toolBlock.className = 'tool-block';
-              toolBlock.innerHTML = `
-                <div class="tool-block__header" onclick="this.parentElement.classList.toggle('tool-block--open')">
-                  <span>🔧 ${data.tool}</span>
-                  <span class="tool-block__toggle">▶</span>
-                </div>
-                <div class="tool-block__body">执行中...</div>
-              `;
-              container.appendChild(toolBlock);
+              const toolLine = document.createElement('div');
+              toolLine.className = 'tool-status-line';
+              toolLine.innerHTML = `<span class="tool-status-icon">🔧</span> <span class="tool-status-name">${data.tool}</span> <span class="tool-status-state">执行中...</span>`;
+              toolLine.id = `tool-${Date.now()}`;
+              container.appendChild(toolLine);
+              this._lastToolLine = toolLine;
               this._scrollToBottom();
-              // 同步到日志面板
               Panel.addLog('info', `🔧 调用工具: ${data.tool}`);
               continue;
             }
             if (data.tool_done) {
-              // 工具执行完成，更新日志
+              // 更新工具状态行
+              if (this._lastToolLine) {
+                const stateEl = this._lastToolLine.querySelector('.tool-status-state');
+                if (data.status === 'ok') {
+                  stateEl.textContent = '✅ 完成';
+                  stateEl.style.color = 'var(--success)';
+                } else {
+                  stateEl.textContent = '❌ ' + (data.error || '失败').slice(0, 30);
+                  stateEl.style.color = 'var(--error)';
+                }
+              }
               const icon = data.status === 'ok' ? '✅' : '❌';
               Panel.addLog(data.status === 'ok' ? 'success' : 'error',
                 `${icon} ${data.tool_done} ${data.error || '完成'}`);

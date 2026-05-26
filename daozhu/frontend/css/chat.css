@@ -226,54 +226,34 @@
 }
 
 
-/* === 工具调用折叠块（参考 AccoBot）=== */
-.tool-block {
-  margin: 6px 0;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  overflow: hidden;
+/* === 工具调用状态行（简洁风格，参考 AccoBot）=== */
+.tool-status-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
   font-size: 0.8rem;
-  display: block;
-  width: 100%;
+  color: var(--text-muted);
+  border-left: 3px solid var(--accent);
+  margin: 4px 0;
+  background: var(--bg-tertiary);
+  border-radius: 0 6px 6px 0;
+  animation: slideUp 0.2s ease;
 }
 
-.tool-block__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 12px;
-  background: var(--bg-tertiary);
-  cursor: pointer;
+.tool-status-icon {
+  font-size: 0.9rem;
+}
+
+.tool-status-name {
+  font-family: monospace;
   color: var(--accent);
   font-weight: 500;
 }
 
-.tool-block__header:hover {
-  background: var(--bg-hover);
-}
-
-.tool-block__toggle {
-  transition: transform 0.2s;
-  font-size: 0.7rem;
-}
-
-.tool-block--open .tool-block__toggle {
-  transform: rotate(90deg);
-}
-
-.tool-block__body {
-  display: none;
-  padding: 8px 12px;
-  font-family: monospace;
+.tool-status-state {
+  margin-left: auto;
   font-size: 0.75rem;
-  color: var(--text-muted);
-  white-space: pre-wrap;
-  max-height: 150px;
-  overflow-y: auto;
-}
-
-.tool-block--open .tool-block__body {
-  display: block;
 }
 
 
