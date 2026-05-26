@@ -233,6 +233,8 @@
   border-radius: 8px;
   overflow: hidden;
   font-size: 0.8rem;
+  display: block;
+  width: 100%;
 }
 
 .tool-block__header {

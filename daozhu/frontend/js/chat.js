@@ -97,7 +97,8 @@ const Chat = {
           try {
             const data = JSON.parse(line.slice(6));
             if (data.tool) {
-              // 工具调用折叠块（参考 AccoBot）
+              // 工具调用折叠块 — 插入到消息列表（独立行）
+              const container = document.getElementById('chat-messages');
               const toolBlock = document.createElement('div');
               toolBlock.className = 'tool-block';
               toolBlock.innerHTML = `
@@ -107,7 +108,7 @@ const Chat = {
                 </div>
                 <div class="tool-block__body">执行中...</div>
               `;
-              bubble.parentElement.insertBefore(toolBlock, bubble);
+              container.appendChild(toolBlock);
               this._scrollToBottom();
               // 同步到日志面板
               Panel.addLog('info', `🔧 调用工具: ${data.tool}`);
