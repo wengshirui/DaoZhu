@@ -23,7 +23,21 @@ async def web_search_tool(query: str, max_results: int = 5) -> str:
             "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
         }
 
-        async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+        # 检测本地代理（Clash 默认 7890）
+        import os
+        proxy = os.environ.get("HTTP_PROXY") or os.environ.get("http_proxy")
+        if not proxy:
+            import socket
+            try:
+                s = socket.socket()
+                s.settimeout(0.5)
+                s.connect(("127.0.0.1", 7890))
+                s.close()
+                proxy = "http://127.0.0.1:7890"
+            except (OSError, socket.timeout):
+                proxy = None
+
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True, proxy=proxy) as client:
             resp = await client.post(url, data={"q": query}, headers=headers)
 
             if resp.status_code not in (200, 202):
@@ -47,7 +61,7 @@ async def _search_fallback(client: httpx.AsyncClient, query: str, max_results: i
     """降级方案：用 DuckDuckGo instant answer API"""
     try:
         resp = await client.get(
-            f"https://api.duckduckgo.com/?q={quote_plus(query)}&format=json&no_html=1",
+            f"https://api.duckduckgo.com/?q={quote_plus(query)}&format=json&no_html=1&skip_disambig=1",
             headers=headers,
         )
         if resp.status_code == 200:
