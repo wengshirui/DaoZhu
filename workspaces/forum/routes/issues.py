@@ -29,8 +29,9 @@ async def list_issues(state: str = "open", page: int = 1):
         if issues:
             _cache_issues(issues)
             return {"issues": _format_issues(issues), "source": "gitee"}
-    except Exception:
-        pass
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Gitee fetch failed: {type(e).__name__}: {e}")
 
     # 降级：从本地缓存读取
     db = get_db()

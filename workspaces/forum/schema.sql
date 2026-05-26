@@ -24,8 +24,7 @@ CREATE TABLE IF NOT EXISTS comments (
     body TEXT NOT NULL,
     author TEXT DEFAULT '',
     created_at TEXT,
-    synced_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (issue_number) REFERENCES issues(number)
+    synced_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- === 索引 ===

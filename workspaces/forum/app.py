@@ -33,6 +33,10 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="岛主论坛", version="1.0.0", lifespan=lifespan)
+
+# 确保数据库初始化（轻挂载时 lifespan 不会被调用）
+init_db()
+
 app.include_router(api_router, prefix="/api")
 app.mount("/css", StaticFiles(directory=FRONTEND_DIR / "css"), name="css")
 app.mount("/js", StaticFiles(directory=FRONTEND_DIR / "js"), name="js")
