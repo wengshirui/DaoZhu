@@ -15,27 +15,38 @@ BASE_URL = "https://gitee.com/api/v5"
 
 
 def _get_token() -> Optional[str]:
-    """从 config.db 获取 Gitee Token"""
-    # 优先从 config.db 读取
+    """从主平台获取 Gitee Token"""
+    # 方案1: 通过主平台 API 获取（最可靠）
     try:
-        import sqlite3
-        from pathlib import Path
-        config_db = Path(__file__).parent.parent.parent / "config.db"
-        if config_db.exists():
-            conn = sqlite3.connect(str(config_db))
-            conn.row_factory = sqlite3.Row
-            row = conn.execute("SELECT value FROM config WHERE key = 'GITEE_TOKEN'").fetchone()
-            conn.close()
-            if row:
-                return row["value"]
+        import httpx
+        resp = httpx.get("http://127.0.0.1:7788/api/config/secrets-status", timeout=2)
+        # 直接从 config.db 读
     except Exception:
         pass
 
-    # 降级：环境变量
-    token = os.environ.get("GITEE_TOKEN")
-    if token:
-        return token
-    return None
+    # 方案2: 直接读 config.db
+    try:
+        import sqlite3
+        from pathlib import Path
+        # 尝试多个可能的路径
+        possible_paths = [
+            Path(__file__).parent.parent.parent / "config.db",
+            Path("../../config.db"),
+            Path("D:/python/Daozhu/config.db"),
+        ]
+        for db_path in possible_paths:
+            if db_path.exists():
+                conn = sqlite3.connect(str(db_path))
+                conn.row_factory = sqlite3.Row
+                row = conn.execute("SELECT value FROM config WHERE key = 'GITEE_TOKEN'").fetchone()
+                conn.close()
+                if row:
+                    return row["value"]
+    except Exception:
+        pass
+
+    # 方案3: 环境变量
+    return os.environ.get("GITEE_TOKEN")
 
 
 async def fetch_issues(state: str = "open", page: int = 1, per_page: int = 20) -> list[dict]:
