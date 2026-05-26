@@ -41,6 +41,12 @@ def build_memory_context(user_message: str) -> str:
             )
             parts.append(f"## 相关记忆\n{knowledge_text}")
 
+    # 3. 历史失败教训（避免重复犯错）
+    failures = search_knowledge("tool_failure", limit=3)
+    if failures:
+        failure_text = "\n".join(f"- {r['title']}: {r['content'][:100]}" for r in failures)
+        parts.append(f"## 历史教训（避免重复）\n{failure_text}")
+
     if not parts:
         return ""
 

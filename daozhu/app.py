@@ -298,6 +298,18 @@ async def get_skill_readme(skill_id: str):
     return {"id": skill_id, "content": content}
 
 
+@app.delete("/api/skills/{skill_id}")
+async def delete_skill(skill_id: str):
+    """删除技能（删除 SKILL.md 文件）"""
+    from .config import PLATFORM_ROOT
+    skill_dir = PLATFORM_ROOT / "skills" / skill_id
+    if not skill_dir.exists():
+        raise HTTPException(404, "技能不存在")
+    import shutil
+    shutil.rmtree(str(skill_dir))
+    return {"success": True}
+
+
 # === 工具 API ===
 @app.get("/api/tools")
 async def get_tools():

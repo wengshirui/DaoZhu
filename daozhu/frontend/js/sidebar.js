@@ -230,6 +230,22 @@ const Sidebar = {
           App.showToast('加载技能说明失败');
         }
       });
+
+      // 右键删除技能
+      card.addEventListener('contextmenu', async (e) => {
+        e.preventDefault();
+        const id = card.dataset.id;
+        const name = card.querySelector('.card__name').textContent;
+        if (confirm(`删除技能「${name}」？\n\n将删除 skills/${id}/ 目录。`)) {
+          try {
+            await fetch(`/api/skills/${id}`, { method: 'DELETE' });
+            await Sidebar.loadSkills();
+            Panel.addLog('info', `技能「${name}」已删除`);
+          } catch (e) {
+            App.showToast('删除失败');
+          }
+        }
+      });
     });
   },
 

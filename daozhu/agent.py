@@ -199,11 +199,20 @@ async def agent_chat_stream(
                             r = json.loads(result)
                             if r.get("error"):
                                 _consecutive_failures[tool_name] = _consecutive_failures.get(tool_name, 0) + 1
+
+                                # 自我优化：记录失败教训到 knowledge
+                                from .memory_db import add_knowledge
+                                add_knowledge(
+                                    category="tool_failure",
+                                    title=f"{tool_name} 调用失败",
+                                    content=f"错误: {r['error'][:100]}",
+                                    keywords=tool_name,
+                                )
+
                                 if _consecutive_failures[tool_name] >= 2:
-                                    # 连续失败2次，注入提示让LLM换策略
                                     result = json.dumps({
                                         "error": r["error"],
-                                        "hint": f"工具 {tool_name} 已连续失败 {_consecutive_failures[tool_name]} 次。请换一种方式完成任务，或直接告诉用户当前遇到的问题。不要再重复调用同样的参数。"
+                                        "hint": f"工具 {tool_name} 已连续失败 {_consecutive_failures[tool_name]} 次。请换一种方式完成任务，或直接告诉用户当前遇到的问题。"
                                     }, ensure_ascii=False)
                             else:
                                 _consecutive_failures[tool_name] = 0
