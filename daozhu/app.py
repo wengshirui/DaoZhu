@@ -44,6 +44,7 @@ async def lifespan(app: FastAPI):
 def _mount_lightweight_workspaces(app: FastAPI):
     """将 mode=lightweight 的工作区挂载为主进程子路由"""
     import importlib.util
+    import sys
     for ws in manager.workspaces.values():
         if ws.mode != "lightweight":
             continue
@@ -51,22 +52,26 @@ def _mount_lightweight_workspaces(app: FastAPI):
         if not app_file.exists():
             continue
         try:
+            # 将工作区目录加入 sys.path（让内部 import 正常工作）
+            ws_path_str = str(ws.path)
+            if ws_path_str not in sys.path:
+                sys.path.insert(0, ws_path_str)
+
             # 动态导入工作区的 app 模块
-            spec = importlib.util.spec_from_file_location(f"ws_{ws.id}", str(app_file))
+            spec = importlib.util.spec_from_file_location(f"ws_{ws.id}_app", str(app_file))
             mod = importlib.util.module_from_spec(spec)
-            # 添加工作区目录到 sys.path（临时）
-            import sys
-            sys.path.insert(0, str(ws.path))
             spec.loader.exec_module(mod)
-            sys.path.pop(0)
 
             if hasattr(mod, 'app') and hasattr(mod.app, 'routes'):
                 # 挂载为子应用
                 app.mount(f"/ws/{ws.id}", mod.app)
                 ws.status = WorkspaceStatus.RUNNING
                 ws.port = 7788  # 共享主端口
-        except Exception:
-            pass  # 挂载失败不阻塞平台
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"轻挂载 {ws.id} 失败: {e}")
+            # 挂载失败不阻塞平台，降级为 standard 模式
+            ws.mode = "standard"
 
 
 app = FastAPI(title="岛主 DaoZhu", version="0.1.0", lifespan=lifespan)
