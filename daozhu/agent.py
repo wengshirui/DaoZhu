@@ -22,6 +22,7 @@ from .tools import workspace_tools  # noqa: F401
 from .tools import template_tools  # noqa: F401
 from .tools import file_tools  # noqa: F401
 from .tools import workspace_api_tools  # noqa: F401
+from .tools import web_search_tool  # noqa: F401
 
 MAX_ITERATIONS = 5  # 工具调用最大循环次数（防止乱调浪费 token）
 
