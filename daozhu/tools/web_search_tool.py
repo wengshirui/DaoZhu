@@ -15,29 +15,19 @@ from .registry import registry
 async def web_search_tool(query: str, max_results: int = 5) -> str:
     """搜索网络，返回结果摘要"""
     try:
-        # 使用 DuckDuckGo Lite（更稳定，不容易被拦截）
-        url = "https://lite.duckduckgo.com/lite/"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml",
-            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
-        }
-
-        # 检测本地代理（Clash 默认 7890）
+        # 优先用国内可访问的搜索方案
+        # 方案1: 直接用百度搜索（国内无障碍）
         import os
-        proxy = os.environ.get("HTTP_PROXY") or os.environ.get("http_proxy")
-        if not proxy:
-            import socket
-            try:
-                s = socket.socket()
-                s.settimeout(0.5)
-                s.connect(("127.0.0.1", 7890))
-                s.close()
-                proxy = "http://127.0.0.1:7890"
-            except (OSError, socket.timeout):
-                proxy = None
+        proxy = _get_proxy()
 
         async with httpx.AsyncClient(timeout=10, follow_redirects=True, proxy=proxy) as client:
+            # 尝试 DuckDuckGo Lite
+            url = "https://lite.duckduckgo.com/lite/"
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml",
+                "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+            }
             resp = await client.post(url, data={"q": query}, headers=headers)
 
             if resp.status_code not in (200, 202):
@@ -145,18 +135,76 @@ def _parse_results(html: str, max_results: int) -> list[dict]:
 
 # === 注册工具 ===
 
+
+# === fetch_url 工具：让 Agent 能调用任何公开 API ===
+
+async def fetch_url_tool(url: str, method: str = "GET") -> str:
+    """访问指定 URL 获取内容（支持公开 API 如 wttr.in）"""
+    try:
+        proxy = _get_proxy()
+        headers = {"User-Agent": "curl/7.88.0", "Accept": "text/plain, application/json"}
+
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True, proxy=proxy) as client:
+            if method.upper() == "GET":
+                resp = await client.get(url, headers=headers)
+            else:
+                resp = await client.post(url, headers=headers)
+
+            if resp.status_code != 200:
+                return json.dumps({"error": f"HTTP {resp.status_code}", "url": url}, ensure_ascii=False)
+
+            content = resp.text[:3000]  # 限制返回大小
+            return json.dumps({"url": url, "status": resp.status_code, "content": content}, ensure_ascii=False)
+
+    except Exception as e:
+        return json.dumps({"error": str(e), "url": url}, ensure_ascii=False)
+
+
+def _get_proxy():
+    """检测本地代理"""
+    import os
+    proxy = os.environ.get("HTTP_PROXY") or os.environ.get("http_proxy")
+    if not proxy:
+        import socket
+        try:
+            s = socket.socket()
+            s.settimeout(0.3)
+            s.connect(("127.0.0.1", 7890))
+            s.close()
+            proxy = "http://127.0.0.1:7890"
+        except (OSError, socket.timeout):
+            proxy = None
+    return proxy
+
+
 registry.register(
     name="web_search",
-    description="搜索互联网获取信息。可用于搜索开源项目、查找技术文档、获取最新信息等。无需 API Key。",
+    description="搜索互联网获取信息。用于搜索开源项目、技术文档等。",
     parameters={
         "type": "object",
         "properties": {
-            "query": {"type": "string", "description": "搜索关键词，如 'python weather API github'"},
-            "max_results": {"type": "integer", "description": "最大返回结果数，默认 5", "default": 5},
+            "query": {"type": "string", "description": "搜索关键词"},
+            "max_results": {"type": "integer", "description": "最大结果数，默认5", "default": 5},
         },
         "required": ["query"],
     },
     handler=web_search_tool,
     category="web",
     emoji="🔍",
+)
+
+registry.register(
+    name="fetch_url",
+    description="访问指定 URL 获取内容。可用于调用公开 API（如 wttr.in 天气、GitHub API 等）。例如查天气：fetch_url('https://wttr.in/南京?format=3')",
+    parameters={
+        "type": "object",
+        "properties": {
+            "url": {"type": "string", "description": "要访问的 URL，如 'https://wttr.in/南京?format=3'"},
+            "method": {"type": "string", "description": "HTTP 方法，默认 GET", "default": "GET"},
+        },
+        "required": ["url"],
+    },
+    handler=fetch_url_tool,
+    category="web",
+    emoji="🌐",
 )
