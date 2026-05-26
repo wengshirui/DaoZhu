@@ -73,6 +73,16 @@ class ToolRegistry:
         if not isinstance(arguments, dict):
             arguments = {}
 
+        # 检查必填参数
+        required = tool.parameters.get("required", [])
+        missing = [p for p in required if p not in arguments]
+        if missing:
+            return json.dumps({
+                "error": f"缺少必填参数: {missing}。请提供完整参数后重试。",
+                "required": required,
+                "received": list(arguments.keys()),
+            }, ensure_ascii=False)
+
         start = time.monotonic()
         try:
             result = await tool.handler(**arguments)

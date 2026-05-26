@@ -1,89 +1,100 @@
-from fastapi import FastAPI, Query, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-from pathlib import Path
-import uvicorn
+import os
 import sys
+import httpx
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
-from weather_api import fetch_weather, fetch_forecast
-from db import init_db, save_search, get_recent_searches, add_favorite, remove_favorite, get_favorites, is_favorite
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from utils.db import get_db, init_db
 
-app = FastAPI(title="天气预报")
+app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-FRONTEND_DIR = Path(__file__).parent / "frontend"
+FRONTEND_DIR = Path(__file__).resolve().parent / "frontend"
 
 @app.on_event("startup")
 async def startup():
-    init_db()
+    init_db("weather")
+    # 创建历史记录表
+    conn = get_db("weather")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS search_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            city TEXT NOT NULL,
+            country TEXT,
+            temp_c REAL,
+            condition_text TEXT,
+            humidity INTEGER,
+            wind_kph REAL,
+            searched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 async def index():
-    html_path = FRONTEND_DIR / "index.html"
-    if html_path.exists():
-        return HTMLResponse(html_path.read_text(encoding="utf-8"))
-    return HTMLResponse("<h1>天气预报工作区</h1><p>前端页面未找到</p>")
+    return FileResponse(FRONTEND_DIR / "index.html")
 
-# ========== 天气查询 API ==========
+@app.get("/{path:path}")
+async def static_files(path: str):
+    file_path = FRONTEND_DIR / path
+    if file_path.exists() and file_path.is_file():
+        return FileResponse(file_path)
+    return FileResponse(FRONTEND_DIR / "index.html")
 
-@app.get("/api/weather/current")
-async def get_current_weather(city: str = Query(..., description="城市名称，如 nanjing")):
-    """查询实时天气"""
-    result = await fetch_weather(city)
-    if "error" in result:
-        raise HTTPException(status_code=404, detail=result["error"])
-    save_search(city)
-    return result
+@app.get("/api/weather/{city}")
+async def get_weather(city: str):
+    """从 wttr.in 获取天气数据"""
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            # 使用 wttr.in 的 JSON 格式
+            resp = await client.get(f"https://wttr.in/{city}?format=j1")
+            if resp.status_code != 200:
+                raise HTTPException(status_code=404, detail=f"未找到城市: {city}")
+            
+            data = resp.json()
+            current = data["current_condition"][0]
+            location = data["nearest_area"][0]
+            
+            weather_info = {
+                "city": location["areaName"][0]["value"],
+                "country": location["country"][0]["value"],
+                "temp_c": float(current["temp_C"]),
+                "temp_f": float(current["temp_F"]),
+                "feels_like_c": float(current["FeelsLikeC"]),
+                "feels_like_f": float(current["FeelsLikeF"]),
+                "condition": current["weatherDesc"][0]["value"],
+                "humidity": int(current["humidity"]),
+                "wind_kph": float(current["windspeedKmph"]),
+                "wind_dir": current["winddir16Point"],
+                "pressure": int(current["pressure"]),
+                "visibility": int(current["visibility"]),
+                "uv_index": int(current["uvIndex"]),
+                "icon_url": f"https:{current['weatherIconUrl'][0]['value']}",
+            }
+            
+            # 存入历史记录
+            conn = get_db("weather")
+            conn.execute(
+                "INSERT INTO search_history (city, country, temp_c, condition_text, humidity, wind_kph) VALUES (?, ?, ?, ?, ?, ?)",
+                (weather_info["city"], weather_info["country"], weather_info["temp_c"], 
+                 weather_info["condition"], weather_info["humidity"], weather_info["wind_kph"])
+            )
+            conn.commit()
+            
+            return weather_info
+            
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="天气服务请求超时")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/weather/forecast")
-async def get_weather_forecast(city: str = Query(..., description="城市名称"), days: int = Query(3, ge=1, le=7)):
-    """查询天气预报"""
-    result = await fetch_forecast(city, days)
-    if "error" in result:
-        raise HTTPException(status_code=404, detail=result["error"])
-    save_search(city)
-    return result
-
-# ========== 搜索历史 & 收藏 ==========
-
-@app.get("/api/searches")
-async def recent_searches():
-    """最近搜索记录"""
-    return get_recent_searches()
-
-@app.get("/api/favorites")
-async def list_favorites():
-    """收藏城市列表"""
-    return get_favorites()
-
-@app.post("/api/favorites")
-async def add_fav(city: str = Query(...), country: str = "CN"):
-    """添加收藏城市"""
-    ok = add_favorite(city, country)
-    if not ok:
-        raise HTTPException(status_code=409, detail="该城市已收藏")
-    return {"message": "收藏成功", "city": city}
-
-@app.delete("/api/favorites")
-async def remove_fav(city: str = Query(...), country: str = "CN"):
-    """取消收藏城市"""
-    remove_favorite(city, country)
-    return {"message": "已取消收藏"}
-
-@app.get("/api/favorites/check")
-async def check_fav(city: str = Query(...), country: str = "CN"):
-    """检查是否已收藏"""
-    return {"is_favorite": is_favorite(city, country)}
-
-if __name__ == "__main__":
-    import os
-    port = int(os.getenv("PORT", "7805"))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+@app.get("/api/history/")
+async def get_history(limit: int = 10):
+    """获取搜索历史"""
+    conn = get_db("weather")
+    rows = conn.execute(
+        "SELECT * FROM search_history ORDER BY searched_at DESC LIMIT ?",
+        (limit,)
+    ).fetchall()
+    return [dict(row) for row in rows]

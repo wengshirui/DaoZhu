@@ -3,132 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🌤️ 天气预报</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <title>🌤 天气查询</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="weather-app">
-        <!-- 侧边栏 -->
-        <aside class="sidebar">
-            <div class="logo">
-                <span class="logo-icon">🌤️</span>
-                <h1>天气</h1>
+    <div class="container">
+        <header class="header">
+            <div class="header-glow"></div>
+            <div class="header-content">
+                <h1>🌤 天气查询</h1>
+                <p class="subtitle">全球天气，一触即达</p>
             </div>
+        </header>
 
-            <div class="favorites-section">
-                <h2 class="section-title">⭐ 收藏城市</h2>
-                <div id="favorites-list" class="fav-list">
-                    <div class="empty-state">还没有收藏的城市</div>
-                </div>
-            </div>
-
-            <div class="history-section">
-                <h2 class="section-title">🕐 最近搜索</h2>
-                <div id="history-list" class="history-list">
-                    <div class="empty-state">暂无搜索记录</div>
-                </div>
-            </div>
-
-            <div class="sidebar-footer">
-                <span>数据来源: wttr.in</span>
-            </div>
-        </aside>
-
-        <!-- 主内容 -->
         <main class="main-content">
-            <!-- 搜索栏 -->
-            <div class="search-bar">
-                <div class="search-box">
-                    <span class="search-icon">🔍</span>
-                    <input type="text" id="search-input" placeholder="输入城市名，如 南京、Beijing、Tokyo..." autocomplete="off">
-                    <button id="search-btn" class="btn-search">查询</button>
+            <div class="search-section">
+                <div class="search-wrapper">
+                    <input type="text" id="cityInput" placeholder="输入城市名，如 南京、Tokyo、London..." autocomplete="off">
+                    <button id="searchBtn">查询天气</button>
+                </div>
+                <div class="quick-cities">
+                    <button class="city-tag" data-city="南京">南京</button>
+                    <button class="city-tag" data-city="北京">北京</button>
+                    <button class="city-tag" data-city="上海">上海</button>
+                    <button class="city-tag" data-city="深圳">深圳</button>
+                    <button class="city-tag" data-city="成都">成都</button>
+                    <button class="city-tag" data-city="杭州">杭州</button>
+                    <button class="city-tag" data-city="东京">东京</button>
+                    <button class="city-tag" data-city="纽约">纽约</button>
+                    <button class="city-tag" data-city="伦敦">伦敦</button>
                 </div>
             </div>
 
-            <!-- 快捷城市 -->
-            <div class="quick-cities">
-                <button class="chip" data-city="nanjing">南京</button>
-                <button class="chip" data-city="beijing">北京</button>
-                <button class="chip" data-city="shanghai">上海</button>
-                <button class="chip" data-city="guangzhou">广州</button>
-                <button class="chip" data-city="shenzhen">深圳</button>
-                <button class="chip" data-city="chengdu">成都</button>
-                <button class="chip" data-city="tokyo">东京</button>
-                <button class="chip" data-city="london">伦敦</button>
-                <button class="chip" data-city="new york">纽约</button>
-            </div>
-
-            <!-- 加载状态 -->
             <div id="loading" class="loading hidden">
                 <div class="spinner"></div>
-                <p>正在获取天气信息...</p>
+                <p>正在获取天气数据...</p>
             </div>
 
-            <!-- 错误提示 -->
-            <div id="error-msg" class="error-msg hidden"></div>
+            <div id="error" class="error hidden"></div>
 
-            <!-- 当前天气 -->
-            <div id="current-weather" class="current-weather hidden">
-                <div class="weather-header">
-                    <div class="city-info">
-                        <h2 id="city-name" class="city-name">--</h2>
-                        <span id="weather-desc" class="weather-desc">--</span>
-                    </div>
-                    <button id="fav-btn" class="btn-fav" title="收藏城市">☆</button>
-                </div>
-
+            <div id="weatherCard" class="weather-card hidden">
                 <div class="weather-main">
-                    <div class="temp-display">
-                        <span id="temperature" class="temperature">--</span>
+                    <div class="weather-left">
+                        <div class="city-name" id="cityName">--</div>
+                        <div class="country-name" id="countryName">--</div>
+                        <div class="condition-badge" id="conditionBadge">--</div>
+                    </div>
+                    <div class="weather-temp">
+                        <span class="temp-value" id="tempC">--</span>
                         <span class="temp-unit">°C</span>
                     </div>
-                    <div class="weather-icon-big" id="weather-icon">🌤️</div>
                 </div>
 
                 <div class="weather-details">
-                    <div class="detail-card">
-                        <span class="detail-label">体感温度</span>
-                        <span class="detail-value" id="feels-like">--°C</span>
+                    <div class="detail-item">
+                        <div class="detail-icon">🌡</div>
+                        <div class="detail-info">
+                            <span class="detail-label">体感温度</span>
+                            <span class="detail-value" id="feelsLike">--°C</span>
+                        </div>
                     </div>
-                    <div class="detail-card">
-                        <span class="detail-label">湿度</span>
-                        <span class="detail-value" id="humidity">--%</span>
+                    <div class="detail-item">
+                        <div class="detail-icon">💧</div>
+                        <div class="detail-info">
+                            <span class="detail-label">湿度</span>
+                            <span class="detail-value" id="humidity">--%</span>
+                        </div>
                     </div>
-                    <div class="detail-card">
-                        <span class="detail-label">风速</span>
-                        <span class="detail-value" id="wind">-- km/h</span>
+                    <div class="detail-item">
+                        <div class="detail-icon">💨</div>
+                        <div class="detail-info">
+                            <span class="detail-label">风速</span>
+                            <span class="detail-value" id="wind">-- km/h</span>
+                        </div>
                     </div>
-                    <div class="detail-card">
-                        <span class="detail-label">风向</span>
-                        <span class="detail-value" id="wind-dir">--</span>
+                    <div class="detail-item">
+                        <div class="detail-icon">👁</div>
+                        <div class="detail-info">
+                            <span class="detail-label">能见度</span>
+                            <span class="detail-value" id="visibility">-- km</span>
+                        </div>
                     </div>
-                    <div class="detail-card">
-                        <span class="detail-label">气压</span>
-                        <span class="detail-value" id="pressure">-- hPa</span>
+                    <div class="detail-item">
+                        <div class="detail-icon">🔄</div>
+                        <div class="detail-info">
+                            <span class="detail-label">风向</span>
+                            <span class="detail-value" id="windDir">--</span>
+                        </div>
                     </div>
-                    <div class="detail-card">
-                        <span class="detail-label">能见度</span>
-                        <span class="detail-value" id="visibility">-- km</span>
-                    </div>
-                    <div class="detail-card">
-                        <span class="detail-label">云量</span>
-                        <span class="detail-value" id="cloud">--%</span>
-                    </div>
-                    <div class="detail-card">
-                        <span class="detail-label">紫外线</span>
-                        <span class="detail-value" id="uv">--</span>
+                    <div class="detail-item">
+                        <div class="detail-icon">☀️</div>
+                        <div class="detail-info">
+                            <span class="detail-label">紫外线</span>
+                            <span class="detail-value" id="uvIndex">--</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 天气预报 -->
-            <div id="forecast-section" class="forecast-section hidden">
-                <h2 class="section-title">📅 未来 3 天预报</h2>
-                <div id="forecast-cards" class="forecast-cards"></div>
+            <div id="historySection" class="history-section hidden">
+                <h3>📋 搜索历史</h3>
+                <div id="historyList" class="history-list"></div>
             </div>
         </main>
+
+        <footer class="footer">
+            <p>数据来源：wttr.in · 岛主平台</p>
+        </footer>
     </div>
 
-    <script src="/js/app.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>

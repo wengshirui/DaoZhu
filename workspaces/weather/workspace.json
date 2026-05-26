@@ -1,17 +1,9 @@
 {
   "id": "weather",
-  "name": "天气预报",
-  "icon": "🌤️",
-  "color": "#3B82F6",
-  "version": "1.0.0",
-  "description": "查询城市天气，支持实时天气、未来预报、空气质量",
-  "port": 7805,
-  "tags": [
-    "天气",
-    "查询",
-    "生活"
-  ],
-  "start_mode": "on-demand",
-  "mode": "standard",
-  "hidden": true
+  "name": "天气查询",
+  "icon": "🌤",
+  "color": "#0EA5E9",
+  "description": "查询全球各地实时天气，支持温度、湿度、风速、紫外线等信息",
+  "port": 9020,
+  "version": "1.0.0"
 }
