@@ -8,9 +8,13 @@
   "port": 7801,
   "entry": "app.py",
   "python": ".venv",
-  "tags": ["效率", "待办"],
+  "tags": [
+    "效率",
+    "待办"
+  ],
   "start_mode": "manual",
   "hidden": false,
   "source": "self-built",
-  "mode": "standard"
+  "mode": "standard",
+  "sort_order": 0
 }

@@ -8,8 +8,13 @@
   "port": 7802,
   "entry": "app.py",
   "python": ".venv",
-  "tags": ["社区", "交流", "反馈"],
+  "tags": [
+    "社区",
+    "交流",
+    "反馈"
+  ],
   "start_mode": "on-demand",
   "hidden": false,
-  "source": "https://gitee.com/yumen2278/DaoZhu/issues"
+  "source": "https://gitee.com/yumen2278/DaoZhu/issues",
+  "sort_order": 1
 }

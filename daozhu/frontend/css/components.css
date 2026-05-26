@@ -338,29 +338,46 @@
 
 
 /* === 卡片操作按钮区 === */
-.card-actions {
+.card__actions {
   display: flex;
-  gap: 4px;
-  padding: 0 14px 8px;
-  margin-top: -4px;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
-.card-action {
-  padding: 3px 8px;
-  font-size: 0.75rem;
+.card:hover .card__actions {
+  opacity: 1;
+}
+
+.card-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 4px;
+  font-size: 0.7rem;
   background: var(--bg-tertiary);
-  border: 1px solid var(--border-light);
+  border: none;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s;
+  color: var(--text-muted);
 }
 
-.card-action:hover {
+.card-btn:hover {
   background: var(--bg-hover);
-  border-color: var(--border-color);
+  color: var(--text-primary);
 }
 
-.card-action--danger:hover {
-  background: rgba(199, 84, 80, 0.1);
-  border-color: var(--error);
+.card-btn--primary:hover {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.card-btn--danger:hover {
+  background: rgba(199, 84, 80, 0.12);
+  color: var(--error);
 }

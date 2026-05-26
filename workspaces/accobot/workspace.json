@@ -8,8 +8,13 @@
   "port": 7803,
   "entry": "app.py",
   "python": ".venv",
-  "tags": ["财务", "记账", "报表"],
+  "tags": [
+    "财务",
+    "记账",
+    "报表"
+  ],
   "start_mode": "manual",
   "hidden": false,
-  "source": "https://gitee.com/yumen2278/accobot"
+  "source": "https://gitee.com/yumen2278/accobot",
+  "sort_order": 2
 }

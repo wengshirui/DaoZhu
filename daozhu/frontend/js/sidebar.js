@@ -59,7 +59,7 @@ const Sidebar = {
   },
 
   _bindActionButtons() {
-    document.querySelectorAll('.card-action').forEach(btn => {
+    document.querySelectorAll('.card-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const action = btn.dataset.action;
@@ -137,15 +137,11 @@ const Sidebar = {
           <div class="card__name">${workspace.name}</div>
           <div class="card__desc">${workspace.description}</div>
         </div>
-        <span class="badge ${statusClass}">
-          <span class="badge__dot"></span>
-          ${statusText}
-        </span>
-      </div>
-      <div class="card-actions" data-for="${workspace.id}">
-        <button class="card-action" data-action="preview" data-id="${workspace.id}" title="预览说明">📖</button>
-        <button class="card-action" data-action="open" data-id="${workspace.id}" data-port="${workspace.port}" data-mode="${workspace.mode || 'standard'}" title="打开">▶️</button>
-        <button class="card-action card-action--danger" data-action="hide" data-id="${workspace.id}" title="隐藏">🗑</button>
+        <div class="card__actions">
+          <button class="card-btn" data-action="preview" data-id="${workspace.id}" title="查看说明">📖</button>
+          <button class="card-btn card-btn--primary" data-action="open" data-id="${workspace.id}" data-port="${workspace.port}" data-mode="${workspace.mode || 'standard'}" title="打开">▶</button>
+          <button class="card-btn card-btn--danger" data-action="hide" data-id="${workspace.id}" title="隐藏">✕</button>
+        </div>
       </div>
     `;
   },
@@ -306,23 +302,20 @@ const Sidebar = {
   },
 
   _renderSkillCard(skill) {
-    const statusClass = skill.status === 'active' ? 'badge--running' : 'badge--stopped';
-    const statusText = skill.status === 'active' ? '已启用' : '未启用';
+    // 自动赋予图标
+    const iconMap = {'create-workspaces':'🏗️','frontend-design':'🎨','create-skill':'⚡','weather':'🌤️','weather-query':'🌤️'};
+    const icon = iconMap[skill.id] || '📖';
 
     return `
       <div class="card" data-id="${skill.id}" data-type="skill">
-        <div class="card__icon">${skill.icon}</div>
+        <div class="card__icon">${icon}</div>
         <div class="card__body">
           <div class="card__name">${skill.name}</div>
         </div>
-        <span class="badge ${statusClass}">
-          <span class="badge__dot"></span>
-          ${statusText}
-        </span>
-      </div>
-      <div class="card-actions" data-for="${skill.id}">
-        <button class="card-action" data-action="preview-skill" data-id="${skill.id}" title="预览">📖</button>
-        <button class="card-action card-action--danger" data-action="delete-skill" data-id="${skill.id}" title="删除">🗑</button>
+        <div class="card__actions">
+          <button class="card-btn" data-action="preview-skill" data-id="${skill.id}" title="查看">📖</button>
+          <button class="card-btn card-btn--danger" data-action="delete-skill" data-id="${skill.id}" title="删除">✕</button>
+        </div>
       </div>
     `;
   },
@@ -356,8 +349,7 @@ const Sidebar = {
   },
 
   _renderToolCard(tool) {
-    const statusClass = tool.status === 'connected' ? 'badge--connected' : 'badge--stopped';
-    const statusText = tool.status === 'connected' ? '已连接' : '未连接';
+    const statusClass = tool.status === 'disabled' ? 'badge--stopped' : 'badge--connected';
 
     return `
       <div class="card" data-id="${tool.id}" data-type="tool" data-desc="${(tool.description || '').replace(/"/g, '&quot;')}">
@@ -365,14 +357,10 @@ const Sidebar = {
         <div class="card__body">
           <div class="card__name">${tool.name}</div>
         </div>
-        <span class="badge ${statusClass}">
-          <span class="badge__dot"></span>
-          ${statusText}
-        </span>
-      </div>
-      <div class="card-actions" data-for="${tool.id}">
-        <button class="card-action" data-action="preview-tool" data-id="${tool.id}" data-desc="${(tool.description || '').replace(/"/g, '&quot;')}" title="预览">📖</button>
-        <button class="card-action" data-action="disable-tool" data-id="${tool.id}" title="${tool.status === 'disabled' ? '启用' : '停用'}">${tool.status === 'disabled' ? '✅' : '⏸'}</button>
+        <div class="card__actions">
+          <button class="card-btn" data-action="preview-tool" data-id="${tool.id}" data-desc="${(tool.description || '').replace(/"/g, '&quot;')}" title="查看">📖</button>
+          <button class="card-btn" data-action="disable-tool" data-id="${tool.id}" title="${tool.status === 'disabled' ? '启用' : '停用'}">${tool.status === 'disabled' ? '✓' : '⏸'}</button>
+        </div>
       </div>
     `;
   },
