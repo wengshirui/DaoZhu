@@ -1,7 +1,7 @@
 [project]
 name = "daozhu"
 version = "0.3.0"
-description = "岛主 DaoZhu — 本地 AI 工作台平台"
+description = "岛主 DaoZhu — 你的AI数字小岛！"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.11"
