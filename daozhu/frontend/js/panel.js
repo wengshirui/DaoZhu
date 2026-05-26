@@ -77,6 +77,7 @@ const Panel = {
               <div class="history-item__body">
                 <div class="history-item__title">${c.title}</div>
               </div>
+              <button class="history-item__delete" data-id="${c.id}" title="删除对话">✕</button>
             </div>`;
         }
         html += '</div>';
@@ -88,7 +89,29 @@ const Panel = {
 
       // 绑定点击切换
       container.querySelectorAll('.history-item').forEach(item => {
-        item.addEventListener('click', () => this.switchConversation(item.dataset.id));
+        item.addEventListener('click', (e) => {
+          if (e.target.classList.contains('history-item__delete')) return;
+          this.switchConversation(item.dataset.id);
+        });
+      });
+
+      // 绑定删除按钮
+      container.querySelectorAll('.history-item__delete').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          if (!confirm('删除这个对话？')) return;
+          try {
+            await fetch(`/api/conversations/${id}`, { method: 'DELETE' });
+            if (Chat.conversationId === id) {
+              Chat.conversationId = null;
+              Chat._showWelcome();
+            }
+            this.loadHistory();
+          } catch (err) {
+            App.showToast('删除失败');
+          }
+        });
       });
 
       // 首次加载：如果没有当前对话，加载第一个

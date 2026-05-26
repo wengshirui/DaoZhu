@@ -68,6 +68,12 @@ const App = {
 
         <div style="display:flex;flex-direction:column;gap:16px;max-width:400px">
           <div>
+            <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🏝️ 岛屿名称</label>
+            <input type="text" id="settings-island-name" placeholder="我的小岛"
+              style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
+          </div>
+
+          <div>
             <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🧠 DeepSeek API Key</label>
             <input type="password" id="settings-apikey" placeholder="sk-xxxxxxxx" value=""
               style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
@@ -98,6 +104,12 @@ const App = {
     // 填充当前主题
     document.getElementById('settings-theme').value =
       document.documentElement.getAttribute('data-theme') || 'light';
+
+    // 填充当前岛名
+    fetch('/api/config').then(r => r.json()).then(data => {
+      const name = data.config?.island_name;
+      if (name) document.getElementById('settings-island-name').value = name;
+    }).catch(() => {});
   },
 
   async _saveSettings() {
@@ -105,8 +117,18 @@ const App = {
     const apiKey = document.getElementById('settings-apikey').value.trim();
     const giteeToken = document.getElementById('settings-gitee').value.trim();
     const theme = document.getElementById('settings-theme').value;
+    const islandName = document.getElementById('settings-island-name').value.trim();
 
     try {
+      // 保存岛名
+      if (islandName) {
+        await fetch('/api/config/island_name', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value: islandName }),
+        });
+        document.querySelector('.topbar__title').textContent = islandName;
+      }
       // 保存 API Key
       if (apiKey) {
         await fetch('/api/onboarding/save-key', {

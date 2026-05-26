@@ -314,3 +314,24 @@
   background: var(--accent-light);
   border-color: var(--accent);
 }
+
+
+/* === 历史对话删除按钮 === */
+.history-item__delete {
+  opacity: 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.history-item:hover .history-item__delete {
+  opacity: 1;
+}
+
+.history-item__delete:hover {
+  color: var(--error);
+  background: rgba(199, 84, 80, 0.1);
+}
