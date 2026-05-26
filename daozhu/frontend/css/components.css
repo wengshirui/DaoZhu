@@ -335,3 +335,32 @@
   color: var(--error);
   background: rgba(199, 84, 80, 0.1);
 }
+
+
+/* === 卡片操作按钮区 === */
+.card-actions {
+  display: flex;
+  gap: 4px;
+  padding: 0 14px 8px;
+  margin-top: -4px;
+}
+
+.card-action {
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.card-action:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-color);
+}
+
+.card-action--danger:hover {
+  background: rgba(199, 84, 80, 0.1);
+  border-color: var(--error);
+}

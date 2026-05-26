@@ -55,6 +55,57 @@ const Sidebar = {
       this.loadSkills(),
       this.loadTools()
     ]);
+    this._bindActionButtons();
+  },
+
+  _bindActionButtons() {
+    document.querySelectorAll('.card-action').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const action = btn.dataset.action;
+        const id = btn.dataset.id;
+
+        switch (action) {
+          case 'preview':
+            try { const r = await fetch(`/api/workspaces/${id}/readme`); const d = await r.json(); ReadmeViewer.show(d.content, '', id); } catch(e) { App.showToast('加载失败'); }
+            break;
+          case 'open':
+            const mode = btn.dataset.mode;
+            if (mode === 'lightweight') { window.open(`/ws/${id}`, '_blank'); }
+            else {
+              App.showToast('启动中...');
+              try { const r = await fetch(`/api/workspaces/${id}/start`, {method:'POST'}); if(r.ok){const d=await r.json(); window.open(`http://localhost:${d.workspace.port}`,'_blank'); Sidebar.loadWorkspaces();} } catch(e) { App.showToast('失败'); }
+            }
+            break;
+          case 'hide':
+            if (confirm('隐藏此工作区？文件不会删除。')) {
+              await fetch(`/api/workspaces/${id}/hide`, {method:'POST'});
+              Sidebar.loadWorkspaces();
+            }
+            break;
+          case 'preview-skill':
+            try { const r = await fetch(`/api/skills/${id}/readme`); const d = await r.json(); ReadmeViewer.show(d.content, ''); } catch(e) { App.showToast('加载失败'); }
+            break;
+          case 'delete-skill':
+            if (confirm(`删除技能 ${id}？`)) {
+              await fetch(`/api/skills/${id}`, {method:'DELETE'});
+              Sidebar.loadSkills();
+              Panel.addLog('info', `技能 ${id} 已删除`);
+            }
+            break;
+          case 'preview-tool':
+            const desc = btn.dataset.desc || '暂无说明';
+            ReadmeViewer.show(`# 🔧 ${id}\n\n${desc}\n\n此工具由岛管理员自动调用。`, '');
+            break;
+          case 'disable-tool':
+            const isDisabled = btn.textContent.trim() === '✅';
+            const endpoint = isDisabled ? 'enable' : 'disable';
+            await fetch(`/api/tools/${id}/${endpoint}`, {method:'POST'});
+            Sidebar.loadTools();
+            break;
+        }
+      });
+    });
   },
 
   // === 工作区列表 ===
@@ -90,6 +141,11 @@ const Sidebar = {
           <span class="badge__dot"></span>
           ${statusText}
         </span>
+      </div>
+      <div class="card-actions" data-for="${workspace.id}">
+        <button class="card-action" data-action="preview" data-id="${workspace.id}" title="预览说明">📖</button>
+        <button class="card-action" data-action="open" data-id="${workspace.id}" data-port="${workspace.port}" data-mode="${workspace.mode || 'standard'}" title="打开">▶️</button>
+        <button class="card-action card-action--danger" data-action="hide" data-id="${workspace.id}" title="隐藏">🗑</button>
       </div>
     `;
   },
@@ -264,6 +320,10 @@ const Sidebar = {
           ${statusText}
         </span>
       </div>
+      <div class="card-actions" data-for="${skill.id}">
+        <button class="card-action" data-action="preview-skill" data-id="${skill.id}" title="预览">📖</button>
+        <button class="card-action card-action--danger" data-action="delete-skill" data-id="${skill.id}" title="删除">🗑</button>
+      </div>
     `;
   },
 
@@ -309,6 +369,10 @@ const Sidebar = {
           <span class="badge__dot"></span>
           ${statusText}
         </span>
+      </div>
+      <div class="card-actions" data-for="${tool.id}">
+        <button class="card-action" data-action="preview-tool" data-id="${tool.id}" data-desc="${(tool.description || '').replace(/"/g, '&quot;')}" title="预览">📖</button>
+        <button class="card-action" data-action="disable-tool" data-id="${tool.id}" title="${tool.status === 'disabled' ? '启用' : '停用'}">${tool.status === 'disabled' ? '✅' : '⏸'}</button>
       </div>
     `;
   },

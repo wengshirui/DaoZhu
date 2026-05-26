@@ -12,21 +12,22 @@ from .registry import registry
 logger = logging.getLogger(__name__)
 
 # 全局浏览器实例（懒加载）
+_pw = None
 _browser = None
 _page = None
 
 
-def _get_page():
-    """获取或创建浏览器页面"""
-    global _browser, _page
+async def _get_page():
+    """获取或创建浏览器页面（async 版本）"""
+    global _pw, _browser, _page
     if _page and not _page.is_closed():
         return _page
 
     try:
-        from playwright.sync_api import sync_playwright
-        pw = sync_playwright().start()
-        _browser = pw.chromium.launch(headless=False)
-        _page = _browser.new_page()
+        from playwright.async_api import async_playwright
+        _pw = await async_playwright().start()
+        _browser = await _pw.chromium.launch(headless=False)
+        _page = await _browser.new_page()
         return _page
     except Exception as e:
         logger.error("启动浏览器失败: %s", e)
@@ -35,13 +36,13 @@ def _get_page():
 
 async def browser_open_tool(url: str) -> str:
     """打开网页"""
-    page = _get_page()
+    page = await _get_page()
     if not page:
         return json.dumps({"error": "无法启动浏览器。请确认已安装: pip install playwright && playwright install chromium"})
 
     try:
-        page.goto(url, timeout=15000)
-        title = page.title()
+        await page.goto(url, timeout=15000)
+        title = await page.title()
         return json.dumps({
             "success": True,
             "title": title,
@@ -54,15 +55,15 @@ async def browser_open_tool(url: str) -> str:
 
 async def browser_search_tool(query: str) -> str:
     """通过浏览器搜索（百度，国内无障碍）"""
-    page = _get_page()
+    page = await _get_page()
     if not page:
         return json.dumps({"error": "无法启动浏览器"})
 
     try:
-        page.goto(f"https://www.baidu.com/s?wd={query}", timeout=15000)
-        page.wait_for_selector(".result", timeout=8000)
+        await page.goto(f"https://www.baidu.com/s?wd={query}", timeout=15000)
+        await page.wait_for_selector(".result", timeout=8000)
 
-        results = page.evaluate("""() => {
+        results = await page.evaluate("""() => {
             const items = document.querySelectorAll('.result');
             return Array.from(items).slice(0, 5).map(item => {
                 const link = item.querySelector('a');
@@ -87,12 +88,12 @@ async def browser_snapshot_tool() -> str:
         return json.dumps({"error": "浏览器未打开"})
 
     try:
-        title = _page.title()
+        title = await _page.title()
         url = _page.url
-        text = _page.inner_text("body")[:1500]
+        text = await _page.inner_text("body")
         return json.dumps({
             "title": title, "url": url,
-            "content": text,
+            "content": text[:1500],
         }, ensure_ascii=False)
     except Exception as e:
         return json.dumps({"error": str(e)}, ensure_ascii=False)
@@ -100,18 +101,22 @@ async def browser_snapshot_tool() -> str:
 
 async def browser_close_tool() -> str:
     """关闭浏览器"""
-    global _browser, _page
+    global _pw, _browser, _page
     try:
         if _page and not _page.is_closed():
-            _page.close()
+            await _page.close()
         if _browser:
-            _browser.close()
+            await _browser.close()
+        if _pw:
+            await _pw.stop()
         _page = None
         _browser = None
+        _pw = None
         return json.dumps({"success": True, "message": "浏览器已关闭"})
     except Exception as e:
         _page = None
         _browser = None
+        _pw = None
         return json.dumps({"success": True, "message": f"已关闭({e})"})
 
 
