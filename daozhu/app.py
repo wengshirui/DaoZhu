@@ -34,8 +34,38 @@ async def lifespan(app: FastAPI):
     init_chat_db()
     init_memory_db()
     await manager.startup()
+    # 挂载轻量工作区到主进程
+    _mount_lightweight_workspaces(app)
     yield
     await manager.shutdown()
+
+
+def _mount_lightweight_workspaces(app: FastAPI):
+    """将 mode=lightweight 的工作区挂载为主进程子路由"""
+    import importlib.util
+    for ws in manager.workspaces.values():
+        if ws.mode != "lightweight":
+            continue
+        app_file = ws.path / ws.entry
+        if not app_file.exists():
+            continue
+        try:
+            # 动态导入工作区的 app 模块
+            spec = importlib.util.spec_from_file_location(f"ws_{ws.id}", str(app_file))
+            mod = importlib.util.module_from_spec(spec)
+            # 添加工作区目录到 sys.path（临时）
+            import sys
+            sys.path.insert(0, str(ws.path))
+            spec.loader.exec_module(mod)
+            sys.path.pop(0)
+
+            if hasattr(mod, 'app') and hasattr(mod.app, 'routes'):
+                # 挂载为子应用
+                app.mount(f"/ws/{ws.id}", mod.app)
+                ws.status = WorkspaceStatus.RUNNING
+                ws.port = 7788  # 共享主端口
+        except Exception:
+            pass  # 挂载失败不阻塞平台
 
 
 app = FastAPI(title="岛主 DaoZhu", version="0.1.0", lifespan=lifespan)

@@ -49,6 +49,7 @@ class WorkspaceInfo:
     hidden: bool = False
     source: str = "self-built"
     sort_order: int = 99
+    mode: str = "standard"  # "lightweight" | "standard" | "heavy"
 
     # 运行时状态（不持久化）
     status: WorkspaceStatus = WorkspaceStatus.STOPPED
@@ -75,6 +76,7 @@ class WorkspaceInfo:
             "status": self.status.value,
             "source": self.source,
             "sort_order": self.sort_order,
+            "mode": self.mode,
         }
 
 
@@ -137,6 +139,7 @@ class WorkspaceManager:
             hidden=data.get("hidden", False),
             source=data.get("source", "self-built"),
             sort_order=data.get("sort_order", 99),
+            mode=data.get("mode", "standard"),
         )
 
     # === 端口分配 ===
@@ -176,6 +179,11 @@ class WorkspaceManager:
             raise ValueError(f"工作区不存在: {workspace_id}")
 
         if ws.status == WorkspaceStatus.RUNNING:
+            return ws
+
+        # 轻量模式：标记为运行中即可（已挂载到主进程）
+        if ws.mode == "lightweight":
+            ws.status = WorkspaceStatus.RUNNING
             return ws
 
         ws.status = WorkspaceStatus.STARTING

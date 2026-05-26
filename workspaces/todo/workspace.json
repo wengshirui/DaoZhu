@@ -11,5 +11,6 @@
   "tags": ["效率", "待办"],
   "start_mode": "manual",
   "hidden": false,
-  "source": "self-built"
+  "source": "self-built",
+  "mode": "lightweight"
 }
