@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--browser=msedge"
+      ],
+      "autoApprove": [
+        "browser_navigate",
+        "browser_snapshot",
+        "browser_wait_for",
+        "browser_click",
+        "browser_evaluate",
+        "browser_take_screenshot",
+        "browser_type",
+        "browser_tabs",
+        "browser_close"
+      ]
+    }
+  }
+}

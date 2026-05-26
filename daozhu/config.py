@@ -173,6 +173,16 @@ def get_api_key(provider: str = None) -> str | None:
     if not env_key:
         return None
 
+    # 优先从 config.db 读取
+    try:
+        from .config_db import get_secret
+        val = get_secret(env_key)
+        if val:
+            return val
+    except Exception:
+        pass
+
+    # 降级：从 .env 读取
     env_vars = load_env()
     return env_vars.get(env_key)
 

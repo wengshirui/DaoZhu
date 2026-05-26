@@ -33,8 +33,9 @@ async def lifespan(app: FastAPI):
     """平台生命周期：启动时发现工作区，关闭时清理"""
     init_chat_db()
     init_memory_db()
+    from .config_db import init_config_db
+    init_config_db()
     await manager.startup()
-    # 挂载轻量工作区到主进程
     _mount_lightweight_workspaces(app)
     yield
     await manager.shutdown()
@@ -120,19 +121,22 @@ async def onboarding_page():
 
 @app.post("/api/onboarding/save-key")
 async def save_api_key(body: dict):
-    """保存 API Key 到 .env 文件"""
+    """保存 API Key 到 config.db + .env"""
     key = body.get("key", "").strip()
     if not key:
         raise HTTPException(400, "Key 不能为空")
 
+    # 写入 config.db
+    from .config_db import set_secret
+    set_secret("DEEPSEEK_API_KEY", key)
+
+    # 同时写入 .env（向后兼容）
     from .config import PLATFORM_ROOT
     env_path = PLATFORM_ROOT / ".env"
-    # 读取现有内容
     existing = ""
     if env_path.exists():
         existing = env_path.read_text(encoding="utf-8")
 
-    # 替换或追加
     lines = existing.split("\n")
     found = False
     for i, line in enumerate(lines):
@@ -149,11 +153,16 @@ async def save_api_key(body: dict):
 
 @app.post("/api/onboarding/save-gitee-token")
 async def save_gitee_token(body: dict):
-    """保存 Gitee Token 到 .env 文件"""
+    """保存 Gitee Token 到 config.db + .env"""
     token = body.get("token", "").strip()
     if not token:
         raise HTTPException(400, "Token 不能为空")
 
+    # 写入 config.db
+    from .config_db import set_secret
+    set_secret("GITEE_TOKEN", token)
+
+    # 同时写入 .env
     from .config import PLATFORM_ROOT
     env_path = PLATFORM_ROOT / ".env"
     existing = ""
