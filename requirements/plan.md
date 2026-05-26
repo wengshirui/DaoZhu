@@ -25,7 +25,7 @@
 | 015 | 像素图书管理员（管家形象） | 1 | M(5) | ✅ 已完成 | [015](./015-pixel-librarian.md) |
 | 016 | UI 紧急修复（字体/折叠/favicon） | 0 | XS(1) | ✅ 已完成 | [016](./016-ui-fixes.md) |
 | 017 | 管家操作工作区数据 | 1 | M(5) | ✅ 已完成 | [017](./017-workspace-data-interaction.md) |
-| 018 | 好玩 + 游戏化（精灵/成就/等级） | 2 | L(8) | 📐 已提炼 | [018](./018-fun-and-gamification.md) |
+| 018 | 好玩 + 游戏化（精灵） | 2 | L(8) | 📐 已提炼 | [018](./018-fun-and-gamification.md) |
 | 019 | 孕期管理 + 学习辅助工作区 | 3 | L(8) | ❌ 已取消 | [019](./019-pregnancy-learning-workspace.md) |
 | 020 | 本地性能检测 + 智能推荐 | 2 | S(3) | 🆕 待录入 | [020](./020-local-performance-detection.md) |
 | 021 | 资源 README 展示（点击查看说明） | 0 | S(3) | ✅ 已完成 | [021](./021-resource-readme-display.md) |
@@ -36,6 +36,11 @@
 | 026 | 工作区拖动排序 | 1 | S(3) | ✅ 已完成 | [026](./026-workspace-drag-sort.md) |
 | 027 | 管理员改名（岛管理员） | 0 | XS(1) | ✅ 已完成 | [027](./027-librarian-rename.md) |
 | 028 | AI 根据记忆建议工作区 | 2 | M(5) | 📐 已提炼 | [028](./028-ai-suggest-workspace.md) |
+| 032 | 三层进程模型（轻量/标准/重型） | 1 | M(5) | 📐 已提炼 | [032](./032-lightweight-workspace-mode.md) |
+| 033 | 工作区创建进度记录 + 断点续做 | 1 | S(3) | 📐 已提炼 | [033](./033-creation-progress-resume.md) |
+| 034 | 删除类操作用户确认 | 0 | XS(1) | 📐 已提炼 | [034](./034-delete-confirmation.md) |
+| 035 | 工具/技能禁用 + 排序下降 | 1 | S(3) | 📐 已提炼 | [035](./035-tool-skill-disable.md) |
+| 036 | 岛屿命名 + 愿景更新 | 0 | XS(1) | 📐 已提炼 | [036](./036-island-naming-vision.md) |
 | 029 | AI 工作状态 + 打断输出 | 0 | S(3) | ✅ 已完成 | [029](./029-ai-status-and-stop.md) |
 | 030 | README 页增加打开按钮 | 0 | XS(1) | ✅ 已完成 | [030](./030-readme-open-workspace.md) |
 | 031 | 设置页面（Key + Gitee） | 0 | S(3) | ✅ 已完成 | [031](./031-settings-page.md) |

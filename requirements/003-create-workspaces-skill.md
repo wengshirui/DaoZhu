@@ -162,7 +162,7 @@ CREATE INDEX idx_{table}_created ON {table_name}(created_at);
 
 ---
 
-## 技能工作流程（草案）
+## 技能工作流程（已确认）
 
 ```
 用户: "帮我建一个 XXX 工作区"
@@ -177,7 +177,8 @@ CREATE INDEX idx_{table}_created ON {table_name}(created_at);
 ┌─────────────────────┐
 │ 2. 搜索开源项目      │
 │    GitHub + Gitee    │
-│    关键词 + star排序  │
+│    展示 Top 5       │
+│    以匹配度优先      │
 └─────────┬───────────┘
           │
      有匹配？
@@ -187,33 +188,49 @@ CREATE INDEX idx_{table}_created ON {table_name}(created_at);
    ▼           ▼
 ┌────────┐  ┌────────────┐
 │3a.展示  │  │3b.从零建造  │
-│Top 3   │  │参考README  │
+│Top 5   │  │参考README  │
 │让用户选 │  │生成全套代码 │
 └───┬────┘  └─────┬──────┘
     │              │
     ▼              │
-┌────────────┐     │
-│4. 改造项目  │     │
-│→ FastAPI   │     │
-│→ SQLite    │     │
-│→ 独立venv  │     │
-└───┬────────┘     │
+┌────────────────┐ │
+│4. clone → 适配  │ │
+│ 保留 git 历史   │ │
+│ 加 workspace.json│
+│ 适配前端为纯HTML │
+└───┬────────────┘ │
     │              │
     └──────┬───────┘
            │
            ▼
 ┌─────────────────────┐
 │ 5. 创建工作区目录    │
-│    生成workspace.json│
+│    记录步骤进度      │
 │    创建venv+安装依赖 │
 │    初始化data.db     │
 └─────────┬───────────┘
           │
           ▼
 ┌─────────────────────┐
-│ 6. 启动 + 注册到书架 │
+│ 6. 判断 mode        │
+│    轻量→挂载主进程   │
+│    标准→独立启动     │
+│    注册到书架        │
 └─────────────────────┘
 ```
+
+### 改造方案（已确认：方案 B）
+
+**clone → 适配 → 保留 git 历史**
+
+1. `git clone --depth=1` 到 `workspaces/xxx/`
+2. 添加 `workspace.json`、`schema.sql`、`db.py`
+3. 适配前端为纯 HTML/CSS/JS（无 Node 依赖）
+4. 创建 `.venv` + 安装依赖
+5. 初始化 `data.db`
+6. 启动 + 注册到书架
+
+**优势**：保留 git 历史，上游更新可 merge；README 标注来源，符合开源协议。
 
 ---
 
