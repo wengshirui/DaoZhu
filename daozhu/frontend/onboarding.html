@@ -91,14 +91,31 @@
       <div class="progress__dot active"></div>
       <div class="progress__dot"></div>
       <div class="progress__dot"></div>
+      <div class="progress__dot"></div>
     </div>
 
     <!-- Step 1: 配置 AI -->
     <div class="step active" id="step-1">
       <div class="step__number">步骤 1/3</div>
+      <div class="step__title">🏝️ 给你的岛取个名字</div>
+      <div class="step__content">
+        <p>这是你的数字小岛，给它取个名字吧：</p>
+      </div>
+      <div class="input-group">
+        <label>岛屿名称</label>
+        <input type="text" id="island-name" placeholder="我的小岛" value="我的小岛">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn--primary" onclick="Onboard.saveName()">继续</button>
+      </div>
+    </div>
+
+    <!-- Step 2: 配置 API Key -->
+    <div class="step" id="step-2">
+      <div class="step__number">步骤 2/3</div>
       <div class="step__title">🧠 配置 AI 大脑</div>
       <div class="step__content">
-        <p>岛主需要一个 AI 模型来思考。推荐使用 DeepSeek（便宜好用）：</p>
+        <p>岛管理员需要一个 AI 模型来思考。推荐使用 DeepSeek（便宜好用）：</p>
         <ol>
           <li>打开 <a href="https://platform.deepseek.com/" target="_blank">DeepSeek 开放平台</a></li>
           <li>注册账号（手机号即可）</li>
@@ -117,9 +134,9 @@
       </div>
     </div>
 
-    <!-- Step 2: 选择主题 -->
-    <div class="step" id="step-2">
-      <div class="step__number">步骤 2/3</div>
+    <!-- Step 3: 选择主题 -->
+    <div class="step" id="step-3">
+      <div class="step__number">步骤 3/4</div>
       <div class="step__title">🎨 选择主题</div>
       <div class="step__content">
         <p>选一个你喜欢的界面风格：</p>
@@ -137,9 +154,9 @@
       </div>
     </div>
 
-    <!-- Step 3: 完成 -->
-    <div class="step" id="step-3">
-      <div class="step__number">步骤 3/3</div>
+    <!-- Step 4: 完成 -->
+    <div class="step" id="step-4">
+      <div class="step__number">步骤 4/4</div>
       <div class="step__title">🎉 准备就绪！</div>
       <div class="step__content">
         <p>你的数字岛屿已经建好了。试试对管家说：</p>
@@ -181,22 +198,26 @@
 
         status.textContent = '验证中...'; status.className = 'status';
         try {
-          const res = await fetch('/api/config/ai', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ value: { provider: 'deepseek', api_key: key } }),
-          });
-          // 保存 key 到 .env（通过专用接口）
           await fetch('/api/onboarding/save-key', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ key }),
           });
           status.textContent = '✅ 配置成功！'; status.className = 'status status--ok';
-          setTimeout(() => this.next(2), 800);
+          setTimeout(() => this.next(3), 800);
         } catch (e) {
           status.textContent = '保存失败: ' + e.message; status.className = 'status status--err';
         }
+      },
+
+      saveName() {
+        const name = document.getElementById('island-name').value.trim() || '我的小岛';
+        fetch('/api/config/island_name', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value: name }),
+        });
+        this.next(2);
       },
 
       setTheme(theme) {
@@ -207,11 +228,10 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ value: theme }),
         });
-        this.next(3);
+        this.next(4);
       },
 
       skip() {
-        // 标记已跳过，后端不再强制跳转
         fetch('/api/config/onboarding_skipped', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },

@@ -151,6 +151,14 @@ const App = {
     }).catch(() => {
       info.textContent = '状态获取失败';
     });
+
+    // 加载岛名到顶栏
+    fetch('/api/config').then(r => r.json()).then(data => {
+      const name = data.config?.island_name;
+      if (name) {
+        document.querySelector('.topbar__title').textContent = name;
+      }
+    }).catch(() => {});
   },
 
   // === 全局错误提示 ===
