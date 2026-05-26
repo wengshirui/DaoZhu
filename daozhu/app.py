@@ -45,6 +45,7 @@ def _mount_lightweight_workspaces(app: FastAPI):
     """将 mode=lightweight 的工作区挂载为主进程子路由"""
     import importlib.util
     import sys
+    from .workspace_manager import WorkspaceStatus
     for ws in manager.workspaces.values():
         if ws.mode != "lightweight":
             continue

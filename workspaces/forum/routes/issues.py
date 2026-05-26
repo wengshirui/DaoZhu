@@ -87,7 +87,9 @@ async def create_issue(data: IssueCreate):
     """创建新 Issue"""
     result = await gitee_client.create_issue(data.title, data.body)
     if result is None:
-        raise HTTPException(403, "请先在主平台设置页面()配置 Gitee Token")
+        raise HTTPException(403, "请先在主平台设置页面(⚙️)配置 Gitee Token")
+    if isinstance(result, dict) and result.get("error"):
+        raise HTTPException(400, result["error"])
     return {"success": True, "issue": result}
 
 
