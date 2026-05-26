@@ -188,3 +188,119 @@ window.addEventListener('unhandledrejection', (e) => {
   console.error('Unhandled rejection:', e.reason);
   App.showToast('操作失败: ' + (e.reason?.message || '未知错误'));
 });
+
+
+// === 游戏化：发现的快乐 ===
+const Fun = {
+  titleClickCount: 0,
+  idleTimer: null,
+  IDLE_TIMEOUT: 30000, // 30秒
+
+  init() {
+    this._setTimeAmbience();
+    this._bindTitleEasterEgg();
+    this._startIdleDetection();
+    // 每小时更新时间氛围
+    setInterval(() => this._setTimeAmbience(), 3600000);
+  },
+
+  // 时间氛围：根据当前时间微调背景
+  _setTimeAmbience() {
+    const hour = new Date().getHours();
+    let time = 'afternoon';
+    if (hour >= 5 && hour < 10) time = 'morning';
+    else if (hour >= 10 && hour < 17) time = 'afternoon';
+    else if (hour >= 17 && hour < 21) time = 'evening';
+    else time = 'night';
+    document.documentElement.setAttribute('data-time', time);
+  },
+
+  // 彩蛋：连续点击标题5次 → 管理员跳舞
+  _bindTitleEasterEgg() {
+    const title = document.querySelector('.topbar__title');
+    if (!title) return;
+    let lastClick = 0;
+    title.addEventListener('click', () => {
+      const now = Date.now();
+      if (now - lastClick > 1000) this.titleClickCount = 0;
+      lastClick = now;
+      this.titleClickCount++;
+      if (this.titleClickCount >= 5) {
+        this.titleClickCount = 0;
+        this._triggerDance();
+      }
+    });
+  },
+
+  _triggerDance() {
+    // 所有管理员跳舞
+    document.querySelectorAll('.librarian').forEach(el => {
+      el.className = el.className.replace(/librarian--\w+/g, '').trim() + ' librarian--dance';
+    });
+    // 3秒后恢复
+    setTimeout(() => {
+      document.querySelectorAll('.librarian--dance').forEach(el => {
+        el.className = el.className.replace('librarian--dance', 'librarian--idle').trim();
+      });
+    }, 3000);
+    Panel.addLog('success', '🎉 管理员开心地跳了一支舞！');
+  },
+
+  // 空闲检测：30秒无操作 → 管理员看书
+  _startIdleDetection() {
+    const resetIdle = () => {
+      // 恢复为 idle
+      document.querySelectorAll('.librarian--reading').forEach(el => {
+        el.className = el.className.replace('librarian--reading', 'librarian--idle');
+      });
+      clearTimeout(this.idleTimer);
+      this.idleTimer = setTimeout(() => this._goReading(), this.IDLE_TIMEOUT);
+    };
+
+    ['mousemove', 'keydown', 'click', 'scroll'].forEach(evt => {
+      document.addEventListener(evt, resetIdle, { passive: true });
+    });
+
+    // 初始启动
+    this.idleTimer = setTimeout(() => this._goReading(), this.IDLE_TIMEOUT);
+  },
+
+  _goReading() {
+    document.querySelectorAll('.librarian--idle').forEach(el => {
+      el.className = el.className.replace('librarian--idle', 'librarian--reading');
+    });
+  },
+
+  // 撒花庆祝（创建工作区时调用）
+  celebrate() {
+    const container = document.createElement('div');
+    container.className = 'confetti-container';
+    document.body.appendChild(container);
+
+    const colors = ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#ff8fab', '#a855f7'];
+    for (let i = 0; i < 40; i++) {
+      const confetti = document.createElement('div');
+      confetti.className = 'confetti';
+      confetti.style.left = Math.random() * 100 + '%';
+      confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+      confetti.style.animationDelay = Math.random() * 0.8 + 's';
+      confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+      container.appendChild(confetti);
+    }
+
+    // 管理员庆祝
+    document.querySelectorAll('.librarian').forEach(el => {
+      el.className = el.className.replace(/librarian--\w+/g, '').trim() + ' librarian--celebrate';
+    });
+
+    setTimeout(() => {
+      container.remove();
+      document.querySelectorAll('.librarian--celebrate').forEach(el => {
+        el.className = el.className.replace('librarian--celebrate', 'librarian--idle');
+      });
+    }, 3000);
+  },
+};
+
+// 初始化游戏化
+document.addEventListener('DOMContentLoaded', () => Fun.init());
