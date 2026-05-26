@@ -363,4 +363,15 @@ ruff format .                   # format
 3. **平台不侵入** — 平台层不修改工作区内部代码
 4. **渐进增强** — 先保证核心功能可用，再添加 AI 能力
 5. **文件精简** — 宁可多文件，不可单文件臃肿
-6. **配置不依赖路径** — 工作区读取平台配置通过 API（`GET /api/config/{key}`），不用相对路径找 .env
+6. **配置不依赖路径** — 轻挂载用 `from daozhu.config_db import get_secret`；独立进程用平台 API
+
+## 已知坑（开发时避免）
+
+| 坑 | 解决 |
+|----|------|
+| workspace.json 写入编码损坏 | 始终 `encoding="utf-8"` |
+| 轻挂载 import 失败 | sys.path 加入工作区目录且不 pop |
+| 独立进程读不到平台配置 | 用 HTTP API 或改为轻挂载 |
+| sync_playwright 在 async 报错 | 用 `async_playwright` |
+| DeepSeek 返回空 arguments | registry.dispatch 前置校验必填参数 |
+| 工具连续失败无限循环 | 连续 2 次失败后注入 hint 让 LLM 换策略 |

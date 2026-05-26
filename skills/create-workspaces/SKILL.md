@@ -273,6 +273,28 @@ def get_db() -> sqlite3.Connection:
 
 ---
 
+## ⚠️ 踩坑记录（创建工作区时必读）
+
+| 坑 | 原因 | 正确做法 |
+|----|------|----------|
+| 工作区读不到平台配置 | 用相对路径找 .env | 轻挂载: `from daozhu.config_db import get_secret`；独立进程: 调平台 API |
+| workspace.json 中文变乱码 | 写入时没指定 UTF-8 | 始终 `encoding="utf-8"` |
+| 轻挂载 from routes import 失败 | sys.path 没保持 | 主平台已修复，不需要工作区处理 |
+| Playwright 在 async 中报错 | 用了 sync_playwright | 必须用 `async_playwright` |
+| 工作区需要平台配置时 | 不知道怎么获取 | 优先选 lightweight 模式，可直接 import daozhu 模块 |
+
+### 选择 mode 的决策树
+
+```
+工作区需要读取平台配置（API Key/Token）？
+  → 是 → mode: lightweight（可直接 import daozhu）
+  → 否 → 表 ≤ 3 且无额外依赖？
+           → 是 → mode: lightweight
+           → 否 → mode: standard
+```
+
+---
+
 ## 实际案例：个人待办工作区
 
 参考项目：Super Productivity (⭐ 18.8k, Angular + Electron)

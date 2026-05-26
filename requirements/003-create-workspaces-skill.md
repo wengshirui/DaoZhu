@@ -236,11 +236,10 @@ CREATE INDEX idx_{table}_created ON {table_name}(created_at);
 
 ⚠️ **重要**：工作区代码中**不要**用相对路径读取项目根目录的 `.env` 文件。
 
-**正确做法**：
-- 工作区需要平台配置（如 API Key、Token）时，通过 HTTP 调用平台 API：
-  `GET http://127.0.0.1:7788/api/config/{key}`
-- 或者在工作区启动时由平台注入环境变量
-- 工作区自身的配置存在自己的 `data.db` 或 `config.db` 中
+**正确做法（按优先级）**：
+1. 轻挂载模式（mode=lightweight）：直接 `from daozhu.config_db import get_secret`
+2. 独立进程模式（mode=standard）：通过 HTTP 调用 `GET http://127.0.0.1:7788/api/config/{key}`
+3. 工作区自身配置存在自己的 `data.db` 中
 
 **错误做法**：
 ```python
@@ -249,6 +248,32 @@ env_file = Path(__file__).parent.parent.parent / ".env"
 ```
 
 **原因**：工作区可能被独立进程启动、被挂载到主进程、或被移动到其他目录，相对路径计算不可靠。
+
+### 轻挂载 vs 独立进程选择
+
+| 条件 | 选择 | 原因 |
+|------|------|------|
+| ≤3 张表 + 无额外依赖 | lightweight | 零开销，共享主进程 |
+| >3 张表 或 有额外依赖 | standard | 需要独立环境 |
+| 需要读取平台配置 | lightweight 优先 | 可直接 import daozhu 模块 |
+
+### 轻挂载注意事项
+
+1. `workspace.json` 中设置 `"mode": "lightweight"`
+2. 工作区内部的 `from routes import` 正常工作（sys.path 已处理）
+3. 可以直接 `from daozhu.config_db import get_secret` 读取平台配置
+4. 访问路径是 `/ws/{id}`，不是独立端口
+5. 挂载失败会自动降级为 standard 模式
+
+### 已知坑（创建工作区时避免）
+
+| 坑 | 原因 | 解决 |
+|----|------|------|
+| workspace.json 编码损坏 | reorder API 写入时 GBK 编码 | 始终用 `encoding="utf-8"` |
+| 轻挂载 import 失败 | sys.path 被 pop 掉 | 保持 sys.path 不 pop |
+| 独立进程读不到 config.db | 路径计算错误 | 用平台 API 或轻挂载 |
+| sync_playwright 在 async 中报错 | 事件循环冲突 | 用 async_playwright |
+| DeepSeek 返回空 arguments | 模型行为 | 必填参数前置校验 |
 
 ---
 
