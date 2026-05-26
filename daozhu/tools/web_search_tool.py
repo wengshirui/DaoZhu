@@ -15,28 +15,85 @@ from .registry import registry
 async def web_search_tool(query: str, max_results: int = 5) -> str:
     """搜索网络，返回结果摘要"""
     try:
-        url = f"https://html.duckduckgo.com/html/?q={quote_plus(query)}"
+        # 使用 DuckDuckGo Lite（更稳定，不容易被拦截）
+        url = "https://lite.duckduckgo.com/lite/"
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
         }
 
         async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
-            resp = await client.get(url, headers=headers)
-            if resp.status_code != 200:
-                return json.dumps({"error": f"搜索失败: HTTP {resp.status_code}"}, ensure_ascii=False)
+            resp = await client.post(url, data={"q": query}, headers=headers)
+
+            if resp.status_code not in (200, 202):
+                # 降级：尝试直接用 API
+                return await _search_fallback(client, query, max_results, headers)
 
             html = resp.text
-            results = _parse_results(html, max_results)
+            results = _parse_lite_results(html, max_results)
 
             if not results:
-                return json.dumps({"results": [], "message": "未找到相关结果"}, ensure_ascii=False)
+                # 降级方案
+                return await _search_fallback(client, query, max_results, headers)
 
             return json.dumps({"query": query, "results": results}, ensure_ascii=False)
 
-    except httpx.ConnectError:
-        return json.dumps({"error": "无法连接到搜索服务，请检查网络"}, ensure_ascii=False)
     except Exception as e:
         return json.dumps({"error": f"搜索出错: {str(e)}"}, ensure_ascii=False)
+
+
+async def _search_fallback(client: httpx.AsyncClient, query: str, max_results: int, headers: dict) -> str:
+    """降级方案：用 DuckDuckGo instant answer API"""
+    try:
+        resp = await client.get(
+            f"https://api.duckduckgo.com/?q={quote_plus(query)}&format=json&no_html=1",
+            headers=headers,
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            results = []
+            # Abstract
+            if data.get("Abstract"):
+                results.append({
+                    "title": data.get("Heading", query),
+                    "url": data.get("AbstractURL", ""),
+                    "snippet": data["Abstract"][:300],
+                })
+            # Related topics
+            for topic in data.get("RelatedTopics", [])[:max_results]:
+                if isinstance(topic, dict) and topic.get("Text"):
+                    results.append({
+                        "title": topic.get("Text", "")[:60],
+                        "url": topic.get("FirstURL", ""),
+                        "snippet": topic.get("Text", "")[:200],
+                    })
+            if results:
+                return json.dumps({"query": query, "results": results}, ensure_ascii=False)
+    except Exception:
+        pass
+
+    return json.dumps({"error": "搜索服务暂时不可用，请稍后重试", "query": query}, ensure_ascii=False)
+
+
+def _parse_lite_results(html: str, max_results: int) -> list[dict]:
+    """从 DuckDuckGo Lite 结果中提取"""
+    results = []
+
+    # Lite 版本的结果格式不同
+    # 匹配链接和摘要
+    links = re.findall(r'<a rel="nofollow" href="([^"]+)" class=\'result-link\'>(.*?)</a>', html)
+    snippets = re.findall(r'<td class="result-snippet">(.*?)</td>', html, re.DOTALL)
+
+    for i, (href, title) in enumerate(links[:max_results]):
+        title = re.sub(r'<[^>]+>', '', title).strip()
+        snippet = ""
+        if i < len(snippets):
+            snippet = re.sub(r'<[^>]+>', '', snippets[i]).strip()[:200]
+        if title:
+            results.append({"title": title, "url": href, "snippet": snippet})
+
+    return results
 
 
 def _parse_results(html: str, max_results: int) -> list[dict]:
