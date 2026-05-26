@@ -232,6 +232,24 @@ CREATE INDEX idx_{table}_created ON {table_name}(created_at);
 
 **优势**：保留 git 历史，上游更新可 merge；README 标注来源，符合开源协议。
 
+### 工作区配置读取规范
+
+⚠️ **重要**：工作区代码中**不要**用相对路径读取项目根目录的 `.env` 文件。
+
+**正确做法**：
+- 工作区需要平台配置（如 API Key、Token）时，通过 HTTP 调用平台 API：
+  `GET http://127.0.0.1:7788/api/config/{key}`
+- 或者在工作区启动时由平台注入环境变量
+- 工作区自身的配置存在自己的 `data.db` 或 `config.db` 中
+
+**错误做法**：
+```python
+# ❌ 不要这样做！路径依赖脆弱
+env_file = Path(__file__).parent.parent.parent / ".env"
+```
+
+**原因**：工作区可能被独立进程启动、被挂载到主进程、或被移动到其他目录，相对路径计算不可靠。
+
 ---
 
 ## 状态
