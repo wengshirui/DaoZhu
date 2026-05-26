@@ -283,6 +283,8 @@ def get_db() -> sqlite3.Connection:
 | Playwright 在 async 中报错 | 用了 sync_playwright | 必须用 `async_playwright` |
 | 工作区需要平台配置时 | 不知道怎么获取 | 优先选 lightweight 模式，可直接 import daozhu 模块 |
 | 前端 API 路径在轻挂载后 404 | 写了绝对路径 `/api/xxx` | 用动态 API_BASE（见下方） |
+| 轻挂载时 lifespan 不执行 | 子应用的 lifespan 不被触发 | 在 app 创建时直接调用 init_db()，不依赖 lifespan |
+| SQLite 外键约束报错 | 缓存表引用了不存在的主键 | 缓存表不要加外键约束 |
 
 ### 前端 API 路径兼容方案
 
