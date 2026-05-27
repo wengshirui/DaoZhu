@@ -1,4 +1,4 @@
-/* ===== 背影 · 朱自清 — 水墨冬日剧场 ===== */
+/* ===== 背影 · 混合实体剧场 ===== */
 :root {
     --bg-dark: #1a1510;
     --curtain: #4A3728;
@@ -7,247 +7,111 @@
     --panel-bg: #1a1410;
     --text-warm: #F5E6C8;
     --text-ink: #2C1810;
-    --narration-bg: rgba(30, 20, 12, 0.88);
     --font-title: 'Ma Shan Zheng', cursive;
     --font-body: 'ZCOOL KuaiLe', sans-serif;
     --font-serif: 'Noto Serif SC', serif;
 }
-
-* { margin: 0; padding: 0; box-sizing: border-box; }
-
+* { margin:0; padding:0; box-sizing:border-box; }
 body {
     background: var(--bg-dark);
     min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    display: flex; justify-content: center; align-items: center;
     font-family: var(--font-body);
     overflow: hidden;
 }
-
 .theater { width: 1000px; max-width: 97vw; }
 
-/* 标题 */
 .theater-header { text-align: center; padding: 14px 0 6px; }
 .marquee {
     font-family: var(--font-title);
-    font-size: 2.6rem;
-    color: var(--gold);
+    font-size: 2.6rem; color: var(--gold);
     text-shadow: 0 2px 10px rgba(196,149,106,0.4);
     letter-spacing: 14px;
 }
-.author {
-    font-family: var(--font-serif);
-    font-size: 0.85rem;
-    color: #9B8B7A;
-    margin-top: 2px;
-    letter-spacing: 4px;
-}
+.author { font-family: var(--font-serif); font-size: 0.85rem; color: #9B8B7A; margin-top: 2px; letter-spacing: 4px; }
 
-/* ===== 幕布 + 舞台 ===== */
-.stage-frame {
-    position: relative;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.7);
-}
-
-/* 顶部幕布 */
+/* 幕布 */
+.stage-frame { position: relative; border-radius: 10px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,0.7); }
 .curtain-top {
-    height: 40px;
+    height: 44px;
     background: linear-gradient(180deg, var(--curtain-dark), var(--curtain));
-    display: flex;
-    justify-content: center;
-    align-items: flex-end;
-    position: relative;
     border-bottom: 3px solid var(--gold);
+    position: relative;
 }
-
 .curtain-top::before, .curtain-top::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    width: 100px;
-    height: 100%;
-    background: radial-gradient(ellipse at bottom, var(--curtain) 60%, transparent);
+    content: ''; position: absolute; top: 0; width: 110px; height: 100%;
+    background: radial-gradient(ellipse at bottom, var(--curtain) 50%, transparent);
 }
-.curtain-top::before { left: 30px; }
-.curtain-top::after { right: 30px; }
+.curtain-top::before { left: 20px; }
+.curtain-top::after { right: 20px; }
 
-/* 侧幕布 */
 .stage-body { display: flex; }
 .curtain-side {
-    width: 36px;
+    width: 40px;
     background: linear-gradient(180deg, var(--curtain-dark), var(--curtain) 40%, var(--curtain-dark));
-    position: relative;
-    z-index: 5;
+    position: relative; z-index: 5;
 }
 .curtain-side::after {
-    content: '';
-    position: absolute; inset: 0;
-    background: repeating-linear-gradient(180deg, transparent, transparent 16px, rgba(0,0,0,0.12) 16px, rgba(0,0,0,0.12) 18px);
+    content: ''; position: absolute; inset: 0;
+    background: repeating-linear-gradient(180deg, transparent, transparent 14px, rgba(0,0,0,0.1) 14px, rgba(0,0,0,0.1) 16px);
 }
 .curtain-side.left { box-shadow: inset -6px 0 10px rgba(0,0,0,0.4); }
 .curtain-side.right { box-shadow: inset 6px 0 10px rgba(0,0,0,0.4); }
 
 /* 舞台 */
-.stage {
-    position: relative;
-    flex: 1;
-    height: 460px;
-    overflow: hidden;
-}
+.stage { position: relative; flex: 1; height: 460px; overflow: hidden; background: #B8C0C8; }
+.stage canvas { display: block; width: 100%; height: 100%; }
 
-.layer { position: absolute; inset: 0; pointer-events: none; }
-
-/* 背景 — 冬日车站 */
-.layer--bg {
-    background: linear-gradient(180deg,
-        #9EAAB4 0%, #B8C0C8 15%, #C8C0B0 35%,
-        #A89070 56%, #6B5540 57%, #8B7355 58%, #5C4030 100%);
-}
-
-/* 远景装饰（枯树、薄雾） */
-.layer--bg::before {
-    content: '';
+/* SVG overlay */
+.svg-layer { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.svg-entity {
     position: absolute;
-    top: 0; left: 0; right: 0; height: 56%;
-    background:
-        radial-gradient(ellipse at 80% 90%, rgba(139,115,85,0.3) 0%, transparent 40%),
-        radial-gradient(ellipse at 20% 80%, rgba(139,115,85,0.2) 0%, transparent 30%);
+    transition: left 3s ease-in-out, top 2s ease, opacity 1.5s;
 }
-
-/* 铁道 */
-.layer--bg::after {
-    content: '';
-    position: absolute;
-    top: 55%; left: 0; right: 0; height: 6px;
-    background: repeating-linear-gradient(90deg, #3D2B1F 0px, #3D2B1F 24px, transparent 24px, transparent 32px);
-    box-shadow: 0 3px 0 #3D2B1F, 0 6px 0 rgba(0,0,0,0.1);
-}
-
-/* 月台纹理 */
-.platform-texture {
-    position: absolute;
-    bottom: 0; left: 0; right: 0; height: 43%;
-    background: repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(0,0,0,0.03) 60px, rgba(0,0,0,0.03) 62px);
-    pointer-events: none;
-}
-
-/* 实体 */
-.entity {
-    position: absolute;
-    transition: left 0.5s ease, top 0.5s ease, width 0.4s, height 0.4s, opacity 0.8s, transform 0.5s;
-}
-.entity svg { width: 100%; height: 100%; }
-.entity--actor { z-index: 10; }
-.entity--prop { z-index: 5; }
-.entity--walking svg { animation: walkBob 0.5s ease-in-out infinite; }
-@keyframes walkBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
-
-/* 角色名牌 */
-.entity__label {
-    position: absolute;
-    top: -20px; left: 50%;
-    transform: translateX(-50%);
-    background: rgba(44,24,16,0.8);
-    color: var(--text-warm);
-    font-size: 0.65rem;
-    font-family: var(--font-serif);
-    padding: 2px 8px;
-    border-radius: 8px;
-    white-space: nowrap;
-    pointer-events: none;
-}
+.svg-entity svg { width: 100%; height: 100%; }
 
 /* 旁白 */
 .narration {
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    background: var(--narration-bg);
-    backdrop-filter: blur(4px);
-    padding: 14px 28px;
-    font-family: var(--font-serif);
-    font-size: 0.9rem;
-    color: var(--text-warm);
-    line-height: 1.7;
-    opacity: 0;
-    transition: opacity 0.6s;
-    z-index: 25;
-    min-height: 60px;
-    border-top: 1px solid rgba(196,149,106,0.15);
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: rgba(30,20,12,0.88); backdrop-filter: blur(4px);
+    padding: 14px 28px; font-family: var(--font-serif);
+    font-size: 0.9rem; color: var(--text-warm); line-height: 1.7;
+    opacity: 0; transition: opacity 0.6s; z-index: 25;
+    min-height: 58px; border-top: 1px solid rgba(196,149,106,0.15);
 }
 .narration--visible { opacity: 1; }
 
-/* 对话气泡 */
+/* 气泡 */
 .bubble {
     position: absolute;
-    background: rgba(255,255,255,0.93);
-    border-radius: 12px;
-    padding: 8px 14px;
-    font-size: 0.85rem;
-    color: var(--text-ink);
+    background: rgba(255,255,255,0.93); border-radius: 12px;
+    padding: 8px 14px; font-size: 0.85rem; color: var(--text-ink);
     box-shadow: 0 3px 10px rgba(0,0,0,0.15);
-    opacity: 0;
-    transition: opacity 0.4s, left 2s ease-in-out, top 0.5s;
-    z-index: 22;
-    max-width: 200px;
-    font-family: var(--font-serif);
+    opacity: 0; transition: opacity 0.4s, left 2s ease-in-out, top 0.5s;
+    z-index: 22; max-width: 220px; font-family: var(--font-serif);
 }
 .bubble::after {
-    content: '';
-    position: absolute;
-    bottom: -6px; left: 18px;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
+    content: ''; position: absolute; bottom: -6px; left: 18px;
+    border-left: 6px solid transparent; border-right: 6px solid transparent;
     border-top: 6px solid rgba(255,255,255,0.93);
 }
 .bubble--visible { opacity: 1; }
 
 .scene-info {
-    position: absolute;
-    top: 8px; left: 12px;
-    font-family: var(--font-serif);
-    font-size: 0.7rem;
-    color: rgba(60,40,20,0.45);
-    font-style: italic;
-    z-index: 15;
+    position: absolute; top: 8px; left: 12px;
+    font-family: var(--font-serif); font-size: 0.7rem;
+    color: rgba(255,255,255,0.5); font-style: italic; z-index: 15;
 }
 
-/* 导演面板 */
+/* 面板 */
 .panel {
-    background: var(--panel-bg);
-    border-radius: 0 0 10px 10px;
-    padding: 12px 20px;
-    display: flex; align-items: center; gap: 16px;
+    background: var(--panel-bg); border-radius: 0 0 10px 10px;
+    padding: 12px 20px; display: flex; align-items: center; gap: 16px;
     border-top: 2px solid #2a2015;
 }
-.panel__scene {
-    display:flex; flex-direction:column; align-items:center;
-    background:#222; border:1px solid #444; border-radius:6px; padding:5px 12px; min-width:60px;
-}
+.panel__scene { display:flex; flex-direction:column; align-items:center; background:#222; border:1px solid #444; border-radius:6px; padding:5px 12px; min-width:60px; }
 .panel__label { font-size:0.5rem; color:#888; letter-spacing:1px; }
 .panel__value { font-size:0.8rem; color:var(--text-warm); font-weight:bold; font-family:'Courier New',monospace; }
 .panel__note { flex:1; color:var(--text-warm); font-size:0.8rem; font-family:var(--font-serif); padding:8px 14px; background:rgba(255,255,255,0.03); border:1px solid #333; border-radius:8px; }
-.panel__btn {
-    background:linear-gradient(135deg,var(--gold),#8B6B4A); border:none; padding:9px 18px; border-radius:18px;
-    cursor:pointer; font-weight:bold; font-size:0.8rem; color:#FFF; font-family:var(--font-body);
-    transition:all 0.2s; box-shadow:0 3px 10px rgba(196,149,106,0.3);
-}
+.panel__btn { background:linear-gradient(135deg,var(--gold),#8B6B4A); border:none; padding:9px 18px; border-radius:18px; cursor:pointer; font-weight:bold; font-size:0.8rem; color:#FFF; font-family:var(--font-body); transition:all 0.2s; box-shadow:0 3px 10px rgba(196,149,106,0.3); }
 .panel__btn:hover { transform:translateY(-2px); }
-
-/* 动画 */
-.fade-in { animation: fadeIn 0.8s ease forwards; }
-@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
-
-/* 泪水 */
-.tear {
-    position:absolute; width:5px; height:10px;
-    background:rgba(100,160,220,0.7);
-    border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
-    animation:tearDrop 1.8s ease-in forwards; z-index:30;
-}
-@keyframes tearDrop { 0%{opacity:1;transform:translateY(0)} 100%{opacity:0;transform:translateY(40px)} }
-
-/* 攀爬倾斜 */
-.entity--climbing svg { transform: rotate(-12deg) !important; }

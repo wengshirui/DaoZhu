@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>背影 · 朱自清 — SVG 实体剧场</title>
+    <title>背影 · 朱自清 — 混合实体剧场</title>
     <link rel="stylesheet" href="css/theater.css">
     <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
 </head>
@@ -15,17 +15,15 @@
         </header>
 
         <div class="stage-frame">
-            <!-- 顶部幕布 -->
             <div class="curtain-top"></div>
-            <!-- 舞台主体 -->
             <div class="stage-body">
                 <div class="curtain-side left"></div>
                 <div class="stage" id="stage">
-                    <div class="layer layer--bg"></div>
-                    <div class="platform-texture"></div>
-                    <div class="layer layer--props" id="props-layer"></div>
-                    <div class="layer layer--actors" id="actors-layer"></div>
-                    <div class="layer layer--fx" id="fx-layer"></div>
+                    <!-- Canvas 层：背景 + 核心角色 -->
+                    <canvas id="canvas" width="900" height="460"></canvas>
+                    <!-- SVG overlay 层：装饰图标 -->
+                    <div class="svg-layer" id="svg-layer"></div>
+                    <!-- UI 层 -->
                     <div class="bubble" id="bubble"></div>
                     <div class="narration" id="narration"></div>
                     <div class="scene-info" id="scene-info"></div>
@@ -44,6 +42,8 @@
         </div>
     </div>
 
+    <script src="js/renderer.js"></script>
+    <script src="js/script.js"></script>
     <script src="js/engine.js"></script>
 </body>
 </html>
