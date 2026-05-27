@@ -1,28 +1,76 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" style="image-rendering:pixelated">
-  <!-- 星露谷风格老爷爷：白发+眼镜+绿背心+书本 -->
-  <!-- 头发 -->
-  <rect x="8" y="2" width="16" height="4" fill="#e8e8e8"/>
-  <rect x="6" y="4" width="20" height="4" fill="#ddd"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40" style="image-rendering:pixelated">
+  <!-- 岛管理员：年轻图书管理员像素风 -->
+  <!-- 参考：年轻知识分子，中分长发，灰蓝长衫，手持书本 -->
+
+  <!-- 头发（中分，黑色，略长） -->
+  <rect x="10" y="2" width="12" height="2" fill="#1a1a1a"/>
+  <rect x="9" y="4" width="14" height="2" fill="#1a1a1a"/>
+  <rect x="8" y="6" width="6" height="2" fill="#1a1a1a"/>
+  <rect x="18" y="6" width="6" height="2" fill="#1a1a1a"/>
+
   <!-- 脸 -->
-  <rect x="8" y="8" width="16" height="6" fill="#f5d6b0"/>
-  <!-- 眼镜框 -->
-  <rect x="8" y="10" width="4" height="3" fill="none" stroke="#8b6914" stroke-width="0.8"/>
-  <rect x="14" y="10" width="4" height="3" fill="none" stroke="#8b6914" stroke-width="0.8"/>
-  <rect x="12" y="11" width="2" height="1" fill="#8b6914"/>
-  <!-- 眼睛 -->
-  <rect x="9" y="11" width="2" height="2" fill="#2a2a2a"/>
-  <rect x="15" y="11" width="2" height="2" fill="#2a2a2a"/>
-  <!-- 胡子 -->
-  <rect x="9" y="14" width="14" height="2" fill="#ccc" rx="1"/>
-  <!-- 身体-绿背心 -->
-  <rect x="6" y="18" width="20" height="8" fill="#4a7c4a" rx="2"/>
-  <!-- 白衬衫领 -->
-  <rect x="12" y="18" width="8" height="3" fill="#f5f5f0"/>
-  <!-- 书本 -->
-  <rect x="24" y="12" width="6" height="10" fill="#8b4513" rx="1"/>
-  <rect x="25" y="13" width="4" height="8" fill="#f5f0dc"/>
-  <line x1="27" y1="13" x2="27" y2="21" stroke="#ddd" stroke-width="0.5"/>
-  <!-- 裤子 -->
-  <rect x="8" y="26" width="6" height="4" fill="#5c4033"/>
-  <rect x="16" y="26" width="6" height="4" fill="#5c4033"/>
+  <rect x="10" y="6" width="12" height="8" fill="#f5d6b0"/>
+  <rect x="9" y="8" width="14" height="4" fill="#f5d6b0"/>
+
+  <!-- 眉毛（浓眉） -->
+  <rect x="11" y="8" width="4" height="1" fill="#2a2a2a"/>
+  <rect x="17" y="8" width="4" height="1" fill="#2a2a2a"/>
+
+  <!-- 眼睛（有神） -->
+  <rect x="12" y="10" width="2" height="2" fill="#1a1a1a"/>
+  <rect x="18" y="10" width="2" height="2" fill="#1a1a1a"/>
+  <!-- 眼睛高光 -->
+  <rect x="12" y="10" width="1" height="1" fill="#fff"/>
+  <rect x="18" y="10" width="1" height="1" fill="#fff"/>
+
+  <!-- 鼻子 -->
+  <rect x="15" y="11" width="2" height="2" fill="#e8c49a"/>
+
+  <!-- 嘴（微笑） -->
+  <rect x="13" y="14" width="6" height="1" fill="#c07050"/>
+
+  <!-- 耳朵 -->
+  <rect x="8" y="9" width="2" height="3" fill="#f5d6b0"/>
+  <rect x="22" y="9" width="2" height="3" fill="#f5d6b0"/>
+
+  <!-- 脖子 -->
+  <rect x="14" y="15" width="4" height="2" fill="#f5d6b0"/>
+
+  <!-- 长衫（灰蓝色中式对襟） -->
+  <rect x="8" y="17" width="16" height="14" fill="#5b7a8a"/>
+  <!-- 对襟中线 -->
+  <rect x="15" y="17" width="2" height="14" fill="#4a6a7a"/>
+  <!-- 盘扣（3个） -->
+  <rect x="14" y="19" width="1" height="1" fill="#2a4a5a"/>
+  <rect x="17" y="19" width="1" height="1" fill="#2a4a5a"/>
+  <rect x="14" y="22" width="1" height="1" fill="#2a4a5a"/>
+  <rect x="17" y="22" width="1" height="1" fill="#2a4a5a"/>
+  <rect x="14" y="25" width="1" height="1" fill="#2a4a5a"/>
+  <rect x="17" y="25" width="1" height="1" fill="#2a4a5a"/>
+
+  <!-- 袖子 -->
+  <rect x="5" y="18" width="4" height="8" fill="#5b7a8a"/>
+  <rect x="23" y="18" width="4" height="8" fill="#5b7a8a"/>
+
+  <!-- 左手（自然下垂） -->
+  <rect x="5" y="26" width="3" height="3" fill="#f5d6b0"/>
+
+  <!-- 右手持书 -->
+  <rect x="24" y="26" width="3" height="3" fill="#f5d6b0"/>
+  <!-- 书本（红色封面） -->
+  <rect x="26" y="22" width="5" height="8" fill="#b91c1c"/>
+  <rect x="27" y="23" width="3" height="6" fill="#fef3c7"/>
+  <!-- 书脊 -->
+  <rect x="26" y="22" width="1" height="8" fill="#7f1d1d"/>
+
+  <!-- 长衫下摆 -->
+  <rect x="9" y="31" width="6" height="4" fill="#5b7a8a"/>
+  <rect x="17" y="31" width="6" height="4" fill="#5b7a8a"/>
+
+  <!-- 布鞋 -->
+  <rect x="9" y="35" width="5" height="3" fill="#2a2a2a"/>
+  <rect x="18" y="35" width="5" height="3" fill="#2a2a2a"/>
+
+  <!-- 地面阴影 -->
+  <rect x="8" y="38" width="16" height="2" fill="rgba(0,0,0,0.1)" rx="1"/>
 </svg>
