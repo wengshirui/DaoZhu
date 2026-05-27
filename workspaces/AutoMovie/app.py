@@ -16,11 +16,13 @@ from routes import router as api_router
 
 FRONTEND_DIR = Path(__file__).parent / "frontend"
 OUTPUT_DIR = Path(__file__).parent / "output"
+ASSETS_DIR = Path(__file__).parent / "assets"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 app = FastAPI(title="火柴人剧场", version="1.0.0")
 
 app.include_router(api_router, prefix="/api")
+app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
 app.mount("/css", StaticFiles(directory=FRONTEND_DIR / "css"), name="css")
 app.mount("/js", StaticFiles(directory=FRONTEND_DIR / "js"), name="js")
 app.mount("/output", StaticFiles(directory=OUTPUT_DIR), name="output")
