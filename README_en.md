@@ -165,6 +165,7 @@ DaoZhu's core philosophy is **build with one sentence** — whatever you imagine
 | Workspace | One-liner | Possibilities |
 |-----------|-----------|---------------|
 | 🎬 AutoMovie Studio | AI writes script → generates storyboard → renders video | Input a story outline, output a short film |
+| 🎨 Photopea Design Studio | AI-driven online PS via Playwright + postMessage | "Remove background, add text, export PNG" |
 | 💬 Private Chat Server | Locally hosted instant messaging | Family group chat, small team collaboration — no third party |
 | 📚 Personal Wiki | Markdown knowledge base + full-text search | Your own Notion, but data stays local |
 | 🏥 Health Tracker | Weight / sleep / exercise / diet logging | AI analyzes trends and gives suggestions |
