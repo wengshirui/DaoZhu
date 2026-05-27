@@ -1,0 +1,84 @@
+/* demo5 — 极简火柴人剧场 */
+:root {
+    --bg: #1c1814;
+    --stage-bg: #f5f0e8;
+    --ink: #2c1810;
+    --gold: #c49a6c;
+    --father-color: #1a1a2e;
+    --son-color: #1e40af;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex; justify-content: center; align-items: center;
+    font-family: 'Noto Serif SC', serif;
+}
+.theater { width: 920px; max-width: 96vw; }
+
+.title-bar {
+    text-align: center; padding: 12px 0 8px;
+    display: flex; justify-content: center; align-items: baseline; gap: 16px;
+}
+.title-text {
+    font-family: 'Ma Shan Zheng', cursive;
+    font-size: 2.2rem; color: var(--gold);
+    letter-spacing: 10px;
+}
+.title-author { font-size: 0.8rem; color: #8a7a6a; }
+
+.stage {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 3px solid #3d2b1f;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+}
+.stage canvas { display: block; width: 100%; height: auto; background: var(--stage-bg); }
+
+/* 表情气泡 */
+.emotion {
+    position: absolute;
+    font-size: 2rem;
+    opacity: 0;
+    transition: opacity 0.4s, top 0.3s, left 2s ease-in-out;
+    z-index: 10;
+    pointer-events: none;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+.emotion.show { opacity: 1; }
+
+/* 旁白 */
+.narration {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: rgba(28,24,20,0.9);
+    padding: 12px 24px;
+    color: #f0e6d6; font-size: 0.88rem; line-height: 1.7;
+    opacity: 0; transition: opacity 0.5s;
+    z-index: 20;
+}
+.narration.show { opacity: 1; }
+
+/* 控制栏 */
+.controls {
+    background: var(--bg);
+    padding: 10px 20px;
+    display: flex; align-items: center; gap: 14px;
+    border-top: 2px solid #2a2015;
+    border-radius: 0 0 8px 8px;
+}
+.scene-tag {
+    background: #2a2015; color: var(--gold);
+    padding: 4px 12px; border-radius: 12px;
+    font-size: 0.75rem; font-weight: bold;
+}
+.director-line {
+    flex: 1; color: #c0b0a0; font-size: 0.8rem;
+}
+#btn-replay {
+    background: var(--gold); color: #1a1a1a; border: none;
+    padding: 6px 16px; border-radius: 14px; cursor: pointer;
+    font-weight: bold; font-size: 0.8rem;
+    transition: transform 0.2s;
+}
+#btn-replay:hover { transform: scale(1.05); }

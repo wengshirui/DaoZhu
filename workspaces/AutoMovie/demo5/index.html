@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>背影 · 火柴人剧场</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="theater">
+        <div class="title-bar">
+            <span class="title-text">背 影</span>
+            <span class="title-author">朱自清</span>
+        </div>
+        <div class="stage" id="stage">
+            <canvas id="c" width="880" height="440"></canvas>
+            <div class="emotion" id="emotion"></div>
+            <div class="narration" id="narration"></div>
+        </div>
+        <div class="controls">
+            <div class="scene-tag" id="scene-tag">第1幕</div>
+            <div class="director-line" id="director-line">🎬 准备...</div>
+            <button id="btn-replay">↻ 重播</button>
+        </div>
+    </div>
+    <script src="js/play.js"></script>
+</body>
+</html>
