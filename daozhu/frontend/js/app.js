@@ -83,7 +83,7 @@ const App = {
             <select id="settings-provider" onchange="App._onProviderChange()"
               style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
               <option value="deepseek">DeepSeek（推荐）</option>
-              <option value="zhipu">智谱 AI (GLM-4)</option>
+              <option value="zhipu">智谱 AI（免费额度）</option>
               <option value="ollama">Ollama（本地离线）</option>
               <option value="openai">OpenAI</option>
             </select>

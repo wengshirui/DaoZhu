@@ -43,7 +43,7 @@ PROVIDERS = {
         "needs_key": True,
     },
     "zhipu": {
-        "name": "智谱 AI (GLM)",
+        "name": "智谱 AI",
         "base_url": "https://open.bigmodel.cn/api/paas/v4",
         "default_model": "glm-4-flash",
         "key_name": "ZHIPU_API_KEY",
