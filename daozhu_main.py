@@ -9,18 +9,18 @@ import webbrowser
 import threading
 from pathlib import Path
 
-# PyInstaller --noconsole 模式下 stdout/stderr 为 None，需要修补
-# 否则 uvicorn logging 初始化时 stream.isatty() 会崩溃
-if sys.stdout is None:
-    sys.stdout = open(os.devnull, 'w')
-if sys.stderr is None:
-    sys.stderr = open(os.devnull, 'w')
+# PyInstaller 打包环境检测
+IS_FROZEN = getattr(sys, 'frozen', False)
+
+# PyInstaller --noconsole 模式下 stdout/stderr 可能为 None 或 GBK 编码
+# 统一处理：打包模式下重定向到 devnull，避免 isatty() 崩溃和编码错误
+if IS_FROZEN:
+    sys.stdout = open(os.devnull, 'w', encoding='utf-8')
+    sys.stderr = open(os.devnull, 'w', encoding='utf-8')
 
 # 确保能找到模块
-if getattr(sys, 'frozen', False):
-    # PyInstaller 打包后的路径
+if IS_FROZEN:
     BASE_DIR = Path(sys._MEIPASS)
-    # 设置工作目录为 exe 所在目录（用户数据存这里）
     os.chdir(Path(sys.executable).parent)
 else:
     BASE_DIR = Path(__file__).parent
@@ -61,11 +61,12 @@ def main():
 
     threading.Thread(target=open_browser, daemon=True).start()
 
-    print(f"\n  🏝️ 岛主 DaoZhu 已启动")
-    print(f"  📍 http://{host}:{port}")
-    print(f"  按 Ctrl+C 退出\n")
+    if not IS_FROZEN:
+        print(f"\n  🏝️ 岛主 DaoZhu 已启动")
+        print(f"  📍 http://{host}:{port}")
+        print(f"  按 Ctrl+C 退出\n")
 
-    uvicorn.run(app, host=host, port=port, log_level="info")
+    uvicorn.run(app, host=host, port=port, log_level="warning" if IS_FROZEN else "info")
 
 
 if __name__ == "__main__":
