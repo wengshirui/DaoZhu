@@ -130,23 +130,38 @@ def step_gitee_release(version: str, zip_path: Path):
     if resp.status_code in (200, 201):
         release_id = resp.json()["id"]
         print(f"✅ Release 创建成功 (id={release_id})")
-    elif resp.status_code == 422:
-        # 已存在
+    elif resp.status_code in (400, 422):
+        # 已存在，删除后重建
+        print("⚠️ Release 已存在，删除后重建...")
         r2 = httpx.get(
             f"https://gitee.com/api/v5/repos/{OWNER_GITEE}/{REPO_GITEE}/releases/tags/{version}",
             params={"access_token": token}, timeout=15,
         )
-        release_id = r2.json()["id"]
-        print(f"⚠️ Release 已存在 (id={release_id})，将替换附件")
-        # 删除旧附件
-        assets = r2.json().get("assets", [])
-        for a in assets:
-            aid = a.get("id", "")
-            if aid:
-                httpx.delete(
-                    f"https://gitee.com/api/v5/repos/{OWNER_GITEE}/{REPO_GITEE}/releases/{release_id}/attach_files/{aid}",
-                    params={"access_token": token}, timeout=15,
-                )
+        if r2.status_code == 200:
+            old_id = r2.json()["id"]
+            httpx.delete(
+                f"https://gitee.com/api/v5/repos/{OWNER_GITEE}/{REPO_GITEE}/releases/{old_id}",
+                params={"access_token": token}, timeout=15,
+            )
+        # 重新创建
+        resp2 = httpx.post(
+            f"https://gitee.com/api/v5/repos/{OWNER_GITEE}/{REPO_GITEE}/releases",
+            json={
+                "access_token": token,
+                "tag_name": version,
+                "target_commitish": "main",
+                "name": f"岛主 DaoZhu {version}",
+                "body": body,
+                "prerelease": False,
+            },
+            timeout=30,
+        )
+        if resp2.status_code in (200, 201):
+            release_id = resp2.json()["id"]
+            print(f"✅ 重建成功 (id={release_id})")
+        else:
+            print(f"❌ 重建失败: {resp2.status_code} {resp2.text[:200]}")
+            return
     else:
         print(f"❌ 创建失败: {resp.status_code} {resp.text[:200]}")
         return
