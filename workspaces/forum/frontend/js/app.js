@@ -4,8 +4,10 @@
 // 自动检测 API base path（兼容轻挂载和独立运行）
 const API_BASE = (() => {
   const path = window.location.pathname;
+  // 去掉尾部的 index.html 或其他文件名
+  const dir = path.replace(/\/[^\/]*\.[^\/]*$/, '/');
   // 确保以 / 结尾
-  const base = path.endsWith('/') ? path : path + '/';
+  const base = dir.endsWith('/') ? dir : dir + '/';
   return base + 'api/';
 })();
 
@@ -45,7 +47,7 @@ const App = {
       }
 
       list.innerHTML = data.issues.map(i => `
-        <div class="issue-card" onclick="App.showIssue(${i.number})">
+        <div class="issue-card" onclick="App.showIssue('${i.number}')">
           <div class="issue-card__title">${i.title}</div>
           <div class="issue-card__meta">
             <span>👤 ${i.author}</span>
@@ -85,7 +87,7 @@ const App = {
         ${comments || '<div class="empty">暂无评论</div>'}
         <div class="comment-form">
           <textarea id="comment-input" placeholder="写下你的回复..."></textarea>
-          <button class="btn btn--primary" onclick="App.addComment(${number})">回复</button>
+          <button class="btn btn--primary" onclick="App.addComment('${number}')">回复</button>
         </div>
       `;
     } catch (e) {

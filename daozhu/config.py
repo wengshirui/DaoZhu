@@ -76,11 +76,27 @@ def _load_env_file(env_path: Path) -> dict[str, str]:
     return env_vars
 
 
+_config_cache: dict | None = None
+_config_mtime: float = 0.0
+
+
 def load_config() -> dict:
     """
     加载完整配置：DEFAULT_CONFIG + config.json 用户覆盖
-    返回合并后的配置字典
+    带文件修改时间缓存，避免重复 I/O
     """
+    global _config_cache, _config_mtime
+
+    current_mtime = 0.0
+    if CONFIG_FILE.exists():
+        try:
+            current_mtime = CONFIG_FILE.stat().st_mtime
+        except OSError:
+            pass
+
+    if _config_cache is not None and current_mtime == _config_mtime:
+        return _config_cache
+
     user_config = {}
     if CONFIG_FILE.exists():
         try:
@@ -89,16 +105,22 @@ def load_config() -> dict:
         except (json.JSONDecodeError, OSError):
             user_config = {}
 
-    return _deep_merge(DEFAULT_CONFIG, user_config)
+    _config_cache = _deep_merge(DEFAULT_CONFIG, user_config)
+    _config_mtime = current_mtime
+    return _config_cache
 
 
 def save_config(config: dict) -> None:
     """保存用户配置到 config.json（只保存与默认值不同的部分）"""
+    global _config_cache, _config_mtime
     # 计算差异
     diff = _compute_diff(DEFAULT_CONFIG, config)
     CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(diff, f, ensure_ascii=False, indent=2)
+    # 清除缓存，下次读取时重新加载
+    _config_cache = None
+    _config_mtime = 0.0
 
 
 def _compute_diff(default: dict, current: dict) -> dict:

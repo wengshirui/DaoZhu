@@ -38,7 +38,24 @@ async def fetch_issues(state: str = "open", page: int = 1, per_page: int = 20) -
         return resp.json()
 
 
-async def fetch_issue_comments(number: int) -> list[dict]:
+async def fetch_issue(number) -> Optional[dict]:
+    """获取单个 Issue 详情"""
+    params = {}
+    token = _get_token()
+    if token:
+        params["access_token"] = token
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(
+            f"{BASE_URL}/repos/{OWNER}/{REPO}/issues/{number}",
+            params=params,
+        )
+        if resp.status_code != 200:
+            return None
+        return resp.json()
+
+
+async def fetch_issue_comments(number) -> list[dict]:
     """获取 Issue 的评论"""
     params = {"page": 1, "per_page": 50}
     token = _get_token()
@@ -55,7 +72,7 @@ async def fetch_issue_comments(number: int) -> list[dict]:
         return resp.json()
 
 
-async def create_comment(number: int, body: str) -> Optional[dict]:
+async def create_comment(number, body: str) -> Optional[dict]:
     """发表评论（需要 Token）"""
     token = _get_token()
     if not token:

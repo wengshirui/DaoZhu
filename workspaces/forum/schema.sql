@@ -5,7 +5,7 @@
 -- === 表: issues (Issue 缓存) ===
 CREATE TABLE IF NOT EXISTS issues (
     id INTEGER PRIMARY KEY,
-    number INTEGER NOT NULL,
+    number TEXT NOT NULL,
     title TEXT NOT NULL,
     body TEXT DEFAULT '',
     state TEXT DEFAULT 'open',
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS issues (
 -- === 表: comments (评论缓存) ===
 CREATE TABLE IF NOT EXISTS comments (
     id INTEGER PRIMARY KEY,
-    issue_number INTEGER NOT NULL,
+    issue_number TEXT NOT NULL,
     body TEXT NOT NULL,
     author TEXT DEFAULT '',
     created_at TEXT,

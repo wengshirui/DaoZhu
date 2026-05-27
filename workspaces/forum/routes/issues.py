@@ -44,42 +44,67 @@ async def list_issues(state: str = "open", page: int = 1):
 
 
 @router.get("/{number}")
-async def get_issue(number: int):
+async def get_issue(number: str):
     """获取 Issue 详情 + 评论"""
+    issue_data = None
+    comments = None
+
+    # 从 Gitee 获取 issue 详情 + 评论
     try:
-        comments = await gitee_client.fetch_issue_comments(number)
-        _cache_comments(number, comments)
+        issue_raw = await gitee_client.fetch_issue(number)
+        if issue_raw:
+            _cache_issues([issue_raw])
+            issue_data = {
+                "id": issue_raw.get("id"),
+                "number": issue_raw.get("number"),
+                "title": issue_raw.get("title", ""),
+                "body": issue_raw.get("body", ""),
+                "state": issue_raw.get("state", "open"),
+                "author": issue_raw.get("user", {}).get("login", ""),
+                "comments_count": issue_raw.get("comments", 0),
+                "labels": json.dumps([l.get("name", "") for l in issue_raw.get("labels", [])]),
+                "created_at": issue_raw.get("created_at", ""),
+                "updated_at": issue_raw.get("updated_at", ""),
+            }
     except Exception:
-        comments = None
+        pass
 
-    # 从缓存读取 issue
-    db = get_db()
-    issue = db.execute("SELECT * FROM issues WHERE number = ?", (number,)).fetchone()
-    if not issue:
+    try:
+        raw_comments = await gitee_client.fetch_issue_comments(number)
+        _cache_comments(number, raw_comments)
+        comments = _format_comments(raw_comments)
+    except Exception:
+        pass
+
+    # 如果 Gitee 没拿到，从缓存读取
+    if not issue_data:
+        db = get_db()
+        row = db.execute("SELECT * FROM issues WHERE number = ?", (number,)).fetchone()
         db.close()
-        raise HTTPException(404, "Issue 不存在")
+        if not row:
+            raise HTTPException(404, "Issue 不存在（请先返回列表刷新）")
+        issue_data = dict(row)
 
+    # 评论降级到缓存
     if comments is None:
+        db = get_db()
         cached = db.execute(
             "SELECT * FROM comments WHERE issue_number = ? ORDER BY created_at",
             (number,),
         ).fetchall()
+        db.close()
         comments = [dict(r) for r in cached]
-    else:
-        comments = _format_comments(comments)
 
-    db.close()
-    result = dict(issue)
-    result["comments"] = comments
-    return result
+    issue_data["comments"] = comments
+    return issue_data
 
 
 @router.post("/{number}/comments")
-async def add_comment(number: int, data: CommentCreate):
+async def add_comment(number: str, data: CommentCreate):
     """发表评论"""
     result = await gitee_client.create_comment(number, data.body)
     if result is None:
-        raise HTTPException(403, "请先在主平台设置页面()配置 Gitee Token")
+        raise HTTPException(403, "请先在主平台设置页面(⚙️)配置 Gitee Token")
     return {"success": True, "comment": result}
 
 
