@@ -269,9 +269,9 @@ body {
 /* 特效：门打开光线 */
 .light-beam {
     position: absolute;
-    width: 80px;
-    height: 200px;
-    background: linear-gradient(180deg, rgba(255,240,180,0.3), transparent);
+    width: 8%;
+    height: 40%;
+    background: linear-gradient(180deg, rgba(255,240,180,0.4), transparent);
     clip-path: polygon(30% 0%, 70% 0%, 100% 100%, 0% 100%);
     opacity: 0;
     transition: opacity 1s;

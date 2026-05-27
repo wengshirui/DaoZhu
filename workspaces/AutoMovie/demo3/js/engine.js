@@ -1,146 +1,54 @@
 /**
  * 话剧导演 v3 — SVG 实体引擎
- * 使用 assets/ 目录中的 SVG 素材，通过 DOM 定位实现动画
+ * 通过 inline SVG 注入实现颜色自定义 + 百分比尺寸
  */
-
 (function () {
     'use strict';
 
-    // 素材路径（相对于 demo3/）
     const ASSET_BASE = '../assets/';
 
-    // ===== 舞台实体定义 =====
+    // 实体定义 — x/y/w/h 均为百分比
     const ENTITIES = {
-        // 场景道具
-        window: {
-            type: 'prop',
-            src: 'nature/sky/sunrise.svg',
-            x: 60, y: 40, w: 100, h: 100,
-            label: '窗户'
-        },
-        bed: {
-            type: 'prop',
-            src: 'props/furniture/bed.svg',
-            x: 140, y: 280, w: 120, h: 90,
-            label: '床'
-        },
-        lamp: {
-            type: 'prop',
-            src: 'props/furniture/lamp.svg',
-            x: 90, y: 220, w: 40, h: 60,
-            label: '台灯'
-        },
+        sun: { type:'prop', src:'nature/sky/sun.svg', x:5,y:3,w:6,h:8, color:'#F59E0B', fill:'#FDE68A', label:'太阳' },
+        window: { type:'prop', src:'nature/sky/sunrise.svg', x:8,y:8,w:12,h:18, color:'#92400E', fill:'#FEF3C7', label:'窗户' },
+        clock: { type:'prop', src:'props/items/clock.svg', x:45,y:6,w:5,h:7, color:'#78350F', fill:'#FDE68A', label:'时钟' },
+        bed: { type:'prop', src:'props/furniture/bed.svg', x:15,y:52,w:16,h:18, color:'#78350F', fill:'#D97706', label:'床' },
+        lamp: { type:'prop', src:'props/furniture/lamp.svg', x:10,y:40,w:5,h:12, color:'#92400E', fill:'#FBBF24', label:'台灯' },
+        plant: { type:'prop', src:'nature/trees/plant.svg', x:58,y:48,w:6,h:12, color:'#166534', fill:'#4ADE80', label:'盆栽' },
+        book: { type:'prop', src:'props/items/book.svg', x:35,y:60,w:4,h:5, color:'#1E3A5F', fill:'#60A5FA', label:'书' },
         door: {
-            type: 'prop',
-            src: 'props/doors/door-closed.svg',
-            x: 700, y: 140, w: 80, h: 160,
-            label: '门',
-            states: {
-                closed: 'props/doors/door-closed.svg',
-                open: 'props/doors/door-open.svg'
-            }
+            type:'prop', src:'props/doors/door-closed.svg', x:76,y:25,w:10,h:32,
+            color:'#78350F', fill:'#A16207', label:'门',
+            states: { closed:{src:'props/doors/door-closed.svg',fill:'#A16207'}, open:{src:'props/doors/door-open.svg',fill:'#D97706'} }
         },
-        clock: {
-            type: 'prop',
-            src: 'props/items/clock.svg',
-            x: 420, y: 50, w: 50, h: 50,
-            label: '时钟'
-        },
-        book: {
-            type: 'prop',
-            src: 'props/items/book.svg',
-            x: 320, y: 310, w: 35, h: 35,
-            label: '书'
-        },
-        // 主角
         xiaoming: {
-            type: 'actor',
-            src: 'characters/people/person-standing.svg',
-            x: 200, y: 240, w: 60, h: 100,
-            label: '小明',
+            type:'actor', src:'characters/people/person-standing.svg', x:22,y:38,w:7,h:20,
+            color:'#1E40AF', fill:'#60A5FA', label:'小明',
             states: {
-                lying: 'characters/people/person-standing.svg',
-                standing: 'characters/people/person-standing.svg',
-                walking: 'characters/people/person-walking.svg',
-                running: 'characters/people/person-running.svg'
+                standing:{src:'characters/people/person-standing.svg',color:'#1E40AF',fill:'#60A5FA'},
+                walking:{src:'characters/people/person-walking.svg',color:'#1E40AF',fill:'#60A5FA'},
+                running:{src:'characters/people/person-running.svg',color:'#1E40AF',fill:'#3B82F6'}
             }
-        },
-        // 装饰
-        sun: {
-            type: 'prop',
-            src: 'nature/sky/sun.svg',
-            x: 30, y: 10, w: 40, h: 40,
-            label: '太阳'
-        },
-        plant: {
-            type: 'prop',
-            src: 'nature/trees/plant.svg',
-            x: 550, y: 270, w: 50, h: 70,
-            label: '盆栽'
         }
     };
 
-    // ===== 剧本 =====
+    // 剧本
     const SCRIPT = [
-        {
-            desc: '清晨，阳光透过窗户洒进卧室。小明还在沉睡。',
-            note: '幕起 — 清晨的卧室',
-            thought: '💤 再睡五分钟...',
-            actions: [
-                { entity: 'xiaoming', set: { x: 180, y: 270, w: 50, h: 70, src: 'characters/people/person-standing.svg', opacity: 0.5 } }
-            ],
-            duration: 2000
-        },
-        {
-            desc: '闹钟响了，小明醒来坐起身。',
-            note: '小明被闹钟吵醒',
-            thought: '😴 今天周几来着...',
-            actions: [
-                { entity: 'xiaoming', set: { opacity: 1, y: 250, h: 90 } }
-            ],
-            duration: 1800
-        },
-        {
-            desc: '小明站起来，伸了个懒腰。',
-            note: '小明起身',
-            thought: '🙆 伸个懒腰~',
-            actions: [
-                { entity: 'xiaoming', set: { y: 220, h: 110, src: 'characters/people/person-standing.svg' } }
-            ],
-            duration: 1500
-        },
-        {
-            desc: '小明走向房门。',
-            note: '小明走向门口',
-            thought: '🚶 去看看外面',
-            actions: [
-                { entity: 'xiaoming', set: { x: 620, src: 'characters/people/person-walking.svg' }, animate: true }
-            ],
-            duration: 2500
-        },
-        {
-            desc: '小明打开了门，清晨的光线涌入。',
-            note: '开门 — 光线涌入',
-            thought: '🔓 咔嗒...',
-            actions: [
-                { entity: 'xiaoming', set: { src: 'characters/people/person-standing.svg' } },
-                { entity: 'door', set: { src: 'props/doors/door-open.svg' } },
-                { fx: 'light-beam', at: { x: 720, y: 160 } }
-            ],
-            duration: 2000
-        },
-        {
-            desc: '新的一天开始了。',
-            note: '🏁 全剧终 — 谢幕',
-            thought: '☀️ 早安，世界！',
-            actions: [
-                { entity: 'xiaoming', set: { x: 750 }, animate: true }
-            ],
-            duration: 2000
-        }
+        { desc:'清晨，阳光透过窗户洒进卧室。', note:'幕起 — 清晨的卧室', thought:'💤 再睡五分钟...',
+          actions:[{entity:'xiaoming',set:{x:20,y:45,w:6,h:15,opacity:0.5}}], duration:2200 },
+        { desc:'闹钟响了，小明醒来坐起身。', note:'小明被闹钟吵醒', thought:'😴 今天周几来着...',
+          actions:[{entity:'xiaoming',set:{opacity:1,y:40,h:18}}], duration:1800 },
+        { desc:'小明站起来，伸了个懒腰。', note:'小明起身', thought:'🙆 伸个懒腰~',
+          actions:[{entity:'xiaoming',set:{y:36,h:22,state:'standing'}}], duration:1500 },
+        { desc:'小明走向房门。', note:'小明走向门口', thought:'🚶 去看看外面',
+          actions:[{entity:'xiaoming',set:{x:66,state:'walking'},animate:true}], duration:2800 },
+        { desc:'小明打开了门，光线涌入。', note:'开门 — 光线涌入', thought:'🔓 咔嗒...',
+          actions:[{entity:'xiaoming',set:{state:'standing'}},{entity:'door',set:{state:'open'}},{fx:'light-beam',at:{x:78,y:28}}], duration:2000 },
+        { desc:'新的一天开始了。', note:'🏁 全剧终 — 谢幕', thought:'☀️ 早安，世界！',
+          actions:[{entity:'xiaoming',set:{x:82},animate:true}], duration:2000 }
     ];
 
-    // ===== DOM 引用 =====
+    // DOM 引用
     const stage = document.getElementById('stage');
     const propsLayer = document.getElementById('props-layer');
     const actorsLayer = document.getElementById('actors-layer');
@@ -151,185 +59,181 @@
     const panelNote = document.getElementById('panel-note');
     const btnReplay = document.getElementById('btn-replay');
 
-    // 实体 DOM 元素映射
     const entityEls = {};
     let currentScene = 0;
     let timer = null;
-    let takeCount = 1;
 
-    // ===== 初始化舞台 =====
-    function initStage() {
-        // 清空
+    // 加载 SVG 并注入颜色
+    async function loadSVG(url, color, fill) {
+        try {
+            const resp = await fetch(url);
+            if (!resp.ok) return null;
+            let svg = await resp.text();
+            // 替换 stroke 颜色
+            if (color) {
+                svg = svg.replace(/stroke="currentColor"/g, `stroke="${color}"`);
+                svg = svg.replace(/stroke="#[0-9a-fA-F]{3,8}"/g, `stroke="${color}"`);
+            }
+            // 注入 fill（将 fill="none" 替换为半透明填充）
+            if (fill) {
+                svg = svg.replace(/fill="none"/g, `fill="${fill}" fill-opacity="0.35"`);
+            }
+            // 加粗线条让图标更醒目
+            svg = svg.replace(/stroke-width="2"/g, 'stroke-width="1.5"');
+            return svg;
+        } catch (e) { return null; }
+    }
+
+    // 将 SVG 内容设置到实体 DOM
+    function setSVGContent(el, svgText) {
+        el.innerHTML = svgText;
+        const svgEl = el.querySelector('svg');
+        if (svgEl) {
+            svgEl.style.width = '100%';
+            svgEl.style.height = '100%';
+            svgEl.removeAttribute('width');
+            svgEl.removeAttribute('height');
+        }
+    }
+
+    // 初始化舞台
+    async function initStage() {
         propsLayer.innerHTML = '';
         actorsLayer.innerHTML = '';
         fxLayer.innerHTML = '';
 
-        // 创建实体 DOM
         for (const [id, ent] of Object.entries(ENTITIES)) {
             const el = document.createElement('div');
-            el.className = `entity entity--${ent.type === 'actor' ? 'actor' : 'prop'} fade-in`;
-            el.style.left = ent.x + 'px';
-            el.style.top = ent.y + 'px';
-            el.style.width = ent.w + 'px';
-            el.style.height = ent.h + 'px';
+            el.className = `entity entity--${ent.type==='actor'?'actor':'prop'} fade-in`;
+            el.style.left = ent.x + '%';
+            el.style.top = ent.y + '%';
+            el.style.width = ent.w + '%';
+            el.style.height = ent.h + '%';
 
-            const img = document.createElement('img');
-            img.src = ASSET_BASE + ent.src;
-            img.alt = ent.label;
-            img.draggable = false;
-            el.appendChild(img);
-
-            if (ent.type === 'actor') {
-                actorsLayer.appendChild(el);
+            const svgContent = await loadSVG(ASSET_BASE + ent.src, ent.color, ent.fill);
+            if (svgContent) {
+                setSVGContent(el, svgContent);
             } else {
-                propsLayer.appendChild(el);
+                el.innerHTML = `<img src="${ASSET_BASE+ent.src}" alt="${ent.label}" style="width:100%;height:100%">`;
             }
 
-            entityEls[id] = { el, img, config: { ...ent } };
+            (ent.type === 'actor' ? actorsLayer : propsLayer).appendChild(el);
+            entityEls[id] = { el, config: {...ent} };
         }
     }
 
-    // ===== 更新实体 =====
-    function updateEntity(id, props, animate) {
+    // 更新实体属性
+    async function updateEntity(id, props, animate) {
         const entry = entityEls[id];
         if (!entry) return;
+        const { el, config } = entry;
 
-        const { el, img } = entry;
+        el.style.transition = animate
+            ? 'left 2.5s ease-in-out, top 0.4s, width 0.3s, height 0.3s, opacity 0.5s'
+            : 'left 0.4s ease, top 0.4s, width 0.3s, height 0.3s, opacity 0.5s';
 
-        if (props.x !== undefined) {
-            if (animate) {
-                el.style.transition = 'left 2s ease-in-out, top 0.3s ease';
-            } else {
-                el.style.transition = 'left 0.3s ease, top 0.3s ease';
-            }
-            el.style.left = props.x + 'px';
-        }
-        if (props.y !== undefined) el.style.top = props.y + 'px';
-        if (props.w !== undefined) el.style.width = props.w + 'px';
-        if (props.h !== undefined) el.style.height = props.h + 'px';
+        if (props.x !== undefined) el.style.left = props.x + '%';
+        if (props.y !== undefined) el.style.top = props.y + '%';
+        if (props.w !== undefined) el.style.width = props.w + '%';
+        if (props.h !== undefined) el.style.height = props.h + '%';
         if (props.opacity !== undefined) el.style.opacity = props.opacity;
-        if (props.src !== undefined) img.src = ASSET_BASE + props.src;
 
-        // 走路动画 class
-        if (props.src && props.src.includes('walking')) {
-            el.classList.add('entity--walking');
-        } else {
-            el.classList.remove('entity--walking');
+        // 状态切换
+        if (props.state && config.states && config.states[props.state]) {
+            const st = config.states[props.state];
+            const c = st.color || config.color;
+            const f = st.fill || config.fill;
+            const svg = await loadSVG(ASSET_BASE + st.src, c, f);
+            if (svg) setSVGContent(el, svg);
+            el.classList.toggle('entity--walking', props.state === 'walking');
         }
     }
 
-    // ===== 显示气泡 =====
+    // 气泡
     function showBubble(text, entityId) {
-        if (!text) {
-            bubble.classList.remove('bubble--visible');
-            return;
-        }
+        if (!text) { bubble.classList.remove('bubble--visible'); return; }
         const entry = entityEls[entityId || 'xiaoming'];
         if (entry) {
-            const x = parseInt(entry.el.style.left) - 20;
-            const y = parseInt(entry.el.style.top) - 50;
-            bubble.style.left = Math.max(10, x) + 'px';
-            bubble.style.top = Math.max(10, y) + 'px';
+            bubble.style.left = Math.max(2, parseFloat(entry.el.style.left) - 3) + '%';
+            bubble.style.top = Math.max(2, parseFloat(entry.el.style.top) - 12) + '%';
         }
         bubble.textContent = text;
         bubble.classList.add('bubble--visible');
     }
 
-    // ===== 执行一幕 =====
-    function playScene(index) {
+    // 光线特效
+    function addLightBeam(pos) {
+        const beam = document.createElement('div');
+        beam.className = 'light-beam';
+        beam.style.left = pos.x + '%';
+        beam.style.top = pos.y + '%';
+        fxLayer.appendChild(beam);
+        requestAnimationFrame(() => beam.classList.add('light-beam--visible'));
+    }
+
+    // 执行一幕
+    async function playScene(index) {
         if (index >= SCRIPT.length) {
             panelNote.textContent = '🏁 全剧终 — 感谢观看！';
             showBubble('', null);
             return;
         }
-
         currentScene = index;
         const scene = SCRIPT[index];
-
-        // 更新 UI
-        panelScene.textContent = `${index + 1}/${SCRIPT.length}`;
+        panelScene.textContent = `${index+1}/${SCRIPT.length}`;
         panelNote.textContent = `🎬 ${scene.note}`;
-        sceneInfo.textContent = `第${index + 1}幕 · ${scene.desc}`;
+        sceneInfo.textContent = `第${index+1}幕 · ${scene.desc}`;
 
-        // 执行动作
         for (const action of scene.actions) {
-            if (action.entity) {
-                updateEntity(action.entity, action.set, action.animate);
-            }
-            if (action.fx === 'light-beam') {
-                addLightBeam(action.at);
-            }
+            if (action.entity) await updateEntity(action.entity, action.set, action.animate);
+            if (action.fx === 'light-beam') addLightBeam(action.at);
         }
-
-        // 显示气泡（延迟一点让动画先开始）
-        setTimeout(() => showBubble(scene.thought, 'xiaoming'), 300);
-
-        // 气泡跟随角色位置
-        if (scene.actions.some(a => a.entity === 'xiaoming' && a.set.x !== undefined)) {
+        setTimeout(() => showBubble(scene.thought, 'xiaoming'), 400);
+        // 气泡跟随
+        if (scene.actions.some(a => a.entity==='xiaoming' && a.set.x!==undefined)) {
             setTimeout(() => {
-                const entry = entityEls['xiaoming'];
-                if (entry) {
-                    bubble.style.left = (parseInt(entry.el.style.left) - 20) + 'px';
-                    bubble.style.top = (parseInt(entry.el.style.top) - 50) + 'px';
+                const e = entityEls['xiaoming'];
+                if (e) {
+                    bubble.style.left = (parseFloat(e.el.style.left)-3)+'%';
+                    bubble.style.top = (parseFloat(e.el.style.top)-12)+'%';
                 }
-            }, 1200);
+            }, 1500);
         }
-
-        // 下一幕
         if (timer) clearTimeout(timer);
-        timer = setTimeout(() => playScene(index + 1), scene.duration);
+        timer = setTimeout(() => playScene(index+1), scene.duration);
     }
 
-    // ===== 光线特效 =====
-    function addLightBeam(pos) {
-        const beam = document.createElement('div');
-        beam.className = 'light-beam';
-        beam.style.left = pos.x + 'px';
-        beam.style.top = pos.y + 'px';
-        fxLayer.appendChild(beam);
-        requestAnimationFrame(() => beam.classList.add('light-beam--visible'));
-    }
-
-    // ===== 重置 =====
-    function reset() {
+    // 重置
+    async function reset() {
         if (timer) clearTimeout(timer);
-        takeCount++;
         fxLayer.innerHTML = '';
         bubble.classList.remove('bubble--visible');
-
-        // 重置实体位置
         for (const [id, ent] of Object.entries(ENTITIES)) {
             const entry = entityEls[id];
             if (!entry) continue;
             entry.el.style.transition = 'none';
-            entry.el.style.left = ent.x + 'px';
-            entry.el.style.top = ent.y + 'px';
-            entry.el.style.width = ent.w + 'px';
-            entry.el.style.height = ent.h + 'px';
+            entry.el.style.left = ent.x + '%';
+            entry.el.style.top = ent.y + '%';
+            entry.el.style.width = ent.w + '%';
+            entry.el.style.height = ent.h + '%';
             entry.el.style.opacity = 1;
-            entry.img.src = ASSET_BASE + ent.src;
             entry.el.classList.remove('entity--walking');
+            const svg = await loadSVG(ASSET_BASE + ent.src, ent.color, ent.fill);
+            if (svg) setSVGContent(entry.el, svg);
         }
-
-        // 强制 reflow 后恢复 transition
         void stage.offsetHeight;
-        for (const entry of Object.values(entityEls)) {
-            entry.el.style.transition = '';
-        }
-
-        setTimeout(() => playScene(0), 300);
+        for (const entry of Object.values(entityEls)) entry.el.style.transition = '';
+        setTimeout(() => playScene(0), 400);
     }
 
-    // ===== 启动 =====
-    function init() {
-        initStage();
+    // 启动
+    async function init() {
+        await initStage();
         btnReplay.addEventListener('click', reset);
         setTimeout(() => playScene(0), 800);
     }
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
+    } else { init(); }
 })();
