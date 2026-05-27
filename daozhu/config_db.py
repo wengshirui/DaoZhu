@@ -78,6 +78,16 @@ def set_secret(key: str, value: str):
     db.close()
 
 
+def delete_secret(key: str) -> bool:
+    """删除密钥配置，返回是否实际删除了记录"""
+    db = _get_db()
+    cursor = db.execute("DELETE FROM config WHERE key = ? AND is_secret = 1", (key,))
+    db.commit()
+    deleted = cursor.rowcount > 0
+    db.close()
+    return deleted
+
+
 def get_setting(key: str, default: str = "") -> str:
     """获取普通配置"""
     db = _get_db()

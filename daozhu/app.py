@@ -202,6 +202,16 @@ async def save_secret_generic(body: dict):
     return {"success": True}
 
 
+@app.delete("/api/config/secrets/{name}")
+async def delete_secret_endpoint(name: str):
+    """删除密钥配置"""
+    from .config_db import delete_secret
+    deleted = delete_secret(name)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="密钥不存在")
+    return {"success": True}
+
+
 @app.get("/api/providers")
 async def get_providers():
     """获取可用的 AI 模型提供商列表"""
@@ -522,6 +532,8 @@ async def get_secrets_status():
     from .config_db import get_secret
     return {
         "deepseek": bool(get_secret("DEEPSEEK_API_KEY")),
+        "zhipu": bool(get_secret("ZHIPU_API_KEY")),
+        "openai": bool(get_secret("OPENAI_API_KEY")),
         "gitee": bool(get_secret("GITEE_TOKEN")),
     }
 

@@ -83,7 +83,7 @@ const App = {
             <select id="settings-provider" onchange="App._onProviderChange()"
               style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
               <option value="deepseek">DeepSeek（推荐）</option>
-              <option value="zhipu">智谱 AI（免费额度）</option>
+              <option value="zhipu">智谱 GLM-5.1</option>
               <option value="ollama">Ollama（本地离线）</option>
               <option value="openai">OpenAI</option>
             </select>
@@ -91,14 +91,22 @@ const App = {
 
           <div id="key-section-deepseek">
             <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🔑 DeepSeek API Key <span id="status-apikey" style="font-size:0.75rem"></span></label>
-            <input type="password" id="settings-apikey" placeholder="sk-xxxxxxxx"
-              style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
+            <div style="display:flex;gap:8px">
+              <input type="password" id="settings-apikey" placeholder="sk-xxxxxxxx"
+                style="flex:1;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
+              <button onclick="App._clearKey('DEEPSEEK_API_KEY','status-apikey','settings-apikey')"
+                style="padding:8px 12px;background:#e74c3c;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:0.8rem;white-space:nowrap">清除</button>
+            </div>
           </div>
 
           <div id="key-section-zhipu" style="display:none">
             <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🔑 智谱 API Key <span id="status-zhipu" style="font-size:0.75rem"></span></label>
-            <input type="password" id="settings-zhipu-key" placeholder="xxxxxxxx.xxxxxxxx"
-              style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
+            <div style="display:flex;gap:8px">
+              <input type="password" id="settings-zhipu-key" placeholder="xxxxxxxx.xxxxxxxx"
+                style="flex:1;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
+              <button onclick="App._clearKey('ZHIPU_API_KEY','status-zhipu','settings-zhipu-key')"
+                style="padding:8px 12px;background:#e74c3c;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:0.8rem;white-space:nowrap">清除</button>
+            </div>
             <small style="color:var(--text-muted);font-size:0.7rem">从 open.bigmodel.cn 获取</small>
           </div>
 
@@ -110,9 +118,13 @@ const App = {
           </div>
 
           <div id="key-section-openai" style="display:none">
-            <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🔑 OpenAI API Key</label>
-            <input type="password" id="settings-openai-key" placeholder="sk-xxxxxxxx"
-              style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
+            <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🔑 OpenAI API Key <span id="status-openai" style="font-size:0.75rem"></span></label>
+            <div style="display:flex;gap:8px">
+              <input type="password" id="settings-openai-key" placeholder="sk-xxxxxxxx"
+                style="flex:1;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
+              <button onclick="App._clearKey('OPENAI_API_KEY','status-openai','settings-openai-key')"
+                style="padding:8px 12px;background:#e74c3c;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:0.8rem;white-space:nowrap">清除</button>
+            </div>
           </div>
 
           <div>
@@ -163,10 +175,14 @@ const App = {
 
     // 显示配置状态
     fetch('/api/config/secrets-status').then(r => r.json()).then(data => {
-      const apiEl = document.getElementById('status-apikey');
-      const giteeEl = document.getElementById('status-gitee');
-      if (apiEl) apiEl.innerHTML = data.deepseek ? '<span style="color:var(--success)">✓ 已配置</span>' : '<span style="color:var(--error)">✗ 未配置</span>';
-      if (giteeEl) giteeEl.innerHTML = data.gitee ? '<span style="color:var(--success)">✓ 已配置</span>' : '<span style="color:var(--error)">✗ 未配置</span>';
+      const show = (id, ok) => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = ok ? '<span style="color:var(--success)">✓ 已配置</span>' : '<span style="color:var(--error)">✗ 未配置</span>';
+      };
+      show('status-apikey', data.deepseek);
+      show('status-zhipu', data.zhipu);
+      show('status-openai', data.openai);
+      show('status-gitee', data.gitee);
     }).catch(() => {});
   },
 
@@ -267,6 +283,21 @@ const App = {
     } catch (e) {
       status.textContent = '❌ 保存失败: ' + e.message;
       status.style.color = 'var(--error)';
+    }
+  },
+
+  async _clearKey(keyName, statusId, inputId) {
+    if (!confirm('确定要清除这个密钥吗？')) return;
+    try {
+      const res = await fetch(`/api/config/secrets/${keyName}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('删除失败');
+      const el = document.getElementById(statusId);
+      if (el) el.innerHTML = '<span style="color:var(--error)">✗ 未配置</span>';
+      const input = document.getElementById(inputId);
+      if (input) input.value = '';
+      App.showToast('密钥已清除');
+    } catch (e) {
+      App.showToast('清除失败: ' + e.message);
     }
   },
 

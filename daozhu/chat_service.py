@@ -8,7 +8,7 @@ from typing import AsyncGenerator
 
 import httpx
 
-from .config import get_config_value, get_api_key, get_provider_base_url, get_provider_model
+from .config import get_config_value, get_api_key, get_provider_base_url, get_provider_model, get_provider_protocol
 
 
 SYSTEM_PROMPT = """你是岛主平台的管家。你帮助用户管理他们的数字岛屿。
@@ -24,6 +24,19 @@ SYSTEM_PROMPT = """你是岛主平台的管家。你帮助用户管理他们的�
 - 如果用户想建造工作区，先确认需求再动手
 - 自然地运用你对用户的记忆，不要刻意提及"我记得"
 """
+
+
+def _convert_messages_for_anthropic(messages: list[dict]) -> tuple[str, list[dict]]:
+    """将 OpenAI 格式消息转为 Anthropic 格式，返回 (system_text, anthropic_messages)"""
+    system_parts = []
+    converted = []
+    for msg in messages:
+        role = msg.get("role")
+        if role == "system":
+            system_parts.append(msg.get("content", ""))
+        else:
+            converted.append({"role": role, "content": msg.get("content", "")})
+    return "\n\n".join(system_parts), converted
 
 
 async def chat_stream(
@@ -43,6 +56,7 @@ async def chat_stream(
 
     api_key = get_api_key(provider)
     base_url = get_provider_base_url(provider)
+    protocol = get_provider_protocol(provider)
 
     if not api_key:
         yield "⚠️ 未配置 AI API Key。请在设置页面(⚙️)配置对应的 API Key。"
@@ -56,25 +70,40 @@ async def chat_stream(
     # 构建消息列表
     full_messages = [{"role": "system", "content": system_content}] + messages
 
-    headers = {
-        "Content-Type": "application/json",
-    }
-    # Ollama 不需要 Authorization
-    if provider != "ollama":
-        headers["Authorization"] = f"Bearer {api_key}"
-
-    payload = {
-        "model": model,
-        "messages": full_messages,
-        "stream": True,
-        "max_tokens": 2048,
-    }
+    # 根据协议构建 headers
+    if protocol == "anthropic":
+        headers = {
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+        }
+        sys_text, anthro_msgs = _convert_messages_for_anthropic(full_messages)
+        payload = {
+            "model": model,
+            "messages": anthro_msgs,
+            "max_tokens": 2048,
+            "stream": True,
+        }
+        if sys_text:
+            payload["system"] = sys_text
+        endpoint = f"{base_url}/v1/messages"
+    else:
+        headers = {"Content-Type": "application/json"}
+        if provider != "ollama":
+            headers["Authorization"] = f"Bearer {api_key}"
+        payload = {
+            "model": model,
+            "messages": full_messages,
+            "stream": True,
+            "max_tokens": 2048,
+        }
+        endpoint = f"{base_url}/chat/completions"
 
     try:
         async with httpx.AsyncClient(timeout=60) as client:
             async with client.stream(
                 "POST",
-                f"{base_url}/chat/completions",
+                endpoint,
                 headers=headers,
                 json=payload,
             ) as response:
@@ -83,20 +112,41 @@ async def chat_stream(
                     yield f"⚠️ API 请求失败 (HTTP {response.status_code}): {error_body.decode()[:200]}"
                     return
 
-                async for line in response.aiter_lines():
-                    if not line.startswith("data: "):
-                        continue
-                    data = line[6:]
-                    if data == "[DONE]":
-                        break
-                    try:
-                        chunk = json.loads(data)
-                        delta = chunk["choices"][0].get("delta", {})
-                        content = delta.get("content", "")
-                        if content:
-                            yield content
-                    except (json.JSONDecodeError, KeyError, IndexError):
-                        continue
+                if protocol == "anthropic":
+                    current_event = ""
+                    async for line in response.aiter_lines():
+                        if line.startswith("event: "):
+                            current_event = line[7:].strip()
+                        elif line.startswith("data: "):
+                            if current_event == "content_block_delta":
+                                try:
+                                    chunk = json.loads(line[6:])
+                                    delta = chunk.get("delta", {})
+                                    if delta.get("type") == "text_delta":
+                                        text = delta.get("text", "")
+                                        if text:
+                                            yield text
+                                except json.JSONDecodeError:
+                                    pass
+                            elif current_event == "message_stop":
+                                break
+                        elif line == "":
+                            current_event = ""
+                else:
+                    async for line in response.aiter_lines():
+                        if not line.startswith("data: "):
+                            continue
+                        data = line[6:]
+                        if data == "[DONE]":
+                            break
+                        try:
+                            chunk = json.loads(data)
+                            delta = chunk["choices"][0].get("delta", {})
+                            content = delta.get("content", "")
+                            if content:
+                                yield content
+                        except (json.JSONDecodeError, KeyError, IndexError):
+                            continue
 
     except httpx.ConnectError:
         yield "⚠️ 无法连接到 AI 服务，请检查网络或 base_url 配置。"

@@ -44,10 +44,11 @@ PROVIDERS = {
     },
     "zhipu": {
         "name": "智谱 AI",
-        "base_url": "https://open.bigmodel.cn/api/paas/v4",
-        "default_model": "glm-4-flash",
+        "base_url": "https://open.bigmodel.cn/api/anthropic",
+        "default_model": "glm-5.1",
         "key_name": "ZHIPU_API_KEY",
         "needs_key": True,
+        "protocol": "anthropic",
     },
     "ollama": {
         "name": "Ollama (本地)",
@@ -79,8 +80,9 @@ ENV_VARS = {
 
 
 def _deep_merge(base: dict, override: dict) -> dict:
-    """深度合并两个字典，override 覆盖 base"""
-    result = base.copy()
+    """深度合并两个字典，override 覆盖 base（深拷贝，不污染 base）"""
+    import copy
+    result = copy.deepcopy(base)
     for key, value in override.items():
         if key in result and isinstance(result[key], dict) and isinstance(value, dict):
             result[key] = _deep_merge(result[key], value)
@@ -278,6 +280,16 @@ def get_provider_model(provider: str = None) -> str:
         return provider_info["default_model"]
 
     return "deepseek-chat"
+
+
+def get_provider_protocol(provider: str = None) -> str:
+    """获取 provider 的 API 协议: 'openai' 或 'anthropic'"""
+    if provider is None:
+        provider = get_config_value("ai.provider", "deepseek")
+    provider_info = PROVIDERS.get(provider)
+    if provider_info:
+        return provider_info.get("protocol", "openai")
+    return "openai"
 
 
 def get_workspace_dir() -> Path:

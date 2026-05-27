@@ -14,6 +14,7 @@ from .config import get_config_value, get_api_key
 from .tools.registry import registry
 from .memory_service import build_memory_context
 from .skill_loader import get_skills_summary
+from .config import get_provider_protocol, get_provider_base_url, get_provider_model
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,93 @@ SYSTEM_PROMPT = """你是岛主平台的岛管理员。你帮助用户管理他�
 """
 
 
+# === Anthropic 协议辅助函数 ===
+
+def _build_anthropic_headers(api_key: str) -> dict:
+    return {
+        "x-api-key": api_key,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+    }
+
+
+def _convert_openai_tools_to_anthropic(schemas: list[dict]) -> list[dict]:
+    """OpenAI tools 格式 → Anthropic tools 格式"""
+    result = []
+    for s in schemas:
+        func = s.get("function", {})
+        result.append({
+            "name": func.get("name", ""),
+            "description": func.get("description", ""),
+            "input_schema": func.get("parameters", {"type": "object", "properties": {}}),
+        })
+    return result
+
+
+def _convert_messages_for_anthropic(messages: list[dict]) -> tuple[str, list[dict]]:
+    """将 OpenAI 格式消息转为 Anthropic 格式，返回 (system_text, anthropic_messages)"""
+    system_parts = []
+    converted = []
+    for msg in messages:
+        role = msg.get("role")
+        if role == "system":
+            system_parts.append(msg.get("content", ""))
+        elif role == "tool":
+            converted.append({
+                "role": "user",
+                "content": [{
+                    "type": "tool_result",
+                    "tool_use_id": msg.get("tool_call_id", ""),
+                    "content": msg.get("content", ""),
+                }],
+            })
+        elif role == "assistant" and msg.get("tool_calls"):
+            content_blocks = []
+            text = msg.get("content") or ""
+            if text:
+                content_blocks.append({"type": "text", "text": text})
+            for tc in msg["tool_calls"]:
+                func = tc.get("function", {})
+                args_str = func.get("arguments", "{}")
+                try:
+                    args = json.loads(args_str) if isinstance(args_str, str) else args_str
+                except json.JSONDecodeError:
+                    args = {}
+                content_blocks.append({
+                    "type": "tool_use",
+                    "id": tc.get("id", ""),
+                    "name": func.get("name", ""),
+                    "input": args,
+                })
+            converted.append({"role": "assistant", "content": content_blocks})
+        else:
+            converted.append({"role": role, "content": msg.get("content", "")})
+    return "\n\n".join(system_parts), converted
+
+
+def _parse_anthropic_response(data: dict) -> dict:
+    """将 Anthropic 响应归一化为 OpenAI 格式"""
+    content_blocks = data.get("content", [])
+    text_parts = []
+    tool_calls = []
+    for block in content_blocks:
+        if block.get("type") == "text":
+            text_parts.append(block.get("text", ""))
+        elif block.get("type") == "tool_use":
+            tool_calls.append({
+                "id": block.get("id", ""),
+                "type": "function",
+                "function": {
+                    "name": block.get("name", ""),
+                    "arguments": json.dumps(block.get("input", {}), ensure_ascii=False),
+                },
+            })
+    message = {"role": "assistant", "content": "\n".join(text_parts) if text_parts else ""}
+    if tool_calls:
+        message["tool_calls"] = tool_calls
+    return {"message": message}
+
+
 async def agent_chat_stream(
     messages: list[dict],
     memory_context: str = "",
@@ -101,9 +189,11 @@ async def agent_chat_stream(
         else: return response.content
     """
     provider = get_config_value("ai.provider", "deepseek")
-    model = get_config_value("ai.model", "deepseek-chat")
+    model = get_provider_model(provider)
     api_key = get_api_key(provider)
-    base_url = get_config_value("ai.base_url", "https://api.deepseek.com/v1")
+    base_url = get_provider_base_url(provider)
+    protocol = get_provider_protocol(provider)
+
 
     if not api_key:
         yield "⚠️ 未配置 AI API Key。请在 .env 文件中设置 DEEPSEEK_API_KEY 或 OPENAI_API_KEY。"
@@ -132,10 +222,14 @@ async def agent_chat_stream(
     if disabled:
         tool_schemas = [t for t in tool_schemas if t["function"]["name"] not in disabled]
 
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
+    # 根据协议构建 headers
+    if protocol == "anthropic":
+        headers = _build_anthropic_headers(api_key)
+    else:
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
 
     iteration = 0
     _consecutive_failures = {}  # 追踪连续失败次数
@@ -143,22 +237,34 @@ async def agent_chat_stream(
     while iteration < MAX_ITERATIONS:
         iteration += 1
 
-        # 非流式调用（工具循环阶段）
-        payload = {
-            "model": model,
-            "messages": full_messages,
-            "max_tokens": 2048,
-        }
-
-        # 只在有工具时传 tools 参数
-        if tool_schemas:
-            payload["tools"] = tool_schemas
-            payload["tool_choice"] = "auto"
+        # 根据协议构建 payload
+        if protocol == "anthropic":
+            sys_text, anthro_msgs = _convert_messages_for_anthropic(full_messages)
+            payload = {
+                "model": model,
+                "messages": anthro_msgs,
+                "max_tokens": 2048,
+                "system": sys_text,
+            }
+            if tool_schemas:
+                payload["tools"] = _convert_openai_tools_to_anthropic(tool_schemas)
+                payload["tool_choice"] = {"type": "auto"}
+            endpoint = f"{base_url}/v1/messages"
+        else:
+            payload = {
+                "model": model,
+                "messages": full_messages,
+                "max_tokens": 2048,
+            }
+            if tool_schemas:
+                payload["tools"] = tool_schemas
+                payload["tool_choice"] = "auto"
+            endpoint = f"{base_url}/chat/completions"
 
         try:
             async with httpx.AsyncClient(timeout=60) as client:
                 resp = await client.post(
-                    f"{base_url}/chat/completions",
+                    endpoint,
                     headers=headers,
                     json=payload,
                 )
@@ -168,8 +274,10 @@ async def agent_chat_stream(
                     return
 
                 data = resp.json()
-                choice = data["choices"][0]
-                message = choice["message"]
+                if protocol == "anthropic":
+                    message = _parse_anthropic_response(data)["message"]
+                else:
+                    message = data["choices"][0]["message"]
 
                 # 检查是否有工具调用
                 tool_calls = message.get("tool_calls")
@@ -187,7 +295,6 @@ async def agent_chat_stream(
                         except json.JSONDecodeError:
                             tool_args = {}
 
-                        logger.info(f"🔧 调用工具: {tool_name}({tool_args})")
 
                         # 通知前端（通过 yield 特殊标记）
                         yield f"[TOOL:{tool_name}]"
@@ -231,11 +338,21 @@ async def agent_chat_stream(
                             yield f"[TOOL_OK:{tool_name}]"
 
                         # 添加工具结果到消息
-                        full_messages.append({
-                            "role": "tool",
-                            "tool_call_id": tool_call["id"],
-                            "content": result,
-                        })
+                        if protocol == "anthropic":
+                            full_messages.append({
+                                "role": "user",
+                                "content": [{
+                                    "type": "tool_result",
+                                    "tool_use_id": tool_call["id"],
+                                    "content": result,
+                                }],
+                            })
+                        else:
+                            full_messages.append({
+                                "role": "tool",
+                                "tool_call_id": tool_call["id"],
+                                "content": result,
+                            })
 
                     # 继续循环，让 LLM 处理工具结果
                     continue
@@ -244,11 +361,19 @@ async def agent_chat_stream(
                     # 没有工具调用，流式输出最终响应
                     final_content = message.get("content", "")
                     if final_content:
-                        # 重新用流式请求获取最终响应（更好的用户体验）
-                        async for chunk in _stream_final_response(
-                            base_url, headers, model, full_messages
-                        ):
-                            yield chunk
+                        # 尝试流式重发（更好的用户体验）
+                        try:
+                            streamed = False
+                            async for chunk in _stream_final_response(
+                                base_url, headers, model, full_messages, protocol
+                            ):
+                                streamed = True
+                                yield chunk
+                            if not streamed:
+                                yield final_content
+                        except Exception as e:
+                            yield final_content
+                    return
                     return
 
         except httpx.ConnectError:
@@ -265,38 +390,74 @@ async def agent_chat_stream(
 
 
 async def _stream_final_response(
-    base_url: str, headers: dict, model: str, messages: list[dict]
+    base_url: str, headers: dict, model: str, messages: list[dict], protocol: str = "openai"
 ) -> AsyncGenerator[str, None]:
     """流式输出最终响应（无工具调用时）"""
-    payload = {
-        "model": model,
-        "messages": messages,
-        "stream": True,
-        "max_tokens": 2048,
-    }
+    if protocol == "anthropic":
+        sys_text, anthro_msgs = _convert_messages_for_anthropic(messages)
+        payload = {
+            "model": model,
+            "messages": anthro_msgs,
+            "max_tokens": 2048,
+            "stream": True,
+        }
+        if sys_text:
+            payload["system"] = sys_text
+        endpoint = f"{base_url}/v1/messages"
+    else:
+        payload = {
+            "model": model,
+            "messages": messages,
+            "stream": True,
+            "max_tokens": 2048,
+        }
+        endpoint = f"{base_url}/chat/completions"
 
     try:
         async with httpx.AsyncClient(timeout=60) as client:
             async with client.stream(
-                "POST", f"{base_url}/chat/completions",
+                "POST", endpoint,
                 headers=headers, json=payload,
             ) as response:
                 if response.status_code != 200:
                     yield "⚠️ 流式响应失败"
                     return
 
-                async for line in response.aiter_lines():
-                    if not line.startswith("data: "):
-                        continue
-                    data = line[6:]
-                    if data == "[DONE]":
-                        break
-                    try:
-                        chunk = json.loads(data)
-                        content = chunk["choices"][0].get("delta", {}).get("content", "")
-                        if content:
-                            yield content
-                    except (json.JSONDecodeError, KeyError, IndexError):
-                        continue
+                if protocol == "anthropic":
+                    # Anthropic SSE: event: xxx\ndata: {json}\n\n
+                    current_event = ""
+                    async for line in response.aiter_lines():
+                        if line.startswith("event: "):
+                            current_event = line[7:].strip()
+                        elif line.startswith("data: "):
+                            if current_event == "content_block_delta":
+                                try:
+                                    chunk = json.loads(line[6:])
+                                    delta = chunk.get("delta", {})
+                                    if delta.get("type") == "text_delta":
+                                        text = delta.get("text", "")
+                                        if text:
+                                            yield text
+                                except json.JSONDecodeError:
+                                    pass
+                            elif current_event == "message_stop":
+                                break
+                        elif line == "":
+                            current_event = ""
+                else:
+                    # OpenAI SSE: data: {json}
+                    async for line in response.aiter_lines():
+                        if not line.startswith("data: "):
+                            continue
+                        data = line[6:]
+                        if data == "[DONE]":
+                            break
+                        try:
+                            chunk = json.loads(data)
+                            content = chunk["choices"][0].get("delta", {}).get("content", "")
+                            if content:
+                                yield content
+                        except (json.JSONDecodeError, KeyError, IndexError):
+                            continue
     except Exception as e:
         yield f"⚠️ 流式输出错误: {str(e)}"
