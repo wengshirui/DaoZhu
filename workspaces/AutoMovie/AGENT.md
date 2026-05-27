@@ -1,21 +1,17 @@
-# 🧠 AutoMovie 开发指南
+# 🧠 AutoMovie 开发指南（AI Agent 专用）
 
-> 面向 AI Agent 和开发者的技术文档。生成动画时遵循此文档。
+> 生成动画时严格遵循此文档。违反原则会导致效果变差。
 
 ---
 
-## 核心原则：Less is More
+## ⚠️ 核心铁律
 
-**不要追求写实。用最简单的视觉元素传达故事。**
-
-| 要素 | 正确做法 | 错误做法 |
-|------|---------|---------|
-| 角色 | 火柴人（圆头+线条），颜色区分 | 画五官、衣服褶皱、头发 |
-| 情感 | emoji 弹出在头顶 | 画复杂面部表情 |
-| 动作 | 手臂姿态 + 位移 + 抖动 | 骨骼动画、关节旋转 |
-| 场景 | 渐变背景 + 少量 SVG 装饰 | 画满建筑细节 |
-| 叙事 | 底部字幕条（旁白+对话） | 分散的气泡框 |
-| 节奏 | 时间轴连续播放 | 一幕一幕硬切 |
+1. **不要追求写实** — 火柴人 > 精细人物。越简单越好。
+2. **不要用 SVG 图标当角色** — SVG 素材只用于场景装饰，角色必须用 Canvas 火柴人。
+3. **不要分幕切换** — 用时间轴连续播放，角色自然进出场。
+4. **不要把文字信息分散** — 旁白和对话统一在底部字幕条。
+5. **不要播放太快** — 每段对话后至少留 3 秒阅读时间。
+6. **场景切换时清除旧对话** — 否则场景变了对话没变很违和。
 
 ---
 
@@ -23,16 +19,16 @@
 
 ```
 ┌─────────────────────────────────────────┐
-│  Canvas 层（每帧重绘）                    │
-│  - 背景渐变                              │
-│  - SVG 装饰（drawImage）                 │
-│  - 火柴人角色                            │
+│  Canvas 层（requestAnimationFrame）       │
+│  ├── drawBg()     背景渐变 + 几何装饰     │
+│  ├── drawDecor()  SVG 素材 (data URI)    │
+│  └── drawChar()   火柴人角色              │
 ├─────────────────────────────────────────┤
-│  DOM 层（CSS 动画）                       │
-│  - emoji 弹出（.emoji-pop）              │
-│  - 字幕条（旁白 + 对话）                  │
-│  - 场景标签                              │
-│  - 进度/控制栏                           │
+│  DOM 层                                   │
+│  ├── .emoji-pop   emoji 弹出动画          │
+│  ├── .dialogue-box 对话（底部白色条）      │
+│  ├── .narration   旁白（底部深色条）       │
+│  └── .scene-label 场景标签                │
 └─────────────────────────────────────────┘
 ```
 
@@ -40,23 +36,21 @@
 
 ## 时间轴格式
 
-动画由一个事件数组驱动，每个事件有 `t`（毫秒时间戳）和 `action`：
-
 ```javascript
 const TIMELINE = [
-    { t: 0,    action: 'label', text: '📍 场景名' },
-    { t: 0,    action: 'narr',  text: '旁白文字' },
-    { t: 500,  action: 'enter', id: 'charId', x: 450, y: 280 },
-    { t: 1200, action: 'emoji', id: 'charId', e: '😊' },
-    { t: 2000, action: 'dialogue', who: '角色名', text: '"台词"' },
-    { t: 3000, action: 'arm',   id: 'charId', arm: 'point' },
-    { t: 4000, action: 'move',  id: 'charId', x: 300 },
-    { t: 5000, action: 'exit',  id: 'charId' },
-    { t: 6000, action: 'end' },
+    { t: 0,     action: 'label',    text: '📍 场景名' },
+    { t: 0,     action: 'narr',     text: '旁白文字' },
+    { t: 1500,  action: 'enter',    id: 'charId', x: 450, y: 280 },
+    { t: 3000,  action: 'emoji',    id: 'charId', e: '😊' },
+    { t: 4500,  action: 'dialogue', who: '角色名', text: '"台词"' },
+    { t: 7000,  action: 'arm',      id: 'charId', arm: 'point' },
+    { t: 8000,  action: 'move',     id: 'charId', x: 300 },
+    { t: 10000, action: 'exit',     id: 'charId' },
+    { t: 12000, action: 'end' },
 ];
 ```
 
-### 可用 action 类型
+### action 类型
 
 | action | 参数 | 说明 |
 |--------|------|------|
@@ -65,21 +59,36 @@ const TIMELINE = [
 | `move` | id, x, y? | 角色移动到新位置 |
 | `arm` | id, arm | 改变手臂姿态 |
 | `emoji` | id, e | 角色头顶弹出 emoji |
-| `dialogue` | who, text | 显示对话（底部白色条） |
-| `narr` | text | 显示旁白（底部深色条） |
-| `label` | text | 更新场景标签 |
+| `dialogue` | who, text | 底部白色对话条 |
+| `narr` | text | 底部深色旁白条 |
+| `label` | text | 场景标签（同时清除旧对话） |
 | `end` | — | 动画结束 |
 
 ### 手臂姿态 (arm)
 
-| 值 | 含义 | 适用场景 |
+| 值 | 视觉 | 适用场景 |
 |----|------|---------|
-| `normal` | 自然下垂 | 默认 |
-| `up` | 双手举起 | 欢呼、投降、攀爬 |
-| `hip` | 叉腰 | 生气、得意 |
-| `point` | 指向 | 指责、指示 |
-| `hug` | 拥抱/环抱 | 安慰、亲密 |
-| `wave` | 挥手 | 告别、打招呼 |
+| `normal` | 自然下垂 V 形 | 默认站立 |
+| `up` | 双手举起 | 欢呼、惊讶、投降 |
+| `hip` | 叉腰 | 生气、得意、质问 |
+| `point` | 单手指向 | 指责、指示、介绍 |
+| `hug` | 双手环抱 | 安慰、亲密、拥抱 |
+| `wave` | 单手挥动 | 告别、打招呼 |
+
+---
+
+## 节奏规范（重要！）
+
+| 事件类型 | 之后最少等待 | 原因 |
+|---------|------------|------|
+| narr（旁白） | 3-4 秒 | 观众需要读完文字 |
+| dialogue（对话） | 3-4 秒 | 观众需要读完台词 |
+| enter（入场） | 1.5 秒 | 观众需要认识新角色 |
+| emoji | 1.5 秒 | 让 emoji 动画播完 |
+| label（换场） | 2 秒 | 让观众意识到场景变了 |
+| exit（退场） | 1 秒 | 过渡自然 |
+
+**总时长参考**：每 100 字文本 ≈ 10-15 秒动画时长。
 
 ---
 
@@ -88,113 +97,115 @@ const TIMELINE = [
 ```javascript
 const CHARS = {
     charId: {
-        color: '#ec4899',   // 角色颜色（唯一标识）
+        color: '#ec4899',   // 唯一颜色
         label: '角色名',    // 头顶名牌
         scale: 1,           // 缩放（小孩用 0.7）
     },
 };
 ```
 
-**颜色分配建议**：
-- 主角：粉色/蓝色（暖色调）
-- 正面角色：紫色/金色/红色
-- 反面角色：深红/暗色
-- 配角：青色/灰色
+**颜色分配**：
+- 主角/女主：粉色 `#ec4899`
+- 温柔角色：紫色 `#7c3aed`
+- 年幼角色：金色 `#f59e0b`
+- 高贵角色：红色 `#dc2626`
+- 冷静角色：青色 `#0891b2`
+- 反面角色：深红 `#991b1b`
+- 配角：灰色 `#6b7280`
 
 ---
 
 ## SVG 素材使用
 
-素材在 `assets/` 目录，通过 fetch + 颜色注入加载：
+**用途**：仅用于场景装饰（花/灯/植物/家具），不用于角色。
+
+**加载方式**（必须用 data URI，不能用 Blob URL）：
 
 ```javascript
-async function loadSVG(path, strokeColor, fillColor) {
+async function loadSVG(path, color, fill) {
     const resp = await fetch('../assets/' + path);
     let svg = await resp.text();
-    // 注入颜色
-    svg = svg.replace(/stroke="currentColor"/g, `stroke="${strokeColor}"`);
-    svg = svg.replace(/fill="none"/g, `fill="${fillColor}" fill-opacity="0.3"`);
-    // 转为 Image 对象
+    svg = svg.replace(/stroke="currentColor"/g, `stroke="${color}"`);
+    svg = svg.replace(/fill="none"/g, `fill="${fill}" fill-opacity="0.3"`);
     const img = new Image();
-    img.src = URL.createObjectURL(new Blob([svg], {type:'image/svg+xml'}));
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+    await new Promise(r => { img.onload = r; });
     return img;
 }
 ```
 
-**用途**：场景装饰（花/灯/植物），不用于角色主体。
+**绘制**：`ctx.drawImage(img, x, y, width, height)` + `ctx.globalAlpha` 控制透明度。
 
-**注意**：SVG 素材是 UI 图标级别（Lucide/Tabler），适合做小装饰，不适合做主要实体。
-
----
-
-## 场景背景
-
-用 Canvas 渐变 + 简单几何 + SVG 装饰：
-
-```javascript
-// 宫殿
-background: linear-gradient(暖黄 → 金色 → 深棕地面)
-+ 两根柱子（fillRect）
-+ SVG 花/灯/植物装饰
-
-// 室外
-background: linear-gradient(天蓝 → 白 → 绿色草地)
-+ SVG 树/云装饰
-
-// 车站
-background: linear-gradient(灰蓝 → 土黄月台)
-+ 虚线铁轨 + 矩形火车
-```
+**推荐装饰尺寸**：30-60px，透明度 0.5-0.8。
 
 ---
 
-## 从文本生成时间轴的 Prompt（给 AI 导演用）
+## 从文本生成时间轴的 Prompt
 
 ```
-你是一个动画导演。用户会输入一段文本（小说/散文/剧本），你需要输出一个时间轴 JSON。
+你是一个动画导演。用户输入一段文本，你输出时间轴 JSON。
 
 规则：
-1. 识别所有角色，为每个角色分配一个 id 和颜色
-2. 按文本顺序生成事件，每个事件间隔 500-3000ms
-3. 角色说话时用 dialogue，描述性文字用 narr
-4. 每句对话前给说话角色弹一个合适的 emoji
-5. 场景变化时用 label 标注地点
-6. 角色进出场用 enter/exit
-7. 情绪变化用 arm 姿态 + emoji 配合
-8. 总时长控制在 30-60 秒
+1. 识别所有角色，分配 id 和颜色
+2. 按文本顺序生成事件，注意节奏（参考节奏规范表）
+3. 角色说话 → dialogue，描述文字 → narr
+4. 每句对话前给说话角色弹 emoji
+5. 场景变化 → label（会自动清除旧对话）
+6. 角色进出场 → enter/exit
+7. 情绪变化 → arm 姿态 + emoji
+8. 总时长 = 文本字数 / 8 秒（约每秒 8 字的阅读速度）
 
-可用 emoji 参考：
-- 开心：😊😄🥰😋🎉
-- 生气：😤🤬😠
-- 悲伤：😢😭🥺
-- 惊讶：😱😵‍💫🤯
-- 思考：🤔💭
-- 动作：🚶👋🤝💪
-- 物品：🍊🍲🧳📖🍰
+emoji 参考：
+😊😄🥰😋🎉 开心
+😤🤬😠 生气
+😢😭🥺 悲伤
+😱😵‍💫🤯 惊讶
+🤔💭 思考
+🚶👋🤝💪 动作
+🍊🍲🧳📖🍰🍳 物品
 
-输出格式：
+输出：
 {
-  "chars": { "id": { "color": "#hex", "label": "名字" } },
+  "chars": { "id": { "color": "#hex", "label": "名字", "scale": 1 } },
   "timeline": [ { "t": 0, "action": "...", ... } ]
 }
 ```
 
 ---
 
+## 录制导出
+
+```python
+# record_demo6.py 的核心逻辑：
+# 1. Playwright 打开页面，开启 recordVideo
+# 2. 等待动画播完（总时长 + 3秒缓冲）
+# 3. 关闭页面，得到 .webm
+# 4. ffmpeg 转 mp4：
+#    ffmpeg -i input.webm -c:v libx264 -preset fast output.mp4
+```
+
+---
+
 ## 已知限制
 
-1. 火柴人无法表达复杂肢体动作（如舞蹈、打斗）
-2. 同时在场角色建议不超过 5-6 个（太多会拥挤）
-3. SVG 装饰是静态的，不会动
-4. 没有音效/BGM（纯视觉）
-5. 时间轴是预生成的，不支持交互分支
+1. 火柴人无法表达复杂肢体动作（舞蹈、打斗）
+2. 同时在场角色建议 ≤ 5-6 个
+3. SVG 装饰是静态的
+4. 没有音效/BGM
+5. 时间轴预生成，不支持交互分支
+6. Canvas 文字不支持自动换行（长旁白用 DOM 字幕条）
 
 ---
 
 ## 开发命令
 
 ```bash
-# 启动本地预览（在 AutoMovie/ 目录）
+# 本地预览
+cd workspaces/AutoMovie
 python -m http.server 8899
-# 然后访问 http://localhost:8899/demo6/index.html
+# 访问 http://localhost:8899/demo6/index.html
+
+# 录制视频
+python record_demo6.py
+# 需要：playwright + ffmpeg
 ```
