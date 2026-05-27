@@ -1,6 +1,6 @@
 [project]
 name = "daozhu"
-version = "0.3.0"
+version = "0.3.1"
 description = "岛主 DaoZhu — 你的AI数字小岛！"
 readme = "README.md"
 license = {text = "MIT"}
@@ -10,6 +10,7 @@ dependencies = [
     "uvicorn[standard]>=0.30.0,<1",
     "httpx>=0.27.0,<1",
     "python-dotenv>=1.0.0,<2",
+    "python-multipart>=0.0.9,<1",
     "playwright>=1.40.0,<2",
 ]
 
