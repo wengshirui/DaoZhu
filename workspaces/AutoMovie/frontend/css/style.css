@@ -1,0 +1,76 @@
+/* 火柴人剧场 — 前端样式 */
+:root {
+    --bg: #faf8f5;
+    --card: #fff;
+    --border: #e5e0d8;
+    --primary: #ec4899;
+    --primary-dark: #be185d;
+    --text: #2c1810;
+    --muted: #8a7a6a;
+    --radius: 10px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); font-family:'Segoe UI',system-ui,sans-serif; color:var(--text); min-height:100vh; }
+
+.app { max-width:800px; margin:0 auto; padding:24px 16px; }
+
+.header { text-align:center; margin-bottom:24px; }
+.header h1 { font-size:1.6rem; margin-bottom:4px; }
+.header__desc { color:var(--muted); font-size:0.85rem; }
+
+.main { display:flex; flex-direction:column; gap:24px; }
+
+/* 输入区 */
+.input-section {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius); padding:20px;
+}
+.input-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.input-header h2 { font-size:1rem; }
+.upload-btn {
+    background:var(--bg); border:1px solid var(--border);
+    padding:6px 14px; border-radius:6px; font-size:0.8rem;
+    cursor:pointer; transition:background 0.2s;
+}
+.upload-btn:hover { background:#f0ebe4; }
+
+.title-input {
+    width:100%; padding:10px 14px; border:1px solid var(--border);
+    border-radius:6px; font-size:0.9rem; margin-bottom:10px;
+}
+textarea {
+    width:100%; padding:12px 14px; border:1px solid var(--border);
+    border-radius:6px; font-size:0.85rem; resize:vertical;
+    font-family:inherit; line-height:1.6;
+}
+.input-footer { display:flex; justify-content:space-between; align-items:center; margin-top:12px; }
+.char-count { color:var(--muted); font-size:0.75rem; }
+
+.btn { padding:8px 18px; border:none; border-radius:6px; font-size:0.85rem; cursor:pointer; font-weight:bold; transition:all 0.2s; }
+.btn--primary { background:var(--primary); color:#fff; }
+.btn--primary:hover { background:var(--primary-dark); transform:translateY(-1px); }
+.btn--primary:disabled { background:#ccc; cursor:not-allowed; transform:none; }
+
+.status { margin-top:12px; font-size:0.8rem; color:var(--muted); min-height:20px; }
+.status.error { color:#dc2626; }
+.status.success { color:#16a34a; }
+
+/* 作品列表 */
+.works-section h2 { font-size:1rem; margin-bottom:12px; }
+.works-list { display:flex; flex-direction:column; gap:10px; }
+.work-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius); padding:14px 18px;
+    display:flex; justify-content:space-between; align-items:center;
+}
+.work-card__info { flex:1; }
+.work-card__title { font-weight:bold; font-size:0.9rem; }
+.work-card__meta { color:var(--muted); font-size:0.7rem; margin-top:2px; }
+.work-card__actions { display:flex; gap:8px; }
+.work-card__actions a, .work-card__actions button {
+    padding:5px 12px; border-radius:5px; font-size:0.75rem;
+    text-decoration:none; border:1px solid var(--border); background:var(--bg);
+    cursor:pointer; color:var(--text);
+}
+.work-card__actions a:hover, .work-card__actions button:hover { background:#f0ebe4; }
+.work-card__actions .del { color:#dc2626; border-color:#fca5a5; }

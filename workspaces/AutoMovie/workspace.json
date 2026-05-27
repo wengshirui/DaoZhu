@@ -1,0 +1,14 @@
+{
+  "id": "AutoMovie",
+  "name": "火柴人剧场",
+  "icon": "🎭",
+  "color": "#EC4899",
+  "version": "1.0.0",
+  "description": "文本转动画：上传故事，AI 生成火柴人动画，导出 HTML/MP4",
+  "port": 7805,
+  "entry": "app.py",
+  "python": ".venv",
+  "mode": "lightweight",
+  "tags": ["动画", "AI", "创作"],
+  "sort_order": 4
+}

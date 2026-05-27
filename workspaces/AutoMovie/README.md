@@ -1,159 +1,73 @@
-# 🎭 AutoMovie · 智能实体剧场
+# 🎭 火柴人剧场
 
-## 项目简介
+> 文本转动画：输入故事，AI 生成火柴人动画，导出 HTML/MP4。
 
-AutoMovie 是一个轻量级的 Web 动画演绎系统。用户输入一段文本（小说、散文、剧本），AI 自动解析并生成可播放的动画，支持导出为 mp4 视频。
+## 功能
 
-**核心理念：Less is More — 用最简单的视觉表达最丰富的故事。**
+1. **输入文本** — 粘贴小说/散文/剧本，或上传 .txt 文件
+2. **AI 生成** — 自动识别角色、分配颜色、编排时间轴
+3. **预览播放** — 生成独立 HTML 文件，双击即可播放
+4. **导出视频** — 通过 Playwright 录制为 mp4（需要 ffmpeg）
 
----
+## 设计原则
 
-## 演进历程（demo1 → demo6）
+**Less is More — 火柴人 + emoji + 时间轴**
 
-| 版本 | 方案 | 结论 |
-|------|------|------|
-| demo1 | 单文件 Canvas 手绘 | ✅ MVP 验证可行 |
-| demo2 | Canvas 精细手绘（表情/木纹/光影） | ✅ 视觉好，但不可扩展 |
-| demo3 | 纯 SVG 图标（Lucide/Tabler） | ❌ 图标太简陋，像线框图 |
-| demo4 | Canvas 手绘 + SVG 混合 | ❌ 越细节越失真（恐怖谷） |
-| demo5 | 极简火柴人 + emoji | ✅ 方向对了！简单但有表达力 |
-| **demo6** | **火柴人 + emoji + SVG装饰 + 时间轴** | ✅ **最佳方案** |
+- 角色 = 颜色区分的火柴人（圆头 + 线条）
+- 情感 = emoji 弹出
+- 动作 = 手臂姿态 + 位移 + 走路摆动
+- 场景 = 渐变背景 + SVG 装饰
+- 叙事 = 底部字幕条（旁白 + 对话统一位置）
+- 节奏 = 时间轴连续播放，每段留 3-4 秒阅读时间
 
-### 关键转折点
-
-- **demo3 vs demo2**：SVG 图标（Lucide/Tabler）本质是 UI 图标（24px 线条），不是场景插画。放大后太简陋。
-- **demo4 的教训**：追求写实会陷入"越细节越失真"的恐怖谷——火车悬空、攀爬不自然、物体比例失调。
-- **demo5 的突破**：Alan Becker（Animator vs Animation）证明了火柴人 + 动作节奏 = 最大表达力。
-- **demo6 的定型**：火柴人角色 + emoji 情感 + SVG 装饰氛围 + 时间轴连续播放 = 最终方案。
-
----
-
-## 最终方案（demo6）
-
-### 架构
+## 文件结构
 
 ```
-Canvas 层（每帧重绘）
-├── 背景渐变 + 简单几何（柱子/地砖）
-├── SVG 装饰素材（花/灯/植物/家具，从 assets/ 加载）
-└── 火柴人角色（颜色区分 + 名牌 + 手臂姿态）
-
-DOM 层（CSS 动画）
-├── emoji 弹出（角色头顶，pop 动画）
-├── 底部字幕条（旁白 + 对话，统一位置）
-└── 场景标签 + 进度条
+workspaces/AutoMovie/
+├── workspace.json      # 工作区配置
+├── app.py              # FastAPI 入口（轻挂载）
+├── routes.py           # API 路由
+├── generator.py        # AI 生成 + HTML 渲染
+├── template.html       # 动画 HTML 模板（含内嵌引擎）
+├── frontend/           # 用户界面
+│   ├── index.html
+│   ├── css/style.css
+│   └── js/app.js
+├── assets/             # SVG 素材库（107个）
+├── output/             # 生成的动画文件
+├── examples/           # 示例文本
+├── example/            # demo6 示例代码
+├── AGENT.md            # AI Agent 开发指南
+└── README.md           # 本文件
 ```
 
-### 设计原则
+## 使用方式
 
-| # | 原则 | 做法 |
-|---|------|------|
-| 1 | 角色 = 颜色 | 火柴人用颜色区分身份，不画五官服饰 |
-| 2 | 情感 = emoji | 头顶弹出 emoji，比画表情更直接更通用 |
-| 3 | 动作 = 姿态 | 6种手臂 pose + 走路腿部摆动 + 位移 |
-| 4 | 场景 = 渐变 + SVG | 极简背景 + assets/ 中的 SVG 点缀氛围 |
-| 5 | 叙事 = 底部字幕 | 旁白和对话统一在底部，视线不跳跃 |
-| 6 | 节奏 = 时间轴 | 连续播放，角色自然进出场，不硬切幕 |
-| 7 | 远近 = opacity + scale | 淡出 + 缩小 = 远去，不画透视 |
-| 8 | 场景切换 = 清除旧信息 | 换场时自动清除上一段对话 |
-| 9 | 节奏要慢 | 每段对话后留 3-4 秒阅读时间 |
+### 通过主平台（推荐）
 
-### SVG 素材使用方式
+工作区以轻挂载模式运行在主平台 `/ws/stickman-theater/`。
 
-```javascript
-// 1. fetch SVG 文本
-// 2. 正则注入 stroke/fill 颜色
-// 3. 转为 data:image/svg+xml;base64 URI
-// 4. 创建 Image 对象
-// 5. ctx.drawImage() 绘制到 Canvas
-```
-
-**注意**：不能用 Blob URL（canvas drawImage 有跨域限制），必须用 data URI。
-
----
-
-## 素材库 (assets/)
-
-107+ 个 SVG 素材，来源 Lucide Icons (ISC) + Tabler Icons (MIT)。
-
-| 分类 | 数量 | 用途 |
-|------|------|------|
-| nature/ | 21 | 场景装饰（山/树/花/天空） |
-| animals/ | 13 | 角色/装饰 |
-| buildings/ | 11 | 场景背景 |
-| props/ | 24 | 场景道具（家具/门/物品） |
-| characters/ | 16 | 参考（实际用火柴人替代） |
-| effects/ | 16 | 氛围装饰 |
-| vehicles/ | 6 | 场景元素 |
-
-**扩展**：编辑 `download_assets.py` 添加条目后运行即可。
-
----
-
-## 录制视频
+### 独立运行
 
 ```bash
-# 1. 启动 HTTP 服务器
 cd workspaces/AutoMovie
-python -m http.server 8899
-
-# 2. 另一个终端运行录制脚本
-python record_demo6.py
-
-# 输出：recordings/demo6.mp4（需要 ffmpeg）
+python -m uvicorn app:app --port 7805
 ```
 
----
+### 导出 MP4
 
-## 踩坑记录
-
-### ❌ 不要做的
-
-| 坑 | 原因 | 发现于 |
-|----|------|--------|
-| 追求写实细节 | 越细节越暴露不真实（恐怖谷） | demo4 |
-| 用 UI 图标当场景主体 | Lucide/Tabler 是 24px 图标，放大后太简陋 | demo3 |
-| 一幕一幕硬切 | 割裂感强，不如连续时间轴 | demo6 v1 |
-| 旁白和对话分散放置 | 观众视线跳跃（左下看旁白、右上看对话） | demo6 v1 |
-| 播放速度太快 | 观众来不及看场景、读对话、看人物 | demo6 v1 |
-| 场景切换不清旧对话 | 场景变了对话没变，很违和 | demo6 v1 |
-| 用 Blob URL 加载 SVG 到 Canvas | drawImage 有跨域限制，画不出来 | demo6 |
-| 给每个物体画复杂细节 | 投入产出比极低 | demo4 |
-| 用 CSS transition 做角色移动 | 不够精确，用 Canvas + lerp 更可控 | demo3 |
-| 顶层 await 在 IIFE 中 | 语法错误，用 Promise.then() 替代 | demo6 |
-
-### ✅ 应该做的
-
-| 原则 | 做法 | 来源 |
-|------|------|------|
-| 角色辨识 | 颜色 + 名牌 | demo5 |
-| 情感表达 | emoji 弹出 > 画面部表情 | demo5 |
-| 动作表达 | 手臂姿态 + 位移 + 走路摆动 | demo5/6 |
-| 场景氛围 | 渐变背景 + SVG 装饰（data URI） | demo6 |
-| 叙事节奏 | 时间轴连续播放，每段留 3-4 秒 | demo6 |
-| 文字信息 | 统一底部字幕条 | demo6 |
-| 场景切换 | 清除旧对话 + 角色退场 | demo6 |
-| SVG 加载 | fetch → 注入颜色 → data URI → Image | demo6 |
-| 录制导出 | Playwright 录 webm → ffmpeg 转 mp4 | record_demo6.py |
-
----
-
-## 适合的内容类型
-
-| 类型 | 适合度 | 原因 |
-|------|--------|------|
-| 小说/散文 | ⭐⭐⭐⭐⭐ | 对话多、情感丰富、场景切换 |
-| 课文/故事 | ⭐⭐⭐⭐⭐ | 教育场景，简单直观 |
-| 剧本 | ⭐⭐⭐⭐ | 天然适合多角色对话 |
-| 诗歌 | ⭐⭐⭐ | 意境为主，需要更多视觉氛围 |
-| 技术文档 | ⭐⭐ | 不太适合，缺少叙事性 |
-
----
-
-## 下一步
-
-1. **接入 AI 导演** — 用户输入文本 → LLM 输出时间轴 JSON → 引擎播放
-2. **角色自动分配颜色** — 根据文本中的角色数量自动分配
-3. **场景自动识别** — 根据文本关键词选择背景和 SVG 装饰
-4. **音效/BGM** — 根据情绪自动配乐
-5. **播放控制** — 暂停/快进/进度条拖动
+```bash
+# 需要安装 playwright 和 ffmpeg
+python -c "
+from playwright.sync_api import sync_playwright
+import subprocess
+with sync_playwright() as p:
+    browser = p.chromium.launch()
+    ctx = browser.new_context(record_video_dir='output/', record_video_size={'width':960,'height':580})
+    page = ctx.new_page()
+    page.goto('file:///path/to/output/xxx.html')
+    page.wait_for_timeout(95000)
+    page.close(); ctx.close(); browser.close()
+# 然后 ffmpeg -i output/xxx.webm -c:v libx264 output/xxx.mp4
+"
+```

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>{{TITLE}} — 火柴人剧场</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1c1814;min-height:100vh;display:flex;justify-content:center;align-items:center;font-family:'Noto Serif SC',serif}
+.theater{width:920px;max-width:97vw}
+.title-bar{text-align:center;padding:10px 0 6px;display:flex;justify-content:center;align-items:baseline;gap:14px}
+.title-text{font-size:1.6rem;color:#c49a6c;letter-spacing:6px}
+.stage{position:relative;border-radius:6px;overflow:hidden;border:3px solid #3d2b1f;box-shadow:0 8px 30px rgba(0,0,0,0.5)}
+.stage canvas{display:block;width:100%;height:auto;background:#faf5ed}
+.emoji-layer{position:absolute;inset:0;pointer-events:none;z-index:10}
+.emoji-pop{position:absolute;font-size:1.8rem;animation:ePop 2.5s ease forwards;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.2))}
+@keyframes ePop{0%{opacity:0;transform:scale(.3) translateY(10px)}15%{opacity:1;transform:scale(1.2) translateY(-5px)}30%{transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:translateY(-15px)}}
+.dialogue-box{position:absolute;bottom:56px;left:0;right:0;background:rgba(255,255,255,0.95);padding:10px 24px;opacity:0;transition:opacity .4s;z-index:21;font-size:.85rem;line-height:1.5;border-top:2px solid #c49a6c}
+.dialogue-box.show{opacity:1}
+.dialogue-who{font-weight:bold;color:#b91c1c;margin-right:6px}
+.narration{position:absolute;bottom:0;left:0;right:0;background:rgba(26,15,10,0.9);padding:10px 24px;color:#f0e6d6;font-size:.78rem;line-height:1.6;opacity:0;transition:opacity .5s;z-index:20;max-height:56px;overflow:hidden}
+.narration.show{opacity:1}
+.scene-label{position:absolute;top:10px;left:12px;background:rgba(139,26,26,0.8);color:#fff;padding:3px 10px;border-radius:10px;font-size:.65rem;z-index:15}
+.controls{background:#1c1814;padding:10px 20px;display:flex;align-items:center;gap:14px;border-top:2px solid #2a1510;border-radius:0 0 6px 6px}
+.scene-tag{background:#2a1510;color:#c49a6c;padding:4px 12px;border-radius:12px;font-size:.7rem;font-weight:bold}
+.director-line{flex:1;color:#c0a080;font-size:.75rem}
+#btn-replay{background:#c49a6c;color:#1a1a1a;border:none;padding:6px 16px;border-radius:14px;cursor:pointer;font-weight:bold;font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="theater">
+<div class="title-bar"><span class="title-text">{{TITLE}}</span></div>
+<div class="stage" id="stage">
+<canvas id="c" width="900" height="460"></canvas>
+<div class="emoji-layer" id="emoji-layer"></div>
+<div class="dialogue-box" id="dialogue-box"><span class="dialogue-who" id="dw"></span><span id="dt"></span></div>
+<div class="narration" id="narration"></div>
+<div class="scene-label" id="scene-label"></div>
+</div>
+<div class="controls">
+<div class="scene-tag" id="scene-tag">0%</div>
+<div class="director-line" id="dir">🎬 播放中...</div>
+<button id="btn-replay">↻ 重播</button>
+</div>
+</div>
+<script>
+// 数据注入
+const CHARS = {{CHARS_JSON}};
+const TIMELINE = {{TIMELINE_JSON}};
+</script>
+<script>
+// 火柴人剧场引擎（内嵌版）
+(function(){
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d'),W=900,H=460;
+const emojiLayer=document.getElementById('emoji-layer');
+const dBox=document.getElementById('dialogue-box'),dw=document.getElementById('dw'),dt=document.getElementById('dt');
+const narrEl=document.getElementById('narration'),labelEl=document.getElementById('scene-label');
+const tagEl=document.getElementById('scene-tag'),dirEl=document.getElementById('dir');
+
+const actors={};
+function initActors(){for(const id of Object.keys(CHARS)){actors[id]={x:-60,y:300,opacity:0,arm:'normal',scale:CHARS[id].scale||1,targetX:-60,targetY:300,targetOpacity:0};}}
+
+function drawChar(id){
+  const c=CHARS[id],a=actors[id];if(!a||a.opacity<.03)return;
+  ctx.save();ctx.globalAlpha=a.opacity;
+  const x=a.x,y=a.y,s=a.scale;
+  ctx.fillStyle=c.color;ctx.beginPath();ctx.arc(x,y-36*s,12*s,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle=c.color;ctx.lineWidth=2.5*s;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(x,y-24*s);ctx.lineTo(x,y+16*s);ctx.stroke();
+  ctx.beginPath();
+  const arm=a.arm;
+  if(arm==='up'){ctx.moveTo(x-16*s,y-20*s);ctx.lineTo(x,y-12*s);ctx.lineTo(x+16*s,y-20*s)}
+  else if(arm==='hip'){ctx.moveTo(x-14*s,y);ctx.lineTo(x-6*s,y-10*s);ctx.moveTo(x+6*s,y-10*s);ctx.lineTo(x+14*s,y)}
+  else if(arm==='point'){ctx.moveTo(x-14*s,y+2*s);ctx.lineTo(x,y-10*s);ctx.lineTo(x+22*s,y-14*s)}
+  else if(arm==='hug'){ctx.moveTo(x-18*s,y-4*s);ctx.lineTo(x,y-10*s);ctx.lineTo(x+18*s,y-4*s)}
+  else if(arm==='wave'){ctx.moveTo(x-14*s,y+2*s);ctx.lineTo(x,y-10*s);ctx.lineTo(x+18*s,y-24*s)}
+  else{ctx.moveTo(x-14*s,y+4*s);ctx.lineTo(x,y-10*s);ctx.lineTo(x+14*s,y+4*s)}
+  ctx.stroke();
+  ctx.beginPath();
+  if(Math.abs(a.x-a.targetX)>3){const t=Date.now()*.006;ctx.moveTo(x-10*s+Math.sin(t)*5*s,y+34*s);ctx.lineTo(x,y+16*s);ctx.lineTo(x+10*s-Math.sin(t)*5*s,y+34*s)}
+  else{ctx.moveTo(x-10*s,y+34*s);ctx.lineTo(x,y+16*s);ctx.lineTo(x+10*s,y+34*s)}
+  ctx.stroke();
+  ctx.font=`bold ${9*s}px sans-serif`;ctx.textAlign='center';ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillText(c.label,x,y-52*s);
+  ctx.restore();
+}
+
+function drawBg(){
+  ctx.clearRect(0,0,W,H);
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#fef3c7');g.addColorStop(.55,'#fde68a');g.addColorStop(.56,'#92400e');g.addColorStop(1,'#78350f');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#7c2d12';ctx.fillRect(50,30,14,H-70);ctx.fillRect(W-64,30,14,H-70);
+  ctx.strokeStyle='rgba(0,0,0,.04)';ctx.lineWidth=1;
+  for(let x=0;x<W;x+=55){ctx.beginPath();ctx.moveTo(x,H*.56);ctx.lineTo(x,H);ctx.stroke()}
+}
+
+function popEmoji(e,id){
+  const a=actors[id];if(!a||a.opacity<.1)return;
+  const el=document.createElement('div');el.className='emoji-pop';el.textContent=e;
+  el.style.left=(a.x/W*100)+'%';el.style.top=((a.y-70)/H*100)+'%';
+  emojiLayer.appendChild(el);setTimeout(()=>el.remove(),2600);
+}
+function showD(who,text){if(!text){dBox.classList.remove('show');return}dw.textContent=who?who+'：':'';dt.textContent=text;dBox.classList.add('show')}
+function showN(text){narrEl.textContent=text||'';narrEl.classList.toggle('show',!!text)}
+
+let startTime=0,nextIdx=0,playing=false;
+function processEvents(){
+  if(!playing)return;const elapsed=Date.now()-startTime;
+  while(nextIdx<TIMELINE.length&&TIMELINE[nextIdx].t<=elapsed){
+    const ev=TIMELINE[nextIdx];
+    switch(ev.action){
+      case'enter':actors[ev.id].targetX=ev.x;actors[ev.id].targetY=ev.y;actors[ev.id].targetOpacity=1;break;
+      case'exit':actors[ev.id].targetX=actors[ev.id].x>W/2?W+60:-60;actors[ev.id].targetOpacity=0;break;
+      case'move':actors[ev.id].targetX=ev.x;if(ev.y)actors[ev.id].targetY=ev.y;break;
+      case'arm':actors[ev.id].arm=ev.arm;break;
+      case'emoji':popEmoji(ev.e,ev.id);break;
+      case'dialogue':showD(ev.who,ev.text);break;
+      case'narr':showN(ev.text);break;
+      case'label':labelEl.textContent=ev.text;showD('','');break;
+      case'end':playing=false;dirEl.textContent='🏁 全剧终';break;
+    }
+    nextIdx++;
+  }
+  if(playing){const total=TIMELINE[TIMELINE.length-1].t;tagEl.textContent=Math.min(100,Math.floor(elapsed/total*100))+'%'}
+}
+function updateActors(){for(const id of Object.keys(actors)){const a=actors[id];a.x+=(a.targetX-a.x)*.05;a.y+=(a.targetY-a.y)*.05;a.opacity+=(a.targetOpacity-a.opacity)*.05}}
+function render(){processEvents();updateActors();drawBg();for(const id of Object.keys(actors))drawChar(id);requestAnimationFrame(render)}
+function start(){initActors();emojiLayer.innerHTML='';showD('','');showN('');labelEl.textContent='';dirEl.textContent='🎬 播放中...';startTime=Date.now();nextIdx=0;playing=true}
+document.getElementById('btn-replay').addEventListener('click',start);
+initActors();render();setTimeout(start,500);
+})();
+</script>
+</body>
+</html>

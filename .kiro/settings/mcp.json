@@ -15,7 +15,8 @@
         "browser_take_screenshot",
         "browser_type",
         "browser_tabs",
-        "browser_close"
+        "browser_close",
+        "browser_console_messages"
       ]
     }
   }
