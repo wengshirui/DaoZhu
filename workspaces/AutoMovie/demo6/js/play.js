@@ -230,87 +230,87 @@ function showNarration(text) {
 }
 
 // ===== 时间轴（连续动画，无幕切换）=====
-// 每个事件有 time(ms)，到时间自动触发
+// 节奏原则：每段对话/旁白后留 4-5 秒阅读时间，角色入场后留 2 秒定格
 const TIMELINE = [
-    // --- 入宫 ---
+    // --- 入宫（0-10s）---
     { t:0, action:'label', text:'📍 怡华宫' },
     { t:0, action:'narr', text:'我叫江映柳，今年十四岁。万万没想到，我被赶鸭子上架进了宫，封了美人，住进怡华宫。' },
-    { t:500, action:'enter', id:'liuzhu', x:450, y:280 },
-    { t:1200, action:'enter', id:'shufei', x:250, y:270 },
-    { t:1800, action:'emoji', id:'liuzhu', e:'😵‍💫' },
-    { t:2500, action:'emoji', id:'shufei', e:'🍳' },
-    { t:2800, action:'dialogue', who:'旁白', text:'淑妃爱做饭，我凭衷心赞美获得了她的欢心。' },
+    { t:1500, action:'enter', id:'liuzhu', x:450, y:280 },
+    { t:3000, action:'enter', id:'shufei', x:250, y:270 },
+    { t:4500, action:'emoji', id:'liuzhu', e:'😵‍💫' },
+    { t:6000, action:'emoji', id:'shufei', e:'🍳' },
+    { t:7000, action:'dialogue', who:'旁白', text:'淑妃爱做饭，我凭衷心赞美获得了她的欢心。' },
 
-    // --- 三公主吃饭 ---
-    { t:5500, action:'narr', text:'四月初一。淑妃在中气十足地大骂三公主——' },
-    { t:5500, action:'arm', id:'shufei', arm:'point' },
-    { t:6000, action:'enter', id:'princess', x:420, y:310 },
-    { t:6200, action:'emoji', id:'shufei', e:'😤' },
-    { t:6800, action:'emoji', id:'princess', e:'😭' },
-    { t:7200, action:'dialogue', who:'三公主', text:'"美人姐姐救命！我母妃疯了！"' },
-    { t:8000, action:'emoji', id:'liuzhu', e:'😅' },
-    { t:9000, action:'arm', id:'shufei', arm:'normal' },
+    // --- 三公主吃饭（11-22s）---
+    { t:12000, action:'narr', text:'四月初一。淑妃在中气十足地大骂三公主——' },
+    { t:12000, action:'arm', id:'shufei', arm:'point' },
+    { t:14000, action:'enter', id:'princess', x:420, y:310 },
+    { t:15000, action:'emoji', id:'shufei', e:'😤' },
+    { t:16500, action:'emoji', id:'princess', e:'😭' },
+    { t:17500, action:'dialogue', who:'三公主', text:'"美人姐姐救命！我母妃疯了！"' },
+    { t:20000, action:'emoji', id:'liuzhu', e:'😅' },
+    { t:21500, action:'arm', id:'shufei', arm:'normal' },
 
-    // --- 请安 ---
-    { t:10500, action:'label', text:'📍 未央宫' },
-    { t:10500, action:'narr', text:'皇后娘娘真好看啊，跟天上的仙女儿似的。陈贵妃全场找茬十分不和谐。' },
-    { t:10500, action:'exit', id:'princess' },
-    { t:10800, action:'enter', id:'empress', x:350, y:255 },
-    { t:11200, action:'enter', id:'chenguifei', x:130, y:275 },
-    { t:11500, action:'emoji', id:'empress', e:'👑' },
-    { t:11800, action:'emoji', id:'liuzhu', e:'😍' },
-    { t:12200, action:'arm', id:'chenguifei', arm:'point' },
-    { t:12500, action:'emoji', id:'chenguifei', e:'😤' },
-    { t:13000, action:'dialogue', who:'陈贵妃', text:'"你们进宫一个月了连皇上的面也没见着，丢不丢人！"' },
+    // --- 请安（23-36s）---
+    { t:23000, action:'label', text:'📍 未央宫' },
+    { t:23000, action:'narr', text:'皇后娘娘真好看啊，跟天上的仙女儿似的。陈贵妃全场找茬十分不和谐。' },
+    { t:23000, action:'exit', id:'princess' },
+    { t:24500, action:'enter', id:'empress', x:350, y:255 },
+    { t:26000, action:'enter', id:'chenguifei', x:130, y:275 },
+    { t:27500, action:'emoji', id:'empress', e:'👑' },
+    { t:28500, action:'emoji', id:'liuzhu', e:'😍' },
+    { t:30000, action:'arm', id:'chenguifei', arm:'point' },
+    { t:30500, action:'emoji', id:'chenguifei', e:'😤' },
+    { t:31500, action:'dialogue', who:'陈贵妃', text:'"你们进宫一个月了连皇上的面也没见着，丢不丢人！"' },
 
-    // --- 淑妃吐槽 ---
-    { t:16000, action:'label', text:'📍 怡华宫' },
-    { t:16000, action:'exit', id:'empress' },
-    { t:16000, action:'exit', id:'chenguifei' },
-    { t:16200, action:'narr', text:'回到怡华宫，淑妃瘫在躺椅上骂道——' },
-    { t:16500, action:'arm', id:'shufei', arm:'hip' },
-    { t:16800, action:'emoji', id:'shufei', e:'🤬' },
-    { t:17200, action:'dialogue', who:'淑妃', text:'"陈彩容那个蠢货！喜欢皇上是不会有好下场的！千万不能喜欢皇上！"' },
-    { t:18000, action:'emoji', id:'liuzhu', e:'🥺' },
+    // --- 淑妃吐槽（37-48s）---
+    { t:37000, action:'label', text:'📍 怡华宫' },
+    { t:37000, action:'exit', id:'empress' },
+    { t:37000, action:'exit', id:'chenguifei' },
+    { t:38000, action:'narr', text:'回到怡华宫，淑妃瘫在躺椅上骂道——' },
+    { t:39500, action:'arm', id:'shufei', arm:'hip' },
+    { t:40000, action:'emoji', id:'shufei', e:'🤬' },
+    { t:41500, action:'dialogue', who:'淑妃', text:'"陈彩容那个蠢货！喜欢皇上是不会有好下场的！千万不能喜欢皇上！"' },
+    { t:44000, action:'emoji', id:'liuzhu', e:'🥺' },
 
-    // --- 淑妃教导 ---
-    { t:21000, action:'arm', id:'shufei', arm:'hug' },
-    { t:21000, action:'move', id:'shufei', x:350, y:270 },
-    { t:21200, action:'narr', text:'淑妃把我当半个女儿半个妹妹看，语重心长地叮嘱。' },
-    { t:21800, action:'emoji', id:'shufei', e:'💕' },
-    { t:22500, action:'dialogue', who:'淑妃', text:'"小柳儿千万不要喜欢皇上！这不是有病么？"' },
-    { t:23500, action:'emoji', id:'liuzhu', e:'😊' },
+    // --- 淑妃教导（48-58s）---
+    { t:48000, action:'arm', id:'shufei', arm:'hug' },
+    { t:48000, action:'move', id:'shufei', x:350, y:270 },
+    { t:49000, action:'narr', text:'淑妃把我当半个女儿半个妹妹看，语重心长地叮嘱。' },
+    { t:51000, action:'emoji', id:'shufei', e:'💕' },
+    { t:53000, action:'dialogue', who:'淑妃', text:'"小柳儿千万不要喜欢皇上！这不是有病么？"' },
+    { t:56000, action:'emoji', id:'liuzhu', e:'😊' },
 
-    // --- 温昭仪 + 大餐 ---
-    { t:26000, action:'label', text:'📍 未央宫 · 午饭' },
-    { t:26000, action:'narr', text:'淑妃做了一桌好菜。温昭仪一边吃一边夸，我跟三公主吃得连头都顾不上抬。' },
-    { t:26000, action:'arm', id:'shufei', arm:'up' },
-    { t:26200, action:'enter', id:'wenzhaoyi', x:600, y:270 },
-    { t:26400, action:'enter', id:'empress', x:700, y:260 },
-    { t:26600, action:'enter', id:'princess', x:520, y:310 },
-    { t:27000, action:'emoji', id:'shufei', e:'🍲' },
-    { t:27800, action:'emoji', id:'liuzhu', e:'😋' },
-    { t:28200, action:'emoji', id:'princess', e:'😋' },
-    { t:28800, action:'emoji', id:'wenzhaoyi', e:'👍' },
-    { t:29200, action:'dialogue', who:'温昭仪', text:'"阿柔你别的不行，做菜还是顶好吃的。"' },
-    { t:29500, action:'emoji', id:'empress', e:'😊' },
+    // --- 温昭仪 + 大餐（58-72s）---
+    { t:59000, action:'label', text:'📍 未央宫 · 午饭' },
+    { t:59000, action:'narr', text:'淑妃做了一桌好菜。温昭仪一边吃一边夸，我跟三公主吃得连头都顾不上抬。' },
+    { t:59000, action:'arm', id:'shufei', arm:'up' },
+    { t:60500, action:'enter', id:'wenzhaoyi', x:600, y:270 },
+    { t:61500, action:'enter', id:'empress', x:700, y:260 },
+    { t:62500, action:'enter', id:'princess', x:520, y:310 },
+    { t:64000, action:'emoji', id:'shufei', e:'🍲' },
+    { t:65500, action:'emoji', id:'liuzhu', e:'😋' },
+    { t:66500, action:'emoji', id:'princess', e:'😋' },
+    { t:67500, action:'emoji', id:'wenzhaoyi', e:'👍' },
+    { t:69000, action:'dialogue', who:'温昭仪', text:'"阿柔你别的不行，做菜还是顶好吃的。"' },
+    { t:70500, action:'emoji', id:'empress', e:'😊' },
 
-    // --- 温昭仪被召 ---
-    { t:33000, action:'exit', id:'empress' },
-    { t:33000, action:'exit', id:'princess' },
-    { t:33200, action:'narr', text:'温昭仪的掌事姑姑来报：皇上传了口谕让您晚上侍寝。温昭仪瞬间变脸。' },
-    { t:33500, action:'arm', id:'wenzhaoyi', arm:'up' },
-    { t:33800, action:'emoji', id:'wenzhaoyi', e:'🤯' },
-    { t:34500, action:'dialogue', who:'温昭仪', text:'"皇帝老儿做甚要这么招人讨厌！我的鹤腿还差两条就绣好了！"' },
-    { t:35500, action:'emoji', id:'shufei', e:'😂' },
-    { t:36000, action:'emoji', id:'liuzhu', e:'😶' },
+    // --- 温昭仪被召（73-86s）---
+    { t:73000, action:'exit', id:'empress' },
+    { t:73000, action:'exit', id:'princess' },
+    { t:74000, action:'narr', text:'温昭仪的掌事姑姑来报：皇上传了口谕让您晚上侍寝。温昭仪瞬间变脸。' },
+    { t:76000, action:'arm', id:'wenzhaoyi', arm:'up' },
+    { t:76500, action:'emoji', id:'wenzhaoyi', e:'🤯' },
+    { t:78000, action:'dialogue', who:'温昭仪', text:'"皇帝老儿做甚要这么招人讨厌！我的鹤腿还差两条就绣好了！"' },
+    { t:81000, action:'emoji', id:'shufei', e:'😂' },
+    { t:82500, action:'emoji', id:'liuzhu', e:'😶' },
 
-    // --- 结束 ---
-    { t:39000, action:'narr', text:'我就这样打入高层，成了小圈子中的一员。淑妃说明天给温昭仪做个糖蒸酥酪。真是可喜可贺。' },
-    { t:39000, action:'dialogue', who:'', text:'' },
-    { t:39500, action:'emoji', id:'liuzhu', e:'🎉' },
-    { t:40000, action:'emoji', id:'shufei', e:'🍰' },
-    { t:41000, action:'end' },
+    // --- 结束（86-92s）---
+    { t:86000, action:'narr', text:'我就这样打入高层，成了小圈子中的一员。淑妃说明天给温昭仪做个糖蒸酥酪。真是可喜可贺。' },
+    { t:86000, action:'dialogue', who:'', text:'' },
+    { t:88000, action:'emoji', id:'liuzhu', e:'🎉' },
+    { t:89500, action:'emoji', id:'shufei', e:'🍰' },
+    { t:92000, action:'end' },
 ];
 
 // ===== 时间轴执行器 =====
