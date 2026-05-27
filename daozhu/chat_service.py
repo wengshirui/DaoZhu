@@ -8,7 +8,7 @@ from typing import AsyncGenerator
 
 import httpx
 
-from .config import get_config_value, get_api_key
+from .config import get_config_value, get_api_key, get_provider_base_url, get_provider_model
 
 
 SYSTEM_PROMPT = """你是岛主平台的管家。你帮助用户管理他们的数字岛屿。
@@ -39,13 +39,13 @@ async def chat_stream(
     if provider is None:
         provider = get_config_value("ai.provider", "deepseek")
     if model is None:
-        model = get_config_value("ai.model", "deepseek-chat")
+        model = get_provider_model(provider)
 
     api_key = get_api_key(provider)
-    base_url = get_config_value("ai.base_url", "https://api.deepseek.com/v1")
+    base_url = get_provider_base_url(provider)
 
     if not api_key:
-        yield "⚠️ 未配置 AI API Key。请在 .env 文件中设置 DEEPSEEK_API_KEY 或 OPENAI_API_KEY。"
+        yield "⚠️ 未配置 AI API Key。请在设置页面(⚙️)配置对应的 API Key。"
         return
 
     # 构建 system prompt（含记忆上下文）
@@ -57,9 +57,11 @@ async def chat_stream(
     full_messages = [{"role": "system", "content": system_content}] + messages
 
     headers = {
-        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
+    # Ollama 不需要 Authorization
+    if provider != "ollama":
+        headers["Authorization"] = f"Bearer {api_key}"
 
     payload = {
         "model": model,

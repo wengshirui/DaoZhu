@@ -33,6 +33,38 @@ DEFAULT_CONFIG = {
     },
 }
 
+# 多 Provider 配置表
+PROVIDERS = {
+    "deepseek": {
+        "name": "DeepSeek",
+        "base_url": "https://api.deepseek.com/v1",
+        "default_model": "deepseek-chat",
+        "key_name": "DEEPSEEK_API_KEY",
+        "needs_key": True,
+    },
+    "zhipu": {
+        "name": "智谱 AI (GLM)",
+        "base_url": "https://open.bigmodel.cn/api/paas/v4",
+        "default_model": "glm-4-flash",
+        "key_name": "ZHIPU_API_KEY",
+        "needs_key": True,
+    },
+    "ollama": {
+        "name": "Ollama (本地)",
+        "base_url": "http://localhost:11434/v1",
+        "default_model": "qwen2.5:7b",
+        "key_name": None,
+        "needs_key": False,
+    },
+    "openai": {
+        "name": "OpenAI",
+        "base_url": "https://api.openai.com/v1",
+        "default_model": "gpt-4o-mini",
+        "key_name": "OPENAI_API_KEY",
+        "needs_key": True,
+    },
+}
+
 # === 敏感配置（从 .env 读取）===
 ENV_VARS = {
     "DEEPSEEK_API_KEY": {
@@ -186,12 +218,16 @@ def get_api_key(provider: str = None) -> str | None:
     if provider is None:
         provider = get_config_value("ai.provider", "deepseek")
 
-    key_map = {
-        "deepseek": "DEEPSEEK_API_KEY",
-        "openai": "OPENAI_API_KEY",
-    }
+    # 从 PROVIDERS 表获取 key 名
+    provider_info = PROVIDERS.get(provider)
+    if not provider_info:
+        return None
 
-    env_key = key_map.get(provider)
+    # Ollama 不需要 key
+    if not provider_info["needs_key"]:
+        return "ollama"  # 返回占位值，表示不需要验证
+
+    env_key = provider_info["key_name"]
     if not env_key:
         return None
 
@@ -207,6 +243,41 @@ def get_api_key(provider: str = None) -> str | None:
     # 降级：从 .env 读取
     env_vars = load_env()
     return env_vars.get(env_key)
+
+
+def get_provider_base_url(provider: str = None) -> str:
+    """获取 provider 的 base_url（优先用户配置，否则用默认）"""
+    if provider is None:
+        provider = get_config_value("ai.provider", "deepseek")
+
+    # 用户自定义 base_url 优先
+    custom_url = get_config_value("ai.base_url")
+    if custom_url and custom_url != DEFAULT_CONFIG["ai"]["base_url"]:
+        return custom_url
+
+    # 从 PROVIDERS 表获取默认 URL
+    provider_info = PROVIDERS.get(provider)
+    if provider_info:
+        return provider_info["base_url"]
+
+    return "https://api.deepseek.com/v1"
+
+
+def get_provider_model(provider: str = None) -> str:
+    """获取 provider 的默认模型"""
+    if provider is None:
+        provider = get_config_value("ai.provider", "deepseek")
+
+    # 用户自定义 model 优先
+    custom_model = get_config_value("ai.model")
+    if custom_model and custom_model != DEFAULT_CONFIG["ai"]["model"]:
+        return custom_model
+
+    provider_info = PROVIDERS.get(provider)
+    if provider_info:
+        return provider_info["default_model"]
+
+    return "deepseek-chat"
 
 
 def get_workspace_dir() -> Path:

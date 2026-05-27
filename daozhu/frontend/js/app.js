@@ -79,8 +79,39 @@ const App = {
           </div>
 
           <div>
-            <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🧠 DeepSeek API Key <span id="status-apikey" style="font-size:0.75rem"></span></label>
-            <input type="password" id="settings-apikey" placeholder="sk-xxxxxxxx" value=""
+            <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🧠 AI 模型提供商</label>
+            <select id="settings-provider" onchange="App._onProviderChange()"
+              style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
+              <option value="deepseek">DeepSeek（推荐）</option>
+              <option value="zhipu">智谱 AI (GLM-4)</option>
+              <option value="ollama">Ollama（本地离线）</option>
+              <option value="openai">OpenAI</option>
+            </select>
+          </div>
+
+          <div id="key-section-deepseek">
+            <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🔑 DeepSeek API Key <span id="status-apikey" style="font-size:0.75rem"></span></label>
+            <input type="password" id="settings-apikey" placeholder="sk-xxxxxxxx"
+              style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
+          </div>
+
+          <div id="key-section-zhipu" style="display:none">
+            <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🔑 智谱 API Key <span id="status-zhipu" style="font-size:0.75rem"></span></label>
+            <input type="password" id="settings-zhipu-key" placeholder="xxxxxxxx.xxxxxxxx"
+              style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
+            <small style="color:var(--text-muted);font-size:0.7rem">从 open.bigmodel.cn 获取</small>
+          </div>
+
+          <div id="key-section-ollama" style="display:none">
+            <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🖥️ Ollama 地址</label>
+            <input type="text" id="settings-ollama-url" placeholder="http://localhost:11434"
+              style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
+            <small style="color:var(--text-muted);font-size:0.7rem">无需 API Key，完全离线运行</small>
+          </div>
+
+          <div id="key-section-openai" style="display:none">
+            <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🔑 OpenAI API Key</label>
+            <input type="password" id="settings-openai-key" placeholder="sk-xxxxxxxx"
               style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
           </div>
 
@@ -119,6 +150,11 @@ const App = {
     document.getElementById('settings-theme').value =
       document.documentElement.getAttribute('data-theme') || 'light';
 
+    // 填充当前 provider
+    const currentProvider = config?.ai?.provider || 'deepseek';
+    document.getElementById('settings-provider').value = currentProvider;
+    App._onProviderChange();
+
     // 填充当前岛名
     fetch('/api/config').then(r => r.json()).then(data => {
       const name = data.config?.island_name;
@@ -134,14 +170,34 @@ const App = {
     }).catch(() => {});
   },
 
+  _onProviderChange() {
+    const provider = document.getElementById('settings-provider')?.value || 'deepseek';
+    const sections = ['deepseek', 'zhipu', 'ollama', 'openai'];
+    sections.forEach(s => {
+      const el = document.getElementById(`key-section-${s}`);
+      if (el) el.style.display = s === provider ? 'block' : 'none';
+    });
+  },
+
   async _saveSettings() {
     const status = document.getElementById('settings-status');
+    const provider = document.getElementById('settings-provider').value;
     const apiKey = document.getElementById('settings-apikey').value.trim();
+    const zhipuKey = document.getElementById('settings-zhipu-key')?.value.trim() || '';
+    const ollamaUrl = document.getElementById('settings-ollama-url')?.value.trim() || '';
+    const openaiKey = document.getElementById('settings-openai-key')?.value.trim() || '';
     const giteeToken = document.getElementById('settings-gitee').value.trim();
     const theme = document.getElementById('settings-theme').value;
     const islandName = document.getElementById('settings-island-name').value.trim();
 
     try {
+      // 保存 provider
+      await fetch('/api/config/ai.provider', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: provider }),
+      });
+
       // 保存岛名
       if (islandName) {
         await fetch('/api/config/island_name', {
@@ -151,12 +207,40 @@ const App = {
         });
         document.querySelector('.topbar__title').textContent = islandName;
       }
-      // 保存 API Key
+
+      // 保存 DeepSeek API Key
       if (apiKey) {
         await fetch('/api/onboarding/save-key', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ key: apiKey }),
+        });
+      }
+
+      // 保存智谱 API Key
+      if (zhipuKey) {
+        await fetch('/api/onboarding/save-secret', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: 'ZHIPU_API_KEY', value: zhipuKey }),
+        });
+      }
+
+      // 保存 Ollama URL
+      if (ollamaUrl) {
+        await fetch('/api/config/ai.base_url', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value: ollamaUrl + '/v1' }),
+        });
+      }
+
+      // 保存 OpenAI Key
+      if (openaiKey) {
+        await fetch('/api/onboarding/save-secret', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: 'OPENAI_API_KEY', value: openaiKey }),
         });
       }
 
@@ -172,11 +256,6 @@ const App = {
       // 保存主题
       document.documentElement.setAttribute('data-theme', theme);
       localStorage.setItem('daozhu-theme', theme);
-      await fetch('/api/config/display.theme', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value: theme }),
-      });
 
       // 保存聊天背景
       const chatBg = document.getElementById('settings-chatbg').value;

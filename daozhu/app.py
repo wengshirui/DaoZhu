@@ -189,6 +189,35 @@ async def save_gitee_token(body: dict):
     return {"success": True}
 
 
+@app.post("/api/onboarding/save-secret")
+async def save_secret_generic(body: dict):
+    """通用密钥保存接口"""
+    name = body.get("name", "").strip()
+    value = body.get("value", "").strip()
+    if not name or not value:
+        raise HTTPException(400, "name 和 value 不能为空")
+
+    from .config_db import set_secret
+    set_secret(name, value)
+    return {"success": True}
+
+
+@app.get("/api/providers")
+async def get_providers():
+    """获取可用的 AI 模型提供商列表"""
+    from .config import PROVIDERS, get_config_value
+    current = get_config_value("ai.provider", "deepseek")
+    result = []
+    for pid, info in PROVIDERS.items():
+        result.append({
+            "id": pid,
+            "name": info["name"],
+            "needs_key": info["needs_key"],
+            "active": pid == current,
+        })
+    return {"providers": result, "current": current}
+
+
 # === 静态资源 ===
 app.mount("/css", StaticFiles(directory=FRONTEND_DIR / "css"), name="css")
 app.mount("/js", StaticFiles(directory=FRONTEND_DIR / "js"), name="js")
