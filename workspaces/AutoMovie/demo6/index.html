@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宫廷日记 · 火柴人剧场</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="theater">
+        <div class="title-bar">
+            <span class="title-text">宫 廷 日 记</span>
+            <span class="title-sub">江映柳 · 怡华宫</span>
+        </div>
+        <div class="stage" id="stage">
+            <canvas id="c" width="900" height="460"></canvas>
+            <!-- emoji 表情层 -->
+            <div class="emoji-layer" id="emoji-layer"></div>
+            <!-- 对话框 -->
+            <div class="dialogue-box" id="dialogue-box">
+                <span class="dialogue-who" id="dialogue-who"></span>
+                <span class="dialogue-text" id="dialogue-text"></span>
+            </div>
+            <!-- 旁白 -->
+            <div class="narration" id="narration"></div>
+            <!-- 场景标签 -->
+            <div class="scene-label" id="scene-label"></div>
+        </div>
+        <div class="controls">
+            <div class="scene-tag" id="scene-tag">第1幕</div>
+            <div class="director-line" id="director-line">🎬 准备...</div>
+            <button id="btn-replay">↻ 重播</button>
+        </div>
+    </div>
+    <script src="js/play.js"></script>
+</body>
+</html>

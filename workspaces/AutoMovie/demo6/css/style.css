@@ -1,0 +1,92 @@
+/* demo6 — 宫廷日记 · 火柴人 + emoji + SVG */
+:root {
+    --bg: #1a0f0a;
+    --stage-bg: #faf5ed;
+    --ink: #2c1810;
+    --red: #b91c1c;
+    --gold: #d4a843;
+    --pink: #ec4899;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex; justify-content: center; align-items: center;
+    font-family: 'Noto Serif SC', serif;
+}
+.theater { width: 940px; max-width: 97vw; }
+
+.title-bar {
+    text-align: center; padding: 10px 0 6px;
+    display: flex; justify-content: center; align-items: baseline; gap: 14px;
+}
+.title-text {
+    font-family: 'Ma Shan Zheng', cursive;
+    font-size: 2rem; color: var(--gold);
+    letter-spacing: 8px;
+}
+.title-sub { font-size: 0.75rem; color: #a08060; }
+
+.stage {
+    position: relative; border-radius: 6px; overflow: hidden;
+    border: 3px solid #5c3d2e;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+}
+.stage canvas { display: block; width: 100%; height: auto; background: var(--stage-bg); }
+
+/* emoji 表情 */
+.emoji-layer { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
+.emoji-pop {
+    position: absolute; font-size: 1.8rem;
+    animation: emojiPop 2.5s ease forwards;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2));
+}
+@keyframes emojiPop {
+    0% { opacity:0; transform:scale(0.3) translateY(10px); }
+    15% { opacity:1; transform:scale(1.2) translateY(-5px); }
+    30% { transform:scale(1) translateY(0); }
+    80% { opacity:1; }
+    100% { opacity:0; transform:translateY(-15px); }
+}
+
+/* 对话框 */
+.dialogue-box {
+    position: absolute; top: 12px; right: 16px;
+    background: rgba(255,255,255,0.95); border-radius: 12px;
+    padding: 10px 16px; max-width: 320px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.1);
+    opacity: 0; transition: opacity 0.4s;
+    z-index: 20; font-size: 0.82rem; line-height: 1.6;
+    border-left: 3px solid var(--gold);
+}
+.dialogue-box.show { opacity: 1; }
+.dialogue-who { font-weight: bold; color: var(--red); margin-right: 6px; }
+.dialogue-text { color: var(--ink); }
+
+/* 旁白 */
+.narration {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: rgba(26,15,10,0.9); padding: 12px 24px;
+    color: #f0e6d6; font-size: 0.82rem; line-height: 1.7;
+    opacity: 0; transition: opacity 0.5s; z-index: 20;
+}
+.narration.show { opacity: 1; }
+
+/* 场景标签 */
+.scene-label {
+    position: absolute; top: 10px; left: 12px;
+    background: rgba(139,26,26,0.8); color: #fff;
+    padding: 3px 10px; border-radius: 10px;
+    font-size: 0.65rem; z-index: 15;
+}
+
+/* 控制栏 */
+.controls {
+    background: var(--bg); padding: 10px 20px;
+    display: flex; align-items: center; gap: 14px;
+    border-top: 2px solid #2a1510; border-radius: 0 0 6px 6px;
+}
+.scene-tag { background:#2a1510; color:var(--gold); padding:4px 12px; border-radius:12px; font-size:0.7rem; font-weight:bold; }
+.director-line { flex:1; color:#c0a080; font-size:0.75rem; }
+#btn-replay { background:var(--gold); color:#1a1a1a; border:none; padding:6px 16px; border-radius:14px; cursor:pointer; font-weight:bold; font-size:0.8rem; transition:transform 0.2s; }
+#btn-replay:hover { transform:scale(1.05); }
