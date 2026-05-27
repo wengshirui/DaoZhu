@@ -367,8 +367,12 @@ const Sidebar = {
 
   // === 空状态 ===
   _renderEmpty(icon, title, desc) {
+    // 随机选一个装饰 SVG
+    const decors = ['flower', 'plant', 'star', 'cloud', 'sparkles', 'tree'];
+    const decor = decors[Math.floor(Math.random() * decors.length)];
     return `
       <div class="empty-state">
+        <img class="empty-state__decor" src="/img/icons/${decor}.svg" alt="" aria-hidden="true">
         <div class="empty-state__icon">${icon}</div>
         <div class="empty-state__title">${title}</div>
         <div class="empty-state__desc">${desc}</div>

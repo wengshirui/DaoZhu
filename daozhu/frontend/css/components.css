@@ -215,6 +215,17 @@
   justify-content: center;
   padding: 40px 20px;
   text-align: center;
+  position: relative;
+}
+
+.empty-state__decor {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  opacity: 0.15;
+  animation: gentleFloat 4s ease-in-out infinite;
 }
 
 .empty-state__icon {
