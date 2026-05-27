@@ -29,12 +29,12 @@ async function loadSVG(path, color, fill) {
         if (color) s = s.replace(/stroke="currentColor"/g, `stroke="${color}"`).replace(/stroke="#[0-9a-fA-F]{3,8}"/g, `stroke="${color}"`);
         if (fill) s = s.replace(/fill="none"/g, `fill="${fill}" fill-opacity="0.3"`);
         const img = new Image();
-        const blob = new Blob([s], {type:'image/svg+xml'});
-        img.src = URL.createObjectURL(blob);
-        await new Promise(res => { img.onload = res; img.onerror = res; });
+        // 用 data URI 避免 Blob URL 跨域问题
+        img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(s)));
+        await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
         svgCache[key] = img;
         return img;
-    } catch(e) { return null; }
+    } catch(e) { console.warn('SVG load failed:', path, e); return null; }
 }
 
 // 预加载装饰素材
@@ -42,13 +42,21 @@ const decorImgs = {};
 async function preloadDecor() {
     const items = [
         ['flower', 'nature/trees/flower.svg', '#ec4899', '#fda4af'],
+        ['flower2', 'nature/trees/flower.svg', '#f59e0b', '#fde68a'],
         ['plant', 'nature/trees/plant.svg', '#166534', '#4ade80'],
+        ['plant2', 'nature/trees/plant.svg', '#7c3aed', '#c4b5fd'],
         ['lamp', 'props/furniture/lamp.svg', '#d97706', '#fbbf24'],
         ['star', 'nature/sky/star.svg', '#d4a843', '#fde68a'],
         ['cloud', 'nature/sky/cloud.svg', '#94a3b8', '#e2e8f0'],
         ['heart', 'effects/emotions/heart.svg', '#dc2626', '#fca5a5'],
         ['music', 'effects/emotions/music.svg', '#7c3aed', '#c4b5fd'],
         ['sparkle', 'effects/emotions/sparkles.svg', '#d4a843', '#fef3c7'],
+        ['sofa', 'props/furniture/sofa.svg', '#92400e', '#d97706'],
+        ['armchair', 'props/furniture/armchair.svg', '#78350f', '#a16207'],
+        ['book', 'props/items/book.svg', '#1e3a5f', '#60a5fa'],
+        ['cup', 'props/items/cup.svg', '#7c3aed', '#c4b5fd'],
+        ['moon', 'nature/sky/moon.svg', '#d4a843', '#fef3c7'],
+        ['sunrise', 'nature/sky/sunrise.svg', '#f59e0b', '#fde68a'],
     ];
     for (const [id, path, c, f] of items) {
         decorImgs[id] = await loadSVG(path, c, f);
@@ -156,25 +164,34 @@ function drawBg() {
         ctx.lineWidth = 1;
         for (let x=0;x<W;x+=55) { ctx.beginPath(); ctx.moveTo(x,H*0.56); ctx.lineTo(x,H); ctx.stroke(); }
 
-        // SVG 装饰
-        if (decorImgs.flower) {
-            ctx.globalAlpha = 0.5;
-            ctx.drawImage(decorImgs.flower, 80, 60, 30, 30);
-            ctx.drawImage(decorImgs.flower, W-110, 60, 30, 30);
+        // SVG 装饰 — 更大更明显
+        const d = (img, x, y, w, h, alpha) => {
+            if (!img) return;
+            ctx.globalAlpha = alpha || 0.7;
+            ctx.drawImage(img, x, y, w, h);
             ctx.globalAlpha = 1;
-        }
-        if (decorImgs.lamp) {
-            ctx.globalAlpha = 0.6;
-            ctx.drawImage(decorImgs.lamp, 100, 180, 24, 40);
-            ctx.drawImage(decorImgs.lamp, W-130, 180, 24, 40);
-            ctx.globalAlpha = 1;
-        }
-        if (decorImgs.plant) {
-            ctx.globalAlpha = 0.4;
-            ctx.drawImage(decorImgs.plant, 130, 200, 28, 44);
-            ctx.drawImage(decorImgs.plant, W-160, 200, 28, 44);
-            ctx.globalAlpha = 1;
-        }
+        };
+
+        // 左侧装饰
+        d(decorImgs.flower, 70, 50, 40, 40, 0.7);
+        d(decorImgs.plant, 90, 170, 36, 56, 0.6);
+        d(decorImgs.lamp, 120, 120, 30, 50, 0.8);
+
+        // 右侧装饰
+        d(decorImgs.flower2, W-110, 50, 40, 40, 0.7);
+        d(decorImgs.plant2, W-130, 170, 36, 56, 0.6);
+        d(decorImgs.lamp, W-150, 120, 30, 50, 0.8);
+
+        // 中央上方装饰
+        d(decorImgs.sparkle, W/2-20, 20, 40, 40, 0.5);
+
+        // 家具（下方）
+        d(decorImgs.sofa, 160, H*0.56-30, 60, 40, 0.5);
+        d(decorImgs.armchair, W-220, H*0.56-28, 50, 38, 0.5);
+
+        // 小物件
+        d(decorImgs.book, 180, H*0.56-8, 22, 22, 0.4);
+        d(decorImgs.cup, W-180, H*0.56-10, 20, 20, 0.4);
 
         // 屏风（中央装饰）
         ctx.fillStyle = 'rgba(139,26,26,0.12)';
@@ -182,12 +199,8 @@ function drawBg() {
         ctx.strokeStyle = 'rgba(185,28,28,0.3)';
         ctx.lineWidth = 1.5;
         ctx.strokeRect(W/2-70, 40, 140, 90);
-        // 屏风上的装饰
-        if (decorImgs.sparkle) {
-            ctx.globalAlpha = 0.4;
-            ctx.drawImage(decorImgs.sparkle, W/2-15, 60, 30, 30);
-            ctx.globalAlpha = 1;
-        }
+        // 屏风上的 SVG 装饰
+        d(decorImgs.sunrise, W/2-25, 55, 50, 50, 0.6);
     }
 }
 
@@ -396,13 +409,15 @@ function reset() {
 }
 
 // ===== 启动 =====
-async function init() {
-    await preloadDecor();
-    initActors();
-    document.getElementById('btn-replay').addEventListener('click', reset);
-    render();
-    setTimeout(start, 800);
+function init() {
+    preloadDecor().then(() => {
+        initActors();
+        document.getElementById('btn-replay').addEventListener('click', reset);
+        render();
+        setTimeout(start, 800);
+    });
 }
 
 init();
+
 })();
