@@ -14,14 +14,24 @@
             <div class="author">朱自清</div>
         </header>
 
-        <div class="stage" id="stage">
-            <div class="layer layer--bg" id="bg-layer"></div>
-            <div class="layer layer--props" id="props-layer"></div>
-            <div class="layer layer--actors" id="actors-layer"></div>
-            <div class="layer layer--fx" id="fx-layer"></div>
-            <div class="bubble" id="bubble"></div>
-            <div class="narration" id="narration"></div>
-            <div class="scene-info" id="scene-info"></div>
+        <div class="stage-frame">
+            <!-- 顶部幕布 -->
+            <div class="curtain-top"></div>
+            <!-- 舞台主体 -->
+            <div class="stage-body">
+                <div class="curtain-side left"></div>
+                <div class="stage" id="stage">
+                    <div class="layer layer--bg"></div>
+                    <div class="platform-texture"></div>
+                    <div class="layer layer--props" id="props-layer"></div>
+                    <div class="layer layer--actors" id="actors-layer"></div>
+                    <div class="layer layer--fx" id="fx-layer"></div>
+                    <div class="bubble" id="bubble"></div>
+                    <div class="narration" id="narration"></div>
+                    <div class="scene-info" id="scene-info"></div>
+                </div>
+                <div class="curtain-side right"></div>
+            </div>
         </div>
 
         <div class="panel">
