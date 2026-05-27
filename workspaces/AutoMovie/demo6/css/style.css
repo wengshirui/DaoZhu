@@ -49,26 +49,26 @@ body {
     100% { opacity:0; transform:translateY(-15px); }
 }
 
-/* 对话框 */
+/* 对话框 — 移到底部，和旁白统一 */
 .dialogue-box {
-    position: absolute; top: 12px; right: 16px;
-    background: rgba(255,255,255,0.95); border-radius: 12px;
-    padding: 10px 16px; max-width: 320px;
-    box-shadow: 0 3px 12px rgba(0,0,0,0.1);
+    position: absolute; bottom: 56px; left: 0; right: 0;
+    background: rgba(255,255,255,0.95);
+    padding: 10px 24px;
     opacity: 0; transition: opacity 0.4s;
-    z-index: 20; font-size: 0.82rem; line-height: 1.6;
-    border-left: 3px solid var(--gold);
+    z-index: 21; font-size: 0.85rem; line-height: 1.5;
+    border-top: 2px solid var(--gold);
 }
 .dialogue-box.show { opacity: 1; }
 .dialogue-who { font-weight: bold; color: var(--red); margin-right: 6px; }
 .dialogue-text { color: var(--ink); }
 
-/* 旁白 */
+/* 旁白 — 底部最下层 */
 .narration {
     position: absolute; bottom: 0; left: 0; right: 0;
-    background: rgba(26,15,10,0.9); padding: 12px 24px;
-    color: #f0e6d6; font-size: 0.82rem; line-height: 1.7;
+    background: rgba(26,15,10,0.9); padding: 10px 24px;
+    color: #f0e6d6; font-size: 0.78rem; line-height: 1.6;
     opacity: 0; transition: opacity 0.5s; z-index: 20;
+    max-height: 56px; overflow: hidden;
 }
 .narration.show { opacity: 1; }
 
