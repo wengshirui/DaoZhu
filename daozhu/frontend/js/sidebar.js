@@ -192,15 +192,24 @@ const Sidebar = {
         Panel.addLog('info', '工作区顺序已更新');
       });
 
-      // 单击：显示 README
+      // 单击：直接打开工作区
       card.addEventListener('click', async () => {
         const id = card.dataset.id;
-        try {
-          const res = await fetch(`/api/workspaces/${id}/readme`);
-          const data = await res.json();
-          ReadmeViewer.show(data.content, card.querySelector('.card__name').textContent, id);
-        } catch (e) {
-          App.showToast('加载说明失败');
+        const mode = card.dataset.mode;
+        if (mode === 'lightweight') {
+          window.open(`/ws/${id}`, '_blank');
+        } else {
+          const status = card.dataset.status;
+          const port = card.dataset.port;
+          if (status === 'running') {
+            window.open(`http://localhost:${port}`, '_blank');
+          } else {
+            App.showToast('正在启动...');
+            try {
+              const res = await fetch(`/api/workspaces/${id}/start`, { method: 'POST' });
+              if (res.ok) { const d = await res.json(); window.open(`http://localhost:${d.workspace.port}`, '_blank'); Sidebar.loadWorkspaces(); }
+            } catch(e) { App.showToast('启动失败'); }
+          }
         }
       });
 
@@ -220,37 +229,6 @@ const Sidebar = {
         }
       });
 
-      // 双击：启动并打开工作区
-      card.addEventListener('dblclick', async () => {
-        const status = card.dataset.status;
-        const port = card.dataset.port;
-        const id = card.dataset.id;
-        const mode = card.dataset.mode;
-
-        // lightweight 模式：打开主进程子路由
-        if (mode === 'lightweight') {
-          window.open(`/ws/${id}`, '_blank');
-          return;
-        }
-
-        if (status === 'running') {
-          window.open(`http://localhost:${port}`, '_blank');
-        } else {
-          App.showToast('正在启动工作区...');
-          try {
-            const res = await fetch(`/api/workspaces/${id}/start`, { method: 'POST' });
-            if (res.ok) {
-              const data = await res.json();
-              window.open(`http://localhost:${data.workspace.port}`, '_blank');
-              await Sidebar.loadWorkspaces();
-            } else {
-              App.showToast('启动失败');
-            }
-          } catch (e) {
-            App.showToast('启动失败: ' + e.message);
-          }
-        }
-      });
     });
   },
 

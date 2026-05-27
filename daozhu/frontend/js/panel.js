@@ -114,10 +114,11 @@ const Panel = {
         });
       });
 
-      // 首次加载：如果没有当前对话，加载第一个
-      if (!Chat.conversationId && conversations.length > 0) {
+      // 首次加载：如果没有当前对话且不是刚新建的，加载第一个
+      if (!Chat.conversationId && conversations.length > 0 && !Chat._isNewChat) {
         this.switchConversation(conversations[0].id);
       }
+      Chat._isNewChat = false;
     } catch (err) {
       container.innerHTML = `
         <div class="empty-state">
@@ -166,6 +167,7 @@ const Panel = {
     Chat.conversationId = null;
     Chat.messages = [];
     Chat.showingReadme = false;
+    Chat._isNewChat = true;
     const form = document.getElementById('chat-form');
     form.style.display = 'flex';
     Chat._showWelcome();
