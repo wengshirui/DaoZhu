@@ -4,16 +4,23 @@ PyInstaller 打包时使用此文件作为入口点
 """
 
 import sys
+import os
 import webbrowser
 import threading
 from pathlib import Path
+
+# PyInstaller --noconsole 模式下 stdout/stderr 为 None，需要修补
+# 否则 uvicorn logging 初始化时 stream.isatty() 会崩溃
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, 'w')
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, 'w')
 
 # 确保能找到模块
 if getattr(sys, 'frozen', False):
     # PyInstaller 打包后的路径
     BASE_DIR = Path(sys._MEIPASS)
     # 设置工作目录为 exe 所在目录（用户数据存这里）
-    import os
     os.chdir(Path(sys.executable).parent)
 else:
     BASE_DIR = Path(__file__).parent
