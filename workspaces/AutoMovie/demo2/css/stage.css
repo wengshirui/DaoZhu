@@ -1,0 +1,338 @@
+/* ===== 话剧导演 v2 — 手绘绘本 × 剧场暖光 ===== */
+
+:root {
+    --curtain: #8B1A1A;
+    --curtain-dark: #5C1010;
+    --curtain-gold: #D4A843;
+    --stage-wood: #3D2B1F;
+    --stage-floor: #6B4226;
+    --warm-light: #FFF3D4;
+    --spotlight-glow: rgba(255, 240, 180, 0.3);
+    --board-bg: #1A1A1A;
+    --board-text: #F5E6C8;
+    --accent: #E8A838;
+    --font-title: 'Ma Shan Zheng', cursive;
+    --font-body: 'ZCOOL KuaiLe', sans-serif;
+    --font-serif: 'Noto Serif SC', serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #0D0D0D;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: var(--font-body);
+    overflow: hidden;
+}
+
+/* ===== 剧场外框 ===== */
+.theater {
+    width: 1020px;
+    max-width: 98vw;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* ===== 顶部幕布 ===== */
+.curtain-top {
+    width: 100%;
+    height: 60px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    position: relative;
+    z-index: 10;
+}
+
+.curtain-drape {
+    position: absolute;
+    top: 0;
+    width: 120px;
+    height: 60px;
+    background: var(--curtain);
+    border-radius: 0 0 50% 50%;
+    box-shadow: inset 0 -8px 12px rgba(0,0,0,0.4);
+}
+
+.curtain-drape.left { left: 40px; }
+.curtain-drape.right { right: 40px; }
+
+.curtain-title {
+    background: linear-gradient(180deg, var(--curtain-dark) 0%, var(--curtain) 100%);
+    padding: 8px 40px 12px;
+    border-radius: 0 0 20px 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    border-bottom: 3px solid var(--curtain-gold);
+}
+
+.theater-sign {
+    font-family: var(--font-title);
+    font-size: 1.6rem;
+    color: var(--curtain-gold);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    letter-spacing: 4px;
+}
+
+/* ===== 舞台主体 ===== */
+.stage-wrapper {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    position: relative;
+}
+
+.curtain-side {
+    width: 50px;
+    background: linear-gradient(180deg, var(--curtain-dark), var(--curtain) 30%, var(--curtain-dark));
+    position: relative;
+    z-index: 5;
+}
+
+.curtain-side::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background: repeating-linear-gradient(
+        180deg,
+        transparent,
+        transparent 20px,
+        rgba(0,0,0,0.15) 20px,
+        rgba(0,0,0,0.15) 22px
+    );
+}
+
+.curtain-side.left {
+    border-radius: 0 0 0 12px;
+    box-shadow: inset -8px 0 12px rgba(0,0,0,0.4);
+}
+
+.curtain-side.right {
+    border-radius: 0 0 12px 0;
+    box-shadow: inset 8px 0 12px rgba(0,0,0,0.4);
+}
+
+.stage-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #1a1208;
+}
+
+.stage-area canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+
+/* 聚光灯效果 */
+.spotlight {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 200px;
+    height: 100%;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse at top center, var(--spotlight-glow) 0%, transparent 70%);
+    pointer-events: none;
+    opacity: 0.6;
+    transition: left 1s ease, opacity 0.5s;
+}
+
+/* ===== 导演面板 ===== */
+.director-board {
+    width: 100%;
+    background: var(--board-bg);
+    border-radius: 0 0 16px 16px;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    border-top: 2px solid #333;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+}
+
+/* 场记板 */
+.clapperboard {
+    flex-shrink: 0;
+    width: 100px;
+}
+
+.clapper-top {
+    height: 14px;
+    background: repeating-linear-gradient(
+        -45deg,
+        #222,
+        #222 6px,
+        #F5E6C8 6px,
+        #F5E6C8 12px
+    );
+    border-radius: 4px 4px 0 0;
+}
+
+.clapper-body {
+    background: #2A2A2A;
+    border: 1px solid #444;
+    border-radius: 0 0 4px 4px;
+    padding: 4px 8px;
+    display: flex;
+    gap: 12px;
+}
+
+.clapper-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.clapper-label {
+    font-size: 0.55rem;
+    color: #888;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.clapper-value {
+    font-size: 0.85rem;
+    color: var(--board-text);
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+}
+
+/* 导演台词 */
+.director-note {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 10px 16px;
+    min-height: 44px;
+}
+
+.note-icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.note-text {
+    color: var(--board-text);
+    font-size: 0.9rem;
+    font-family: var(--font-serif);
+    line-height: 1.4;
+}
+
+/* 重播按钮 */
+.replay-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, var(--accent), #C4872A);
+    border: none;
+    padding: 10px 22px;
+    border-radius: 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(232, 168, 56, 0.3);
+}
+
+.replay-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(232, 168, 56, 0.5);
+}
+
+.replay-btn:active {
+    transform: translateY(0);
+}
+
+.btn-icon { font-size: 1.1rem; }
+.btn-text {
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #1A1A1A;
+    font-family: var(--font-body);
+}
+
+/* ===== 观众席 ===== */
+.audience {
+    width: 100%;
+    height: 50px;
+    position: relative;
+    overflow: hidden;
+    margin-top: -4px;
+}
+
+.audience-row {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 30px;
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+}
+
+.audience-row.back {
+    bottom: 20px;
+    opacity: 0.3;
+}
+
+.audience-row.front {
+    bottom: 0;
+    opacity: 0.5;
+}
+
+/* 观众头部由 JS 动态生成 */
+.audience-head {
+    width: 18px;
+    height: 22px;
+    background: #1A1A1A;
+    border-radius: 50% 50% 40% 40%;
+    position: relative;
+}
+
+.audience-head::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 10px;
+    background: #1A1A1A;
+    border-radius: 50%;
+}
+
+/* ===== 动画 ===== */
+@keyframes curtainSway {
+    0%, 100% { transform: scaleX(1); }
+    50% { transform: scaleX(1.02); }
+}
+
+.curtain-drape {
+    animation: curtainSway 6s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 0.8; }
+}
+
+.spotlight {
+    animation: glowPulse 4s ease-in-out infinite;
+}
