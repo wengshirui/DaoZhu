@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>背影 · 朱自清 — SVG 实体剧场</title>
+    <link rel="stylesheet" href="css/theater.css">
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="theater">
+        <header class="theater-header">
+            <div class="marquee">背 影</div>
+            <div class="author">朱自清</div>
+        </header>
+
+        <div class="stage" id="stage">
+            <div class="layer layer--bg" id="bg-layer"></div>
+            <div class="layer layer--props" id="props-layer"></div>
+            <div class="layer layer--actors" id="actors-layer"></div>
+            <div class="layer layer--fx" id="fx-layer"></div>
+            <div class="bubble" id="bubble"></div>
+            <div class="narration" id="narration"></div>
+            <div class="scene-info" id="scene-info"></div>
+        </div>
+
+        <div class="panel">
+            <div class="panel__scene">
+                <span class="panel__label">SCENE</span>
+                <span class="panel__value" id="panel-scene">1/8</span>
+            </div>
+            <div class="panel__note" id="panel-note">🎬 准备开演...</div>
+            <button class="panel__btn" id="btn-replay">🎭 重新演绎</button>
+        </div>
+    </div>
+
+    <script src="js/engine.js"></script>
+</body>
+</html>
