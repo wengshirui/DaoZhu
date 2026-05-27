@@ -39,6 +39,19 @@
   box-shadow: var(--shadow-sm);
 }
 
+.avatar-user {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
 .message--user .message__avatar {
   background: linear-gradient(135deg, var(--accent-light), var(--bg-tertiary));
   border: 1px solid var(--border-color);

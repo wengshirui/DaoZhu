@@ -173,7 +173,7 @@ const Chat = {
   _addMessageElement(role, content) {
     const container = document.getElementById('chat-messages');
     const avatar = role === 'user'
-      ? '<span>👤</span>'
+      ? '<div class="avatar-user">我</div>'
       : '<img src="/img/librarian.svg" alt="岛管理员" style="width:28px;height:28px;image-rendering:pixelated" class="librarian-avatar">';
 
     const msgEl = document.createElement('div');
