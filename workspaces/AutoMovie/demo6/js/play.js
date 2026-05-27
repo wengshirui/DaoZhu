@@ -352,6 +352,8 @@ function processEvents() {
                 break;
             case 'label':
                 sceneLabel.textContent = ev.text;
+                // 场景切换时清除旧对话
+                showDialogue('', '');
                 break;
             case 'end':
                 playing = false;
