@@ -82,6 +82,7 @@ const Chat = {
       const decoder = new TextDecoder();
       let msgEl = null;
       let bubble = null;
+      let fullText = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -164,7 +165,6 @@ const Chat = {
               if (!msgEl) {
                 msgEl = this._addMessageElement('assistant', '');
                 bubble = msgEl.querySelector('.message__bubble');
-                fullText = '';
               }
               fullText += data.chunk;
               bubble.textContent = fullText;
