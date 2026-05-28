@@ -327,8 +327,8 @@
 
 /* === 工具调用面板（指挥官终端风格）=== */
 .message--tool {
-  max-width: 80% !important;
-  width: 80%;
+  max-width: 75% !important;
+  width: 75%;
 }
 
 .tool-panel {
