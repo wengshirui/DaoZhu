@@ -487,10 +487,11 @@ async def chat_api(body: dict):
             if chunk.startswith("[TOOL_ERR:"):
                 parts = chunk[10:-1].split(":", 1)
                 tool_name = parts[0]
+                err_msg = parts[1] if len(parts) > 1 else ""
                 if tool_calls_log and tool_calls_log[-1]["tool"] == tool_name:
                     tool_calls_log[-1]["status"] = "error"
-                    tool_calls_log[-1]["error"] = parts[1] if len(parts) > 1 else ""
-                yield f"data: {json.dumps({'tool_done': parts[0], 'status': 'error', 'error': parts[1] if len(parts) > 1 else '', 'conversation_id': conv_id})}\n\n"
+                    tool_calls_log[-1]["error"] = err_msg
+                yield f"data: {json.dumps({'tool_done': parts[0], 'status': 'error', 'error': err_msg, 'conversation_id': conv_id})}\n\n"
                 continue
 
             full_response += chunk

@@ -151,26 +151,34 @@ const Panel = {
       if (data.messages && data.messages.length > 0) {
         for (const msg of data.messages) {
           if (msg.role === 'tool_call') {
-            // 渲染工具调用面板
+            // 渲染工具调用面板（带管理员头像）
             try {
               const tools = JSON.parse(msg.content);
               const container = document.getElementById('chat-messages');
-              const panel = document.createElement('div');
-              panel.className = 'tool-panel';
+              const wrapper = document.createElement('div');
+              wrapper.className = 'message message--assistant';
+
               const steps = tools.map(t => {
                 const icon = t.status === 'ok' ? '✅' : t.status === 'error' ? '❌' : '⏳';
                 const cls = t.status === 'ok' ? 'tool-panel__step--done' : t.status === 'error' ? 'tool-panel__step--error' : 'tool-panel__step--running';
-                return `<div class="tool-panel__step ${cls}"><span class="tool-panel__step-icon">${icon}</span> <span class="tool-panel__step-name">${t.tool}</span> <span class="tool-panel__step-status">${t.status === 'ok' ? '完成' : t.error || t.status}</span></div>`;
+                const statusText = t.status === 'ok' ? '完成' : (t.error || '失败');
+                return `<div class="tool-panel__step ${cls}"><span class="tool-panel__step-icon">${icon}</span> <span class="tool-panel__step-name">${t.tool}</span> <span class="tool-panel__step-status">${statusText}</span></div>`;
               }).join('');
-              panel.innerHTML = `
-                <div class="tool-panel__header">
-                  <span class="tool-panel__indicator tool-panel__indicator--done"></span>
-                  <span class="tool-panel__title">✅ 完成 (${tools.length} 步)</span>
-                  <span class="tool-panel__count">${tools.length} 步</span>
+
+              wrapper.innerHTML = `
+                <div class="message__avatar">
+                  <img src="/img/librarian.svg" alt="岛管理员" style="width:28px;height:28px;image-rendering:pixelated" class="librarian-avatar">
                 </div>
-                <div class="tool-panel__body">${steps}</div>
+                <div class="tool-panel">
+                  <div class="tool-panel__header">
+                    <span class="tool-panel__indicator tool-panel__indicator--done"></span>
+                    <span class="tool-panel__title">✅ 完成 (${tools.length} 步)</span>
+                    <span class="tool-panel__count">${tools.length} 步</span>
+                  </div>
+                  <div class="tool-panel__body">${steps}</div>
+                </div>
               `;
-              container.appendChild(panel);
+              container.appendChild(wrapper);
             } catch (e) {}
           } else if (msg.role === 'user' || msg.role === 'assistant') {
             Chat._addMessageElement(msg.role, msg.content);

@@ -96,28 +96,32 @@ const Chat = {
           try {
             const data = JSON.parse(line.slice(6));
             if (data.tool) {
-              // 工具调用：创建终端风格面板
+              // 工具调用：创建管理员风格的工具面板（带头像）
               const container = document.getElementById('chat-messages');
               if (!this._toolPanel) {
-                const panel = document.createElement('div');
-                panel.className = 'tool-panel';
-                panel.innerHTML = `
-                  <div class="tool-panel__header">
-                    <span class="tool-panel__indicator"></span>
-                    <span class="tool-panel__title">⚡ 执行中</span>
-                    <span class="tool-panel__count">0 步</span>
+                const wrapper = document.createElement('div');
+                wrapper.className = 'message message--assistant';
+                wrapper.innerHTML = `
+                  <div class="message__avatar">
+                    <img src="/img/librarian.svg" alt="岛管理员" style="width:28px;height:28px;image-rendering:pixelated" class="librarian-avatar">
                   </div>
-                  <div class="tool-panel__body"></div>
+                  <div class="tool-panel">
+                    <div class="tool-panel__header">
+                      <span class="tool-panel__indicator"></span>
+                      <span class="tool-panel__title">⚡ 执行中</span>
+                      <span class="tool-panel__count">0 步</span>
+                    </div>
+                    <div class="tool-panel__body"></div>
+                  </div>
                 `;
-                container.appendChild(panel);
-                this._toolPanel = panel;
+                container.appendChild(wrapper);
+                this._toolPanel = wrapper.querySelector('.tool-panel');
                 this._toolStepCount = 0;
               }
               this._toolStepCount++;
               const body = this._toolPanel.querySelector('.tool-panel__body');
               const step = document.createElement('div');
               step.className = 'tool-panel__step tool-panel__step--running';
-              step.id = `tool-step-${Date.now()}`;
               step.innerHTML = `<span class="tool-panel__step-icon">⏳</span> <span class="tool-panel__step-name">${data.tool}</span> <span class="tool-panel__step-status">执行中...</span>`;
               body.appendChild(step);
               this._lastToolStep = step;
