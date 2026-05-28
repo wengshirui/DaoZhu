@@ -291,7 +291,7 @@ const App = {
   async addCategory() {
     const name = prompt('新分类名称：');
     if (!name || !name.trim()) return;
-    const icon = prompt('图标（emoji）：', '📁') || '📁';
+    const icon = this._pickEmoji('选择图标');
     await API.createProject({ name: name.trim(), icon });
     await this.loadProjects();
   },
@@ -301,9 +301,25 @@ const App = {
     if (!p) return;
     const name = prompt('修改分类名称：', p.name);
     if (!name || !name.trim()) return;
-    const icon = prompt('图标（emoji）：', p.icon) || p.icon;
+    const icon = this._pickEmoji('选择图标', p.icon);
     await API.updateProject(id, { name: name.trim(), icon });
     await this.loadProjects();
+  },
+
+  _pickEmoji(title, current) {
+    const emojis = ['📥','📁','💼','🌱','🎯','📚','🏠','💡','🎨','🎵','🏋️','🛒','✈️','💰','❤️','⭐'];
+    const choice = prompt(
+      `${title}（输入序号或直接输入 emoji）\n\n` +
+      emojis.map((e, i) => `${i+1}. ${e}`).join('  ') + '\n\n' +
+      `当前: ${current || '📁'}`,
+      current || '📁'
+    );
+    if (!choice) return current || '📁';
+    // 如果输入的是数字，取对应 emoji
+    const num = parseInt(choice);
+    if (num >= 1 && num <= emojis.length) return emojis[num - 1];
+    // 否则直接用输入的内容（可能是 emoji）
+    return choice;
   },
 
   async deleteCategory(id) {

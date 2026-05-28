@@ -465,6 +465,25 @@
   border-radius: var(--radius);
 }
 
+/* 弹窗日期控件点击任意位置弹出日历 */
+.modal__date {
+  position: relative;
+  cursor: pointer;
+}
+
+.modal__date::-webkit-calendar-picker-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: auto;
+  height: auto;
+  color: transparent;
+  background: transparent;
+  cursor: pointer;
+}
+
 .modal__footer {
   display: flex;
   justify-content: space-between;
