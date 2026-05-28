@@ -79,6 +79,7 @@
       background: var(--border-color); transition: background 0.3s;
     }
     .progress__dot.active { background: var(--accent); }
+    .provider-section { animation: slideUp 0.3s ease; }
   </style>
 </head>
 <body>
@@ -115,22 +116,80 @@
       <div class="step__number">步骤 2/3</div>
       <div class="step__title">🧠 配置 AI 大脑</div>
       <div class="step__content">
-        <p>岛管理员需要一个 AI 模型来思考。推荐使用 DeepSeek（便宜好用）：</p>
-        <ol>
-          <li>打开 <a href="https://platform.deepseek.com/" target="_blank">DeepSeek 开放平台</a></li>
-          <li>注册账号（手机号即可）</li>
-          <li>进入「API Keys」页面，创建一个新 Key</li>
-          <li>复制 Key 粘贴到下方</li>
-        </ol>
+        <p>选择一个 AI 模型提供商：</p>
       </div>
       <div class="input-group">
-        <label>DeepSeek API Key</label>
-        <input type="password" id="api-key" placeholder="sk-xxxxxxxxxxxxxxxx">
-        <div class="status" id="key-status"></div>
+        <label>AI 提供商</label>
+        <select id="onboard-provider" onchange="Onboard.onProviderChange()" style="width:100%;padding:12px 14px;border:1.5px solid var(--border-color);border-radius:10px;font:inherit;background:var(--bg-primary)">
+          <option value="deepseek">DeepSeek（推荐，便宜好用）</option>
+          <option value="zhipu">智谱 GLM（国产大模型）</option>
+          <option value="ollama">Ollama（本地离线，免费）</option>
+          <option value="openai">OpenAI</option>
+        </select>
       </div>
+
+      <!-- DeepSeek -->
+      <div class="provider-section" id="provider-deepseek">
+        <div class="step__content" style="margin-bottom:12px">
+          <ol>
+            <li>打开 <a href="https://platform.deepseek.com/" target="_blank">DeepSeek 开放平台</a></li>
+            <li>注册账号 → 创建 API Key → 粘贴到下方</li>
+          </ol>
+        </div>
+        <div class="input-group">
+          <label>DeepSeek API Key</label>
+          <input type="password" id="api-key" placeholder="sk-xxxxxxxxxxxxxxxx">
+        </div>
+      </div>
+
+      <!-- 智谱 -->
+      <div class="provider-section" id="provider-zhipu" style="display:none">
+        <div class="step__content" style="margin-bottom:12px">
+          <ol>
+            <li>打开 <a href="https://open.bigmodel.cn/" target="_blank">智谱开放平台</a></li>
+            <li>注册账号 → 创建 API Key → 粘贴到下方</li>
+          </ol>
+        </div>
+        <div class="input-group">
+          <label>智谱 API Key</label>
+          <input type="password" id="zhipu-key" placeholder="xxxxxxxx.xxxxxxxx">
+        </div>
+      </div>
+
+      <!-- Ollama -->
+      <div class="provider-section" id="provider-ollama" style="display:none">
+        <div class="step__content" style="margin-bottom:12px">
+          <p>Ollama 在本地运行 AI 模型，完全免费、完全离线。</p>
+          <ol>
+            <li>安装 <a href="https://ollama.com/" target="_blank">Ollama</a></li>
+            <li>运行 <code style="background:var(--bg-tertiary);padding:2px 6px;border-radius:4px">ollama pull qwen2.5</code></li>
+            <li>确认地址（默认即可）</li>
+          </ol>
+        </div>
+        <div class="input-group">
+          <label>Ollama 地址</label>
+          <input type="text" id="ollama-url" placeholder="http://localhost:11434" value="http://localhost:11434">
+        </div>
+      </div>
+
+      <!-- OpenAI -->
+      <div class="provider-section" id="provider-openai" style="display:none">
+        <div class="step__content" style="margin-bottom:12px">
+          <ol>
+            <li>打开 <a href="https://platform.openai.com/" target="_blank">OpenAI Platform</a></li>
+            <li>创建 API Key → 粘贴到下方</li>
+          </ol>
+        </div>
+        <div class="input-group">
+          <label>OpenAI API Key</label>
+          <input type="password" id="openai-key" placeholder="sk-xxxxxxxxxxxxxxxx">
+        </div>
+      </div>
+
+      <div class="status" id="key-status"></div>
       <div class="btn-row">
         <button class="btn btn--skip" onclick="Onboard.skip()">跳过，稍后配置</button>
-        <button class="btn btn--primary" onclick="Onboard.validateKey()">验证并继续</button>
+        <button class="btn btn--primary" onclick="Onboard.saveProvider()">保存并继续</button>
       </div>
     </div>
 
@@ -191,18 +250,59 @@
         });
       },
 
-      async validateKey() {
-        const key = document.getElementById('api-key').value.trim();
-        const status = document.getElementById('key-status');
-        if (!key) { status.textContent = '请输入 API Key'; status.className = 'status status--err'; return; }
+      onProviderChange() {
+        const provider = document.getElementById('onboard-provider').value;
+        document.querySelectorAll('.provider-section').forEach(el => el.style.display = 'none');
+        const target = document.getElementById(`provider-${provider}`);
+        if (target) target.style.display = 'block';
+      },
 
-        status.textContent = '验证中...'; status.className = 'status';
+      async saveProvider() {
+        const provider = document.getElementById('onboard-provider').value;
+        const status = document.getElementById('key-status');
+        status.textContent = ''; status.className = 'status';
+
         try {
-          await fetch('/api/onboarding/save-key', {
-            method: 'POST',
+          // 保存 provider 选择
+          await fetch('/api/config/ai.provider', {
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key }),
+            body: JSON.stringify({ value: provider }),
           });
+
+          if (provider === 'deepseek') {
+            const key = document.getElementById('api-key').value.trim();
+            if (!key) { status.textContent = '请输入 API Key'; status.className = 'status status--err'; return; }
+            await fetch('/api/onboarding/save-key', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ key }),
+            });
+          } else if (provider === 'zhipu') {
+            const key = document.getElementById('zhipu-key').value.trim();
+            if (!key) { status.textContent = '请输入 API Key'; status.className = 'status status--err'; return; }
+            await fetch('/api/onboarding/save-secret', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: 'ZHIPU_API_KEY', value: key }),
+            });
+          } else if (provider === 'ollama') {
+            const url = document.getElementById('ollama-url').value.trim() || 'http://localhost:11434';
+            await fetch('/api/config/ai.base_url', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ value: url + '/v1' }),
+            });
+          } else if (provider === 'openai') {
+            const key = document.getElementById('openai-key').value.trim();
+            if (!key) { status.textContent = '请输入 API Key'; status.className = 'status status--err'; return; }
+            await fetch('/api/onboarding/save-secret', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: 'OPENAI_API_KEY', value: key }),
+            });
+          }
+
           status.textContent = '✅ 配置成功！'; status.className = 'status status--ok';
           setTimeout(() => this.next(3), 800);
         } catch (e) {
