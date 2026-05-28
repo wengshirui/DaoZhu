@@ -38,7 +38,10 @@
       </nav>
       <div class="sidebar__divider"></div>
       <div class="sidebar__section">
-        <h3 class="sidebar__label">项目</h3>
+        <div class="sidebar__section-header">
+          <h3 class="sidebar__label">分类</h3>
+          <button class="sidebar__add-btn" id="add-category-btn" title="新建分类">+</button>
+        </div>
         <div id="project-list"></div>
       </div>
     </aside>
@@ -47,27 +50,39 @@
     <main class="main">
       <header class="main__header">
         <h2 class="main__title" id="view-title">全部任务</h2>
-        <div class="main__actions">
-          <select class="filter-select" id="priority-filter">
-            <option value="">全部优先级</option>
-            <option value="urgent">🔴 紧急</option>
-            <option value="high">🟠 高</option>
-            <option value="medium">🟡 中</option>
-            <option value="low">🟢 低</option>
-          </select>
-        </div>
       </header>
+
+      <!-- 搜索和筛选栏 -->
+      <div class="filter-bar">
+        <input type="text" class="filter-bar__search" id="search-input" placeholder="🔍 搜索任务..." autocomplete="off">
+        <select class="filter-bar__select" id="priority-filter">
+          <option value="">全部优先级</option>
+          <option value="urgent">🔴 紧急</option>
+          <option value="high">🟠 高</option>
+          <option value="medium">🟡 中</option>
+          <option value="low">🟢 低</option>
+        </select>
+      </div>
 
       <!-- 新建任务输入 -->
       <form class="task-input" id="task-form">
-        <input
-          type="text"
-          class="task-input__field"
-          id="task-title"
-          placeholder="添加新任务... 按 Enter 创建"
-          autocomplete="off"
-        >
-        <button type="submit" class="task-input__btn">添加</button>
+        <div class="task-input__row">
+          <input
+            type="text"
+            class="task-input__field"
+            id="task-title"
+            placeholder="添加新任务..."
+            autocomplete="off"
+          >
+          <select class="task-input__priority" id="task-priority">
+            <option value="low">🟢 低</option>
+            <option value="medium" selected>🟡 中</option>
+            <option value="high">🟠 高</option>
+            <option value="urgent">🔴 紧急</option>
+          </select>
+          <input type="date" class="task-input__date" id="task-due">
+          <button type="submit" class="task-input__btn">添加</button>
+        </div>
       </form>
 
       <!-- 任务列表 -->

@@ -23,9 +23,11 @@ const API = {
   updateTask(id, data) { return this._req(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify(data) }); },
   deleteTask(id) { return this._req(`/tasks/${id}`, { method: 'DELETE' }); },
 
-  // 项目
+  // 项目/分类
   getProjects() { return this._req('/projects/'); },
   createProject(data) { return this._req('/projects/', { method: 'POST', body: JSON.stringify(data) }); },
+  updateProject(id, data) { return this._req(`/projects/${id}`, { method: 'PUT', body: JSON.stringify(data) }); },
+  deleteProject(id) { return this._req(`/projects/${id}`, { method: 'DELETE' }); },
 
   // 标签
   getTags() { return this._req('/tags/'); },
