@@ -35,6 +35,8 @@ async def lifespan(app: FastAPI):
     init_memory_db()
     from .config_db import init_config_db
     init_config_db()
+    from .tool_log_db import init_tool_log_db
+    init_tool_log_db()
     await manager.startup()
     _mount_lightweight_workspaces(app)
     yield

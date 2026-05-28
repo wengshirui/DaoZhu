@@ -95,29 +95,57 @@ const Chat = {
           try {
             const data = JSON.parse(line.slice(6));
             if (data.tool) {
-              // 工具调用状态行
+              // 工具调用：创建终端风格面板
               const container = document.getElementById('chat-messages');
-              const toolLine = document.createElement('div');
-              toolLine.className = 'tool-status-line';
-              toolLine.innerHTML = `<span class="tool-status-icon">🔧</span> <span class="tool-status-name">${data.tool}</span> <span class="tool-status-state">执行中...</span>`;
-              toolLine.id = `tool-${Date.now()}`;
-              container.appendChild(toolLine);
-              this._lastToolLine = toolLine;
+              if (!this._toolPanel) {
+                const panel = document.createElement('div');
+                panel.className = 'tool-panel';
+                panel.innerHTML = `
+                  <div class="tool-panel__header">
+                    <span class="tool-panel__indicator"></span>
+                    <span class="tool-panel__title">⚡ 执行中</span>
+                    <span class="tool-panel__count">0 步</span>
+                  </div>
+                  <div class="tool-panel__body"></div>
+                `;
+                container.appendChild(panel);
+                this._toolPanel = panel;
+                this._toolStepCount = 0;
+              }
+              this._toolStepCount++;
+              const body = this._toolPanel.querySelector('.tool-panel__body');
+              const step = document.createElement('div');
+              step.className = 'tool-panel__step tool-panel__step--running';
+              step.id = `tool-step-${Date.now()}`;
+              step.innerHTML = `<span class="tool-panel__step-icon">⏳</span> <span class="tool-panel__step-name">${data.tool}</span> <span class="tool-panel__step-status">执行中...</span>`;
+              body.appendChild(step);
+              this._lastToolStep = step;
+              this._toolPanel.querySelector('.tool-panel__count').textContent = `${this._toolStepCount} 步`;
               this._scrollToBottom();
               Panel.addLog('info', `🔧 调用工具: ${data.tool}`);
               continue;
             }
             if (data.tool_done) {
-              // 更新工具状态行
-              if (this._lastToolLine) {
-                const stateEl = this._lastToolLine.querySelector('.tool-status-state');
+              // 更新工具步骤状态
+              if (this._lastToolStep) {
+                const iconEl = this._lastToolStep.querySelector('.tool-panel__step-icon');
+                const statusEl = this._lastToolStep.querySelector('.tool-panel__step-status');
                 if (data.status === 'ok') {
-                  stateEl.textContent = '✅ 完成';
-                  stateEl.style.color = 'var(--success)';
+                  iconEl.textContent = '✅';
+                  statusEl.textContent = '完成';
+                  this._lastToolStep.classList.remove('tool-panel__step--running');
+                  this._lastToolStep.classList.add('tool-panel__step--done');
                 } else {
-                  stateEl.textContent = '❌ ' + (data.error || '失败').slice(0, 30);
-                  stateEl.style.color = 'var(--error)';
+                  iconEl.textContent = '❌';
+                  statusEl.textContent = (data.error || '失败').slice(0, 30);
+                  this._lastToolStep.classList.remove('tool-panel__step--running');
+                  this._lastToolStep.classList.add('tool-panel__step--error');
                 }
+              }
+              // 更新面板标题
+              if (this._toolPanel) {
+                const title = this._toolPanel.querySelector('.tool-panel__title');
+                title.textContent = '⚡ 执行中';
               }
               const icon = data.status === 'ok' ? '✅' : '❌';
               Panel.addLog(data.status === 'ok' ? 'success' : 'error',
@@ -125,7 +153,14 @@ const Chat = {
               continue;
             }
             if (data.chunk) {
-              // 收到文本 chunk 时，确保消息气泡在工具行之后
+              // 收到文本 chunk 时，关闭工具面板并创建消息气泡
+              if (this._toolPanel) {
+                const title = this._toolPanel.querySelector('.tool-panel__title');
+                title.textContent = `✅ 完成 (${this._toolStepCount} 步)`;
+                this._toolPanel.querySelector('.tool-panel__indicator').classList.add('tool-panel__indicator--done');
+                this._toolPanel = null;
+                this._toolStepCount = 0;
+              }
               if (!msgEl) {
                 msgEl = this._addMessageElement('assistant', '');
                 bubble = msgEl.querySelector('.message__bubble');
@@ -158,6 +193,8 @@ const Chat = {
       sendBtn.textContent = '发送';
       sendBtn.classList.remove('chat__send--stop');
       this._abortController = null;
+      this._toolPanel = null;
+      this._toolStepCount = 0;
     }
   },
 

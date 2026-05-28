@@ -325,7 +325,75 @@
 }
 
 
-/* === 工具调用状态行（简洁风格，参考 AccoBot）=== */
+/* === 工具调用面板（指挥官终端风格）=== */
+.tool-panel {
+  background: #1e2530;
+  border-radius: var(--radius-md);
+  margin: 8px 0;
+  overflow: hidden;
+  border: 1px solid rgba(92, 196, 168, 0.2);
+  animation: slideUp 0.3s ease;
+}
+
+.tool-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(92, 196, 168, 0.08);
+  border-bottom: 1px solid rgba(92, 196, 168, 0.1);
+  font-size: 0.78rem;
+  color: #5cc4a8;
+  font-weight: 500;
+}
+
+.tool-panel__indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #5cc4a8;
+  animation: breathe 1.2s ease-in-out infinite;
+}
+
+.tool-panel__indicator--done {
+  background: #5cc4a8;
+  animation: none;
+}
+
+.tool-panel__title { flex: 1; }
+
+.tool-panel__count {
+  font-size: 0.7rem;
+  color: rgba(92, 196, 168, 0.6);
+}
+
+.tool-panel__body {
+  padding: 6px 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.tool-panel__step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.76rem;
+  padding: 4px 0;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+
+.tool-panel__step--running { color: #e8ede8; }
+.tool-panel__step--done { color: rgba(232, 237, 232, 0.5); }
+.tool-panel__step--error { color: #c45a4a; }
+
+.tool-panel__step-icon { font-size: 0.8rem; }
+.tool-panel__step-name { color: #5cc4a8; }
+.tool-panel__step-status { margin-left: auto; color: rgba(232, 237, 232, 0.4); font-size: 0.7rem; }
+
+/* 旧的工具状态行样式保留兼容 */
 .tool-status-line {
   display: flex;
   align-items: center;
@@ -338,21 +406,6 @@
   background: var(--bg-tertiary);
   border-radius: 0 6px 6px 0;
   animation: slideUp 0.2s ease;
-}
-
-.tool-status-icon {
-  font-size: 0.9rem;
-}
-
-.tool-status-name {
-  font-family: monospace;
-  color: var(--accent);
-  font-weight: 500;
-}
-
-.tool-status-state {
-  margin-left: auto;
-  font-size: 0.75rem;
 }
 
 
