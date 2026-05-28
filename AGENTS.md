@@ -376,9 +376,11 @@ DaoZhu/
 │   ├── git/cmd/git.exe     # 便携版 MinGit（~45MB）
 │   └── uv/uv.exe           # uv 包管理器（~22MB）
 ├── launcher.py             # 启动器源码
-├── build_launcher.py       # 打包启动器 exe
-├── pack_release.py         # 打包分发 zip
-├── scripts/publish_release.py  # 一键发布到 Gitee
+├── scripts/
+│   ├── build_launcher.py   # 打包启动器 exe
+│   ├── pack_release.py     # 打包分发 zip
+│   ├── publish_release.py  # 一键发布到 Gitee
+│   └── README.md           # 发布流程文档
 └── daozhu/                 # 项目源码
 ```
 
@@ -398,8 +400,8 @@ DaoZhu/
 python scripts/publish_release.py v1.0.0
 
 # 或分步执行
-python build_launcher.py        # 打包启动器 exe
-python pack_release.py          # 打包分发 zip（含 vendor）
+python scripts/build_launcher.py    # 打包启动器 exe
+python scripts/pack_release.py      # 打包分发 zip（含 vendor）
 ```
 
 ### 日常更新

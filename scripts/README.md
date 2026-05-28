@@ -25,8 +25,8 @@ python scripts/publish_release.py v1.0.0
 | 脚本 | 用途 |
 |------|------|
 | `publish_release.py` | 完整发布：打包启动器 → 压缩 → Gitee Release |
-| `../build_launcher.py` | 单独打包启动器 exe |
-| `../pack_release.py` | 单独打包分发 zip |
+| `build_launcher.py` | 单独打包启动器 exe |
+| `pack_release.py` | 单独打包分发 zip |
 
 ## 前置条件
 

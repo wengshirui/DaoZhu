@@ -46,7 +46,7 @@ def step_build_launcher():
     print("📦 Step 1: 打包启动器 exe")
     print("=" * 50)
     result = subprocess.run(
-        [sys.executable, str(ROOT / "build_launcher.py")],
+        [sys.executable, str(ROOT / "scripts" / "build_launcher.py")],
         cwd=str(ROOT),
     )
     if result.returncode != 0:
@@ -60,7 +60,7 @@ def step_pack_zip(version: str) -> Path:
     print("📦 Step 2: 打包分发 zip")
     print("=" * 50)
     result = subprocess.run(
-        [sys.executable, str(ROOT / "pack_release.py")],
+        [sys.executable, str(ROOT / "scripts" / "pack_release.py")],
         cwd=str(ROOT),
     )
     if result.returncode != 0:

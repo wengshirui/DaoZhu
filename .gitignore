@@ -27,3 +27,6 @@ Thumbs.db
 
 # Vendor binaries (bundled in release zip, not in git)
 vendor/
+
+# PyInstaller temp
+*.spec
