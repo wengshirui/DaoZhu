@@ -501,6 +501,12 @@ async def chat_api(body: dict):
         if tool_calls_log:
             add_message(conv_id, "tool_call", json.dumps(tool_calls_log, ensure_ascii=False))
 
+        # 清理 DeepSeek DSML 标记泄露
+        import re
+        full_response = re.sub(r'<[｜|]\s*[｜|]?\s*DSML\s*[｜|]\s*[｜|]?.*?>', '', full_response)
+        full_response = re.sub(r'<[｜|]\s*DSML\s*[｜|][^>]*>', '', full_response)
+        full_response = full_response.strip()
+
         # 保存完整的 AI 回复
         add_message(conv_id, "assistant", full_response)
 

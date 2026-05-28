@@ -333,7 +333,6 @@
   border: 1px solid rgba(92, 196, 168, 0.2);
   animation: slideUp 0.3s ease;
   flex: 1;
-  max-width: 500px;
 }
 
 .tool-panel__header {

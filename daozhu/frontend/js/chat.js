@@ -300,7 +300,13 @@ const Chat = {
   _escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
-    return div.innerHTML;
+    let html = div.innerHTML;
+    // 过滤 DeepSeek DSML 工具调用标记泄露
+    html = html.replace(/&lt;\s*[｜|]\s*[｜|]?\s*DSML\s*[｜|]\s*[｜|]?.*?&gt;/g, '');
+    html = html.replace(/<\s*[｜|]\s*[｜|]?\s*DSML\s*[｜|]\s*[｜|]?[^>]*>/g, '');
+    // 清理残留的空行
+    html = html.replace(/\n{3,}/g, '\n\n');
+    return html.trim();
   }
 };
 
