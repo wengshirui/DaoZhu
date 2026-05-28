@@ -212,8 +212,7 @@
 
 .chat__welcome-cloud {
   position: absolute;
-  color: var(--accent);
-  opacity: 0.5;
+  color: #4a90a4;
   animation: cloudDrift linear infinite;
 }
 
@@ -230,7 +229,7 @@
   width: 60px;
   animation-duration: 45s;
   animation-delay: -15s;
-  opacity: 0.3;
+  opacity: 0.6;
 }
 
 .chat__welcome-cloud--3 {
@@ -239,7 +238,7 @@
   width: 70px;
   animation-duration: 55s;
   animation-delay: -30s;
-  opacity: 0.25;
+  opacity: 0.4;
 }
 
 .chat__welcome-birds {
@@ -247,18 +246,18 @@
   top: 15%;
   right: 15%;
   width: 50px;
-  color: var(--text-muted);
+  color: #5b8c5a;
   animation: gentleFloat 4s ease-in-out infinite;
   animation-delay: -1s;
 }
 
 .chat__welcome-island {
   position: absolute;
-  bottom: 8%;
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 180px;
-  color: var(--accent);
+  width: 160px;
+  color: #5b8c5a;
 }
 
 .chat__welcome-wave {
@@ -267,7 +266,7 @@
   left: 0;
   right: 0;
   height: 30px;
-  color: var(--accent);
+  color: #4a90a4;
   animation: waveShift 8s ease-in-out infinite;
 }
 
@@ -280,6 +279,12 @@
   0%, 100% { transform: translateX(0); }
   50% { transform: translateX(-20px); }
 }
+
+/* 暗色主题装饰色调整 */
+[data-theme="dark"] .chat__welcome-cloud { color: #5a9fb5; }
+[data-theme="dark"] .chat__welcome-birds { color: #6b9e6a; }
+[data-theme="dark"] .chat__welcome-island { color: #6b9e6a; }
+[data-theme="dark"] .chat__welcome-wave { color: #5a9fb5; }
 
 .chat__welcome-icon {
   font-size: 3.5rem;

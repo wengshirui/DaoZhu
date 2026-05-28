@@ -1,16 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120" fill="none">
-  <!-- 小岛轮廓 -->
-  <ellipse cx="100" cy="95" rx="70" ry="18" fill="currentColor" opacity="0.15"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="80" viewBox="0 0 160 80" fill="none">
   <!-- 沙滩 -->
-  <ellipse cx="100" cy="92" rx="60" ry="14" fill="currentColor" opacity="0.08"/>
+  <ellipse cx="80" cy="68" rx="50" ry="10" fill="#e8c49a" opacity="0.5"/>
   <!-- 棕榈树干 -->
-  <path d="M95 92 C93 70 97 50 100 40" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+  <path d="M78 68 C76 52 80 38 82 28" stroke="#8B6914" stroke-width="2.5" stroke-linecap="round" opacity="0.6"/>
   <!-- 棕榈叶 -->
-  <path d="M100 40 C90 35 80 38 75 42" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.25"/>
-  <path d="M100 40 C110 33 120 35 125 40" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.25"/>
-  <path d="M100 40 C95 30 88 28 82 30" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.2"/>
-  <path d="M100 40 C108 28 115 27 120 30" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.2"/>
-  <!-- 小花 -->
-  <circle cx="80" cy="88" r="2.5" fill="currentColor" opacity="0.2"/>
-  <circle cx="118" cy="86" r="2" fill="currentColor" opacity="0.15"/>
+  <path d="M82 28 C72 24 62 26 58 30" stroke="#5b8c5a" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <path d="M82 28 C92 22 102 24 106 28" stroke="#5b8c5a" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <path d="M82 28 C76 20 68 18 63 20" stroke="#4a7a4a" stroke-width="1.8" stroke-linecap="round" opacity="0.4"/>
+  <path d="M82 28 C90 18 98 17 103 20" stroke="#4a7a4a" stroke-width="1.8" stroke-linecap="round" opacity="0.4"/>
+  <!-- 小花点缀 -->
+  <circle cx="65" cy="65" r="2" fill="#e8856c" opacity="0.5"/>
+  <circle cx="95" cy="63" r="1.8" fill="#d4943a" opacity="0.4"/>
+  <circle cx="72" cy="62" r="1.5" fill="#e8856c" opacity="0.35"/>
 </svg>
