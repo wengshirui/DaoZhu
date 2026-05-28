@@ -143,7 +143,7 @@ const App = {
     if (task.due_date) {
       const today = new Date().toISOString().split('T')[0];
       const isOverdue = task.due_date < today && !isDone;
-      const d = new Date(task.due_date);
+      const d = new Date(task.due_date + 'T00:00:00');
       const label = task.due_date === today ? '今天' : `${d.getMonth()+1}/${d.getDate()}`;
       const cls = isOverdue ? 'task-card__due-tag--overdue' : '';
       dueTag = `<span class="task-card__due-tag ${cls}">📅 ${label}</span>`;
@@ -154,12 +154,14 @@ const App = {
         <button class="task-card__check" data-id="${task.id}" data-status="${task.status}">
           ${checkIcon}
         </button>
-        <div class="task-card__priority task-card__priority--${task.priority}"></div>
+        <div class="task-card__priority-bar task-card__priority-bar--${task.priority}"></div>
         <div class="task-card__body">
           <div class="task-card__title">${this.escapeHtml(task.title)}</div>
         </div>
-        ${priorityTag}
-        ${dueTag}
+        <div class="task-card__tags">
+          ${priorityTag}
+          ${dueTag}
+        </div>
       </div>`;
   },
 

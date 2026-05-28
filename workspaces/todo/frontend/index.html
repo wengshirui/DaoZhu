@@ -80,7 +80,7 @@
             <option value="high">🟠 高</option>
             <option value="urgent">🔴 紧急</option>
           </select>
-          <input type="date" class="task-input__date" id="task-due">
+          <input type="text" class="task-input__date" id="task-due" placeholder="截止日期" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'">
           <button type="submit" class="task-input__btn">添加</button>
         </div>
       </form>

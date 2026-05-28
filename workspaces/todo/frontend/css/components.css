@@ -9,6 +9,7 @@
   flex-direction: column;
   flex-shrink: 0;
   padding: 16px 0;
+  overflow-y: auto;
 }
 
 .sidebar__header {
@@ -40,6 +41,7 @@
   transition: all 0.2s;
   text-align: left;
   width: 100%;
+  cursor: pointer;
 }
 
 .nav-item:hover { background: var(--bg-hover); }
@@ -54,11 +56,13 @@
 .nav-item__text { flex: 1; }
 
 .nav-item__count {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   background: var(--border);
-  padding: 1px 7px;
+  padding: 2px 7px;
   border-radius: 10px;
   color: var(--text-muted);
+  min-width: 20px;
+  text-align: center;
 }
 
 .nav-item--active .nav-item__count {
@@ -74,13 +78,61 @@
 
 .sidebar__section { padding: 0 8px; }
 
+.sidebar__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px 4px;
+}
+
 .sidebar__label {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 1px;
   color: var(--text-muted);
-  padding: 8px 12px 4px;
 }
+
+.sidebar__add-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.sidebar__add-btn:hover {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+/* 分类操作按钮 */
+.nav-item__actions {
+  display: none;
+  gap: 2px;
+}
+
+.nav-item:hover .nav-item__actions { display: flex; }
+
+.nav-item__action-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.nav-item__action-btn:hover { background: var(--bg-hover); color: var(--text-ink); }
+.nav-item__action-btn--danger:hover { color: var(--danger); }
 
 /* === 主内容 === */
 .main {
@@ -94,8 +146,7 @@
 .main__header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .main__title {
@@ -113,50 +164,61 @@
 
 .filter-bar__search {
   flex: 1;
-  padding: 9px 14px;
+  padding: 9px 14px 9px 36px;
   font-size: 0.85rem;
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
-  background: var(--bg-card);
-  transition: border-color 0.2s;
-}
-
-.filter-bar__search:focus {
-  outline: none;
-  border-color: var(--accent);
+  background: var(--bg-card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239a8e7f' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") no-repeat 12px center;
 }
 
 .filter-bar__select {
   font-size: 0.82rem;
-  padding: 8px 10px;
+  padding: 8px 12px;
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-card);
-}
-
-.filter-select {
-  font-size: 0.82rem;
-  padding: 6px 10px;
-  border-color: var(--border);
+  min-width: 110px;
 }
 
 /* === 任务输入 === */
 .task-input {
+  margin-bottom: 16px;
+}
+
+.task-input__row {
   display: flex;
   gap: 8px;
-  margin-bottom: 20px;
+  align-items: center;
 }
 
 .task-input__field {
   flex: 1;
-  padding: 12px 16px;
-  font-size: 0.92rem;
+  padding: 11px 14px;
+  font-size: 0.9rem;
   border: 1.5px dashed var(--border-strong);
   border-radius: var(--radius);
   background: var(--bg-card);
 }
 
 .task-input__field::placeholder { color: var(--text-light); }
+
+.task-input__priority {
+  padding: 8px 10px;
+  font-size: 0.82rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  min-width: 70px;
+}
+
+.task-input__date {
+  padding: 8px 10px;
+  font-size: 0.82rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  min-width: 130px;
+}
 
 .task-input__btn {
   padding: 10px 18px;
@@ -166,6 +228,8 @@
   font-weight: 500;
   font-size: 0.85rem;
   transition: all 0.2s;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
 .task-input__btn:hover {
@@ -194,7 +258,6 @@
   cursor: pointer;
   transition: all 0.2s;
   animation: slideIn 0.3s ease;
-  position: relative;
 }
 
 .task-card:hover {
@@ -203,8 +266,7 @@
   transform: translateX(2px);
 }
 
-.task-card--done { opacity: 0.6; }
-
+.task-card--done { opacity: 0.55; }
 .task-card--done .task-card__title {
   text-decoration: line-through;
   color: var(--text-muted);
@@ -222,6 +284,7 @@
   flex-shrink: 0;
   transition: all 0.2s;
   font-size: 0.7rem;
+  cursor: pointer;
 }
 
 .task-card__check:hover {
@@ -236,19 +299,20 @@
   animation: checkPop 0.3s ease;
 }
 
-/* 优先级指示条 */
-.task-card__priority {
+/* 优先级竖条 */
+.task-card__priority-bar {
   width: 3px;
-  height: 24px;
+  height: 28px;
   border-radius: 2px;
   flex-shrink: 0;
 }
 
-.task-card__priority--urgent { background: var(--priority-urgent); }
-.task-card__priority--high { background: var(--priority-high); }
-.task-card__priority--medium { background: var(--priority-medium); }
-.task-card__priority--low { background: var(--priority-low); }
+.task-card__priority-bar--urgent { background: var(--priority-urgent); }
+.task-card__priority-bar--high { background: var(--priority-high); }
+.task-card__priority-bar--medium { background: var(--priority-medium); }
+.task-card__priority-bar--low { background: var(--priority-low); }
 
+/* 任务内容 */
 .task-card__body { flex: 1; min-width: 0; }
 
 .task-card__title {
@@ -259,23 +323,35 @@
   text-overflow: ellipsis;
 }
 
-.task-card__meta {
+/* 右侧标签区 */
+.task-card__tags {
   display: flex;
+  align-items: center;
   gap: 8px;
-  margin-top: 3px;
-  font-size: 0.73rem;
-  color: var(--text-muted);
+  flex-shrink: 0;
 }
 
-.task-card__due { color: var(--accent); }
-.task-card__due--overdue { color: var(--danger); }
-
-.task-card__subtasks {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  background: var(--bg-sidebar);
-  padding: 2px 6px;
+.task-card__priority-tag {
+  font-size: 0.68rem;
+  padding: 2px 8px;
   border-radius: 4px;
+  font-weight: 500;
+}
+
+.task-card__priority-tag--urgent { background: rgba(220,38,38,0.1); color: var(--priority-urgent); }
+.task-card__priority-tag--high { background: rgba(234,88,12,0.1); color: var(--priority-high); }
+.task-card__priority-tag--medium { background: rgba(202,138,4,0.08); color: var(--priority-medium); }
+.task-card__priority-tag--low { background: rgba(22,163,74,0.08); color: var(--priority-low); }
+
+.task-card__due-tag {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.task-card__due-tag--overdue {
+  color: var(--danger);
+  font-weight: 500;
 }
 
 /* === 弹窗 === */
@@ -294,8 +370,8 @@
 }
 
 .modal::backdrop {
-  background: rgba(44, 36, 22, 0.4);
-  backdrop-filter: blur(2px);
+  background: rgba(44, 36, 22, 0.45);
+  backdrop-filter: blur(3px);
 }
 
 .modal__content { padding: 24px; }
@@ -321,6 +397,7 @@
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
+  cursor: pointer;
   transition: background 0.2s;
 }
 
@@ -336,11 +413,16 @@
   font-size: 1rem;
   font-weight: 500;
   padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
 }
 
 .modal__textarea {
   resize: vertical;
   min-height: 60px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
 }
 
 .modal__row {
@@ -359,6 +441,9 @@
 .modal__select, .modal__date {
   flex: 1;
   font-size: 0.85rem;
+  padding: 8px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
 }
 
 .modal__footer {
@@ -387,84 +472,6 @@
   .sidebar { display: none; }
   .main { padding: 16px; }
   .filter-bar { flex-direction: column; }
-}
-
-/* === 分类管理 === */
-.sidebar__section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px 4px;
-}
-
-.sidebar__add-btn {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  color: var(--text-muted);
-  transition: all 0.2s;
-}
-
-.sidebar__add-btn:hover {
-  background: var(--accent-light);
-  color: var(--accent);
-}
-
-.nav-item__actions {
-  display: none;
-  gap: 2px;
-}
-
-.nav-item:hover .nav-item__actions {
-  display: flex;
-}
-
-.nav-item__action-btn {
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  transition: all 0.15s;
-}
-
-.nav-item__action-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-ink);
-}
-
-.nav-item__action-btn--danger:hover {
-  color: var(--danger);
-}
-
-/* === 任务卡片增强 — 优先级标签 + 日期 === */
-.task-card__priority-tag {
-  font-size: 0.68rem;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 500;
-  flex-shrink: 0;
-}
-
-.task-card__priority-tag--urgent { background: rgba(220,38,38,0.1); color: var(--priority-urgent); }
-.task-card__priority-tag--high { background: rgba(234,88,12,0.1); color: var(--priority-high); }
-.task-card__priority-tag--medium { background: rgba(202,138,4,0.1); color: var(--priority-medium); }
-.task-card__priority-tag--low { background: rgba(22,163,74,0.1); color: var(--priority-low); }
-
-.task-card__due-tag {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
-.task-card__due-tag--overdue {
-  color: var(--danger);
-  font-weight: 500;
+  .task-input__row { flex-wrap: wrap; }
+  .task-input__field { min-width: 100%; }
 }
