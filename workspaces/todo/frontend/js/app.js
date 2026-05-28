@@ -289,9 +289,10 @@ const App = {
   },
 
   async addCategory() {
-    const name = prompt('新分类名称：');
+    const icon = await this._pickEmoji();
+    if (!icon) return;
+    const name = prompt('分类名称：');
     if (!name || !name.trim()) return;
-    const icon = this._pickEmoji('选择图标');
     await API.createProject({ name: name.trim(), icon });
     await this.loadProjects();
   },
@@ -301,25 +302,42 @@ const App = {
     if (!p) return;
     const name = prompt('修改分类名称：', p.name);
     if (!name || !name.trim()) return;
-    const icon = this._pickEmoji('选择图标', p.icon);
-    await API.updateProject(id, { name: name.trim(), icon });
+    const icon = await this._pickEmoji(p.icon);
+    await API.updateProject(id, { name: name.trim(), icon: icon || p.icon });
     await this.loadProjects();
   },
 
-  _pickEmoji(title, current) {
-    const emojis = ['📥','📁','💼','🌱','🎯','📚','🏠','💡','🎨','🎵','🏋️','🛒','✈️','💰','❤️','⭐'];
-    const choice = prompt(
-      `${title}（输入序号或直接输入 emoji）\n\n` +
-      emojis.map((e, i) => `${i+1}. ${e}`).join('  ') + '\n\n' +
-      `当前: ${current || '📁'}`,
-      current || '📁'
-    );
-    if (!choice) return current || '📁';
-    // 如果输入的是数字，取对应 emoji
-    const num = parseInt(choice);
-    if (num >= 1 && num <= emojis.length) return emojis[num - 1];
-    // 否则直接用输入的内容（可能是 emoji）
-    return choice;
+  _pickEmoji(current) {
+    return new Promise((resolve) => {
+      const emojis = ['📥','📁','💼','🌱','🎯','📚','🏠','💡','🎨','🎵','🏋️','🛒','✈️','💰','❤️','⭐','🔥','📋','🎮','🍕','☕','🌈','🐱','🎁'];
+
+      // 创建浮层
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(44,36,22,0.4);z-index:999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)';
+
+      const panel = document.createElement('div');
+      panel.style.cssText = 'background:#fff;border-radius:16px;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,0.15);max-width:320px;width:90%';
+      panel.innerHTML = `
+        <div style="font-size:0.9rem;font-weight:600;margin-bottom:12px;color:#2c2418">选择图标</div>
+        <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px"></div>
+      `;
+
+      const grid = panel.querySelector('div:last-child');
+      emojis.forEach(emoji => {
+        const btn = document.createElement('button');
+        btn.textContent = emoji;
+        btn.style.cssText = 'font-size:1.4rem;width:40px;height:40px;border-radius:8px;border:2px solid transparent;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;background:' + (emoji === current ? 'rgba(196,122,58,0.12)' : '#f5f0e8');
+        if (emoji === current) btn.style.borderColor = '#c47a3a';
+        btn.addEventListener('click', () => { overlay.remove(); resolve(emoji); });
+        btn.addEventListener('mouseenter', () => { btn.style.transform = 'scale(1.2)'; });
+        btn.addEventListener('mouseleave', () => { btn.style.transform = 'scale(1)'; });
+        grid.appendChild(btn);
+      });
+
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) { overlay.remove(); resolve(current || null); } });
+      overlay.appendChild(panel);
+      document.body.appendChild(overlay);
+    });
   },
 
   async deleteCategory(id) {
