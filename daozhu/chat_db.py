@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS conversations (
 CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     conversation_id TEXT NOT NULL,
-    role TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system')),
+    role TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system', 'tool_call')),
     content TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
@@ -46,6 +46,32 @@ def init_chat_db():
     """初始化对话数据库"""
     conn = _get_db()
     conn.executescript(SCHEMA)
+    # 迁移：允许 tool_call 角色（旧数据库可能有 CHECK 约束）
+    try:
+        conn.execute(
+            "INSERT INTO messages (conversation_id, role, content) VALUES ('_test', 'tool_call', '_')"
+        )
+        conn.execute("DELETE FROM messages WHERE conversation_id = '_test'")
+        conn.commit()
+    except Exception:
+        # CHECK 约束不允许 tool_call，重建表
+        try:
+            conn.executescript("""
+                ALTER TABLE messages RENAME TO messages_old;
+                CREATE TABLE messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    conversation_id TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
+                );
+                INSERT INTO messages SELECT * FROM messages_old;
+                DROP TABLE messages_old;
+                CREATE INDEX IF NOT EXISTS idx_messages_conv ON messages(conversation_id);
+            """)
+        except Exception:
+            pass
     conn.close()
 
 

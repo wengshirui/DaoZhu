@@ -469,23 +469,36 @@ async def chat_api(body: dict):
         # 构建记忆上下文
         memory_context = build_memory_context(message)
 
+        tool_calls_log = []  # 收集工具调用记录
+
         async for chunk in agent_chat_stream(history, memory_context=memory_context):
             # 工具调用通知（特殊标记）
             if chunk.startswith("[TOOL:"):
                 tool_name = chunk[6:-1]
+                tool_calls_log.append({"tool": tool_name, "status": "running"})
                 yield f"data: {json.dumps({'tool': tool_name, 'conversation_id': conv_id})}\n\n"
                 continue
             if chunk.startswith("[TOOL_OK:"):
                 tool_name = chunk[9:-1]
+                if tool_calls_log and tool_calls_log[-1]["tool"] == tool_name:
+                    tool_calls_log[-1]["status"] = "ok"
                 yield f"data: {json.dumps({'tool_done': tool_name, 'status': 'ok', 'conversation_id': conv_id})}\n\n"
                 continue
             if chunk.startswith("[TOOL_ERR:"):
                 parts = chunk[10:-1].split(":", 1)
+                tool_name = parts[0]
+                if tool_calls_log and tool_calls_log[-1]["tool"] == tool_name:
+                    tool_calls_log[-1]["status"] = "error"
+                    tool_calls_log[-1]["error"] = parts[1] if len(parts) > 1 else ""
                 yield f"data: {json.dumps({'tool_done': parts[0], 'status': 'error', 'error': parts[1] if len(parts) > 1 else '', 'conversation_id': conv_id})}\n\n"
                 continue
 
             full_response += chunk
             yield f"data: {json.dumps({'chunk': chunk, 'conversation_id': conv_id})}\n\n"
+
+        # 保存工具调用记录到 conversation（作为 tool_call 类型消息）
+        if tool_calls_log:
+            add_message(conv_id, "tool_call", json.dumps(tool_calls_log, ensure_ascii=False))
 
         # 保存完整的 AI 回复
         add_message(conv_id, "assistant", full_response)
