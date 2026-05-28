@@ -193,9 +193,17 @@ const Chat = {
     const container = document.getElementById('chat-messages');
     container.innerHTML = `
       <div class="chat__welcome" id="chat-welcome">
-        <img src="/img/librarian.svg" alt="岛管理员" style="width:80px;height:80px;image-rendering:pixelated;margin-bottom:16px" class="librarian-avatar librarian-avatar--float">
-        <div class="chat__welcome-title">你好，我是岛管理员</div>
-        <div class="chat__welcome-desc">
+        <div class="chat__welcome-scene">
+          <img src="/img/decor/cloud.svg" class="chat__welcome-cloud chat__welcome-cloud--1" alt="">
+          <img src="/img/decor/cloud.svg" class="chat__welcome-cloud chat__welcome-cloud--2" alt="">
+          <img src="/img/decor/cloud.svg" class="chat__welcome-cloud chat__welcome-cloud--3" alt="">
+          <img src="/img/decor/birds.svg" class="chat__welcome-birds" alt="">
+          <img src="/img/decor/island.svg" class="chat__welcome-island" alt="">
+          <img src="/img/decor/wave.svg" class="chat__welcome-wave" alt="">
+        </div>
+        <img src="/img/librarian.svg" alt="岛管理员" style="width:80px;height:80px;image-rendering:pixelated;margin-bottom:16px;position:relative;z-index:1" class="librarian-avatar librarian-avatar--float">
+        <div class="chat__welcome-title" style="position:relative;z-index:1">你好，我是岛管理员</div>
+        <div class="chat__welcome-desc" style="position:relative;z-index:1">
           告诉我你想建造什么工作区，或者问我任何问题。<br>
           比如："帮我建一个读书笔记工作区"<br>
           <small style="color:var(--text-muted);margin-top:8px;display:block">

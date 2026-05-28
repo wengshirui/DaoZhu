@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120" fill="none">
+  <!-- 小岛轮廓 -->
+  <ellipse cx="100" cy="95" rx="70" ry="18" fill="currentColor" opacity="0.15"/>
+  <!-- 沙滩 -->
+  <ellipse cx="100" cy="92" rx="60" ry="14" fill="currentColor" opacity="0.08"/>
+  <!-- 棕榈树干 -->
+  <path d="M95 92 C93 70 97 50 100 40" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+  <!-- 棕榈叶 -->
+  <path d="M100 40 C90 35 80 38 75 42" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.25"/>
+  <path d="M100 40 C110 33 120 35 125 40" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.25"/>
+  <path d="M100 40 C95 30 88 28 82 30" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.2"/>
+  <path d="M100 40 C108 28 115 27 120 30" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.2"/>
+  <!-- 小花 -->
+  <circle cx="80" cy="88" r="2.5" fill="currentColor" opacity="0.2"/>
+  <circle cx="118" cy="86" r="2" fill="currentColor" opacity="0.15"/>
+</svg>
