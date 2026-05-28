@@ -28,8 +28,9 @@
 - 🏗️ **一句话建造** — 告诉 AI 你想要什么应用，它帮你生成
 - 📖 **Skill 系统** — 可扩展的技能文件，AI 能力持续进化
 - 🔒 **完全本地** — 所有数据在你电脑上，断网也能用
-- 📦 **双击即用** — PyInstaller 打包为 exe，不需要装 Python
+- 📦 **双击即用** — 轻量启动器，自带环境，自动更新
 - 🎮 **像素管理员** — 纯 CSS 像素动画角色，有温度的交互体验
+- 🎬 **火柴人剧场** — AI 写剧本，火柴人自动演出，一句话生成动画
 
 ---
 
@@ -52,12 +53,16 @@
 
 ## 🚀 快速开始
 
-### 方式一：exe 直接运行（推荐普通用户）
+### 方式一：下载即用（推荐）
 
-1. 从 [Releases](https://gitee.com/yumen2278/DaoZhu/releases) 下载 `daozhu.zip`
+1. 从 [Releases](https://gitee.com/yumen2278/DaoZhu/releases) 下载 `DaoZhu-v1.0.0.zip`（77MB）
 2. 解压到任意目录
-3. 双击 `daozhu.exe`
-4. 浏览器自动打开，按引导配置即可
+3. 双击 `岛主DaoZhu.exe`
+4. 首次运行自动创建环境、安装依赖
+5. 浏览器自动打开，按引导配置即可
+6. **后续每次启动自动更新到最新版本**
+
+> 自带 Git + uv，无需安装任何东西。更新只需双击 exe，自动 git pull。
 
 ### 方式二：开发者运行
 
@@ -78,14 +83,6 @@ python daozhu_main.py
 ```
 
 浏览器自动打开 `http://localhost:7788`，首次进入引导页配置 API Key。
-
-### 方式三：自行打包 exe
-
-```bash
-uv pip install -e ".[dev]"
-python build_exe.py
-# 输出: dist/daozhu/daozhu.exe
-```
 
 ---
 
@@ -109,13 +106,14 @@ python build_exe.py
 
 ```
 DaoZhu/
+├── launcher.py             # 启动器源码（打包为 exe）
 ├── daozhu/                 # 平台核心
 │   ├── app.py              # FastAPI 主服务（端口 7788）
 │   ├── agent.py            # AI Agent（对话循环 + 工具调用）
 │   ├── workspace_manager.py# 工作区进程管理
 │   ├── config.py           # 全局配置
 │   ├── memory_db.py        # 记忆系统
-│   ├── chat_service.py     # LLM 流式调用
+│   ├── chat_service.py     # LLM 流式调用（多 Provider）
 │   ├── skill_loader.py     # Skill 发现与加载
 │   ├── template_engine.py  # 模板渲染引擎
 │   ├── tools/              # Agent 工具（10个）
@@ -124,9 +122,11 @@ DaoZhu/
 ├── workspaces/             # 工作区目录（每个独立运行）
 ├── templates/              # 工作区模板
 ├── skills/                 # 技能文件
+├── scripts/                # 打包与发布脚本
+├── vendor/                 # 自带工具（Git + uv，仅在分发包中）
 ├── requirements/           # 需求文档
-├── daozhu_main.py          # 启动入口
-└── pyproject.toml          # 项目配置
+├── daozhu_main.py          # 开发模式启动入口
+└── pyproject.toml          # 项目配置（v1.0.0）
 ```
 
 ---
@@ -223,16 +223,21 @@ GITEE_TOKEN=xxxxxxxx
 
 ### 🚧 Phase 2 — 数据主权（进行中）
 
+- [x] 本地 Ollama 模型集成（完全离线）
+- [x] 多模型 Provider（DeepSeek/智谱/Ollama/OpenAI）
+- [x] 火柴人剧场（AutoMovie）— AI 写剧本 → 火柴人演出
+- [x] 轻量启动器（自带 Git+uv，双击自动更新）
+- [ ] 火柴人剧场 BGM + 配音
 - [ ] Gitee 远程控制（手机遥控你的岛）
-- [ ] 本地 Ollama 模型集成（完全离线）
 - [ ] 工作区市场（Gitee 生态）
-- [ ] AutoMovie 智能剧场
+- [ ] 用户手动绑定文件夹为工作区
 
-### 📋 Phase 3 — 发布与生态
+### 📋 Phase 3 — 生态与体验
 
-- [x] PyInstaller 打包
-- [ ] Windows 安装向导 + 系统托盘
+- [ ] 主页视觉优化（岛屿氛围）
+- [ ] Windows 系统托盘
 - [ ] 游戏化（精灵/成就/等级）
+- [ ] 本地性能检测 + 智能推荐
 
 ---
 
@@ -258,7 +263,7 @@ GITEE_TOKEN=xxxxxxxx
 | AI 模型 | DeepSeek / OpenAI / Ollama / 兼容接口 |
 | 数据库 | SQLite（平台级 + 每工作区独立） |
 | 工作区隔离 | subprocess + 独立端口 |
-| 打包 | PyInstaller |
+| 打包 | 轻量启动器（PyInstaller）+ 自带 Git/uv + 自动更新 |
 | 包管理 | uv + pyproject.toml |
 
 ---
