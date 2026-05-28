@@ -28,8 +28,9 @@
 - 🏗️ **Build with one sentence** — Tell the AI what app you want, it builds it for you
 - 📖 **Skill system** — Extensible skill files, AI capabilities keep evolving
 - 🔒 **Fully local** — All data on your machine, works offline
-- 📦 **Double-click to run** — Packaged as exe via PyInstaller, no Python needed
+- 📦 **Double-click to run** — Lightweight launcher, bundled environment, auto-updates
 - 🎮 **Pixel manager** — Pure CSS pixel-art animated character with personality
+- 🎬 **Stickman Theater** — AI writes scripts, stickmen perform automatically, one sentence to animation
 
 ---
 
@@ -52,12 +53,16 @@
 
 ## 🚀 Quick Start
 
-### Option 1: Run the exe (recommended for regular users)
+### Option 1: Download and run (recommended)
 
-1. Download `daozhu.zip` from [Releases](https://gitee.com/yumen2278/DaoZhu/releases)
+1. Download `DaoZhu-v1.0.0.zip` (77MB) from [Releases](https://gitee.com/yumen2278/DaoZhu/releases)
 2. Extract to any directory
-3. Double-click `daozhu.exe`
-4. Browser opens automatically, follow the setup guide
+3. Double-click `岛主DaoZhu.exe`
+4. First run automatically sets up environment and installs dependencies
+5. Browser opens automatically, follow the setup guide
+6. **Every subsequent launch auto-updates to the latest version**
+
+> Bundled with Git + uv, no installation needed. Updates happen automatically via git pull.
 
 ### Option 2: Developer setup
 
@@ -78,14 +83,6 @@ python daozhu_main.py
 ```
 
 Browser opens `http://localhost:7788` automatically. First launch shows the setup guide.
-
-### Option 3: Build your own exe
-
-```bash
-uv pip install -e ".[dev]"
-python build_exe.py
-# Output: dist/daozhu/daozhu.exe
-```
 
 ---
 
@@ -109,13 +106,14 @@ Manager: ✅ Accounting Assistant started, port 7803.
 
 ```
 DaoZhu/
+├── launcher.py             # Launcher source (packaged as exe)
 ├── daozhu/                 # Platform core
 │   ├── app.py              # FastAPI main service (port 7788)
 │   ├── agent.py            # AI Agent (conversation loop + tool calls)
 │   ├── workspace_manager.py# Workspace process management
 │   ├── config.py           # Global configuration
 │   ├── memory_db.py        # Memory system
-│   ├── chat_service.py     # LLM streaming calls
+│   ├── chat_service.py     # LLM streaming calls (multi-provider)
 │   ├── skill_loader.py     # Skill discovery and loading
 │   ├── template_engine.py  # Template rendering engine
 │   ├── tools/              # Agent tools (10)
@@ -124,9 +122,11 @@ DaoZhu/
 ├── workspaces/             # Workspace directory (each runs independently)
 ├── templates/              # Workspace templates
 ├── skills/                 # Skill files
+├── scripts/                # Build & release scripts
+├── vendor/                 # Bundled tools (Git + uv, release zip only)
 ├── requirements/           # Requirement docs
-├── daozhu_main.py          # Entry point
-└── pyproject.toml          # Project config
+├── daozhu_main.py          # Dev mode entry point
+└── pyproject.toml          # Project config (v1.0.0)
 ```
 
 ---
@@ -223,16 +223,21 @@ GITEE_TOKEN=xxxxxxxx
 
 ### 🚧 Phase 2 — Data Sovereignty (In Progress)
 
+- [x] Local Ollama model integration (fully offline)
+- [x] Multi-provider support (DeepSeek / Zhipu / Ollama / OpenAI)
+- [x] Stickman Theater (AutoMovie) — AI writes scripts → stickmen perform
+- [x] Lightweight launcher (bundled Git+uv, auto-update on launch)
+- [ ] Stickman Theater BGM + voice acting
 - [ ] Gitee remote control (control your island from your phone)
-- [ ] Local Ollama model integration (fully offline)
 - [ ] Workspace marketplace (Gitee ecosystem)
-- [ ] AutoMovie intelligent theater
+- [ ] User-bound folder workspaces
 
-### 📋 Phase 3 — Release & Ecosystem
+### 📋 Phase 3 — Ecosystem & Experience
 
-- [x] PyInstaller packaging
-- [ ] Windows installer + system tray
+- [ ] Homepage visual polish (island ambiance)
+- [ ] Windows system tray
 - [ ] Gamification (sprites / achievements / levels)
+- [ ] Local performance detection + smart recommendations
 
 ---
 
@@ -258,7 +263,7 @@ GITEE_TOKEN=xxxxxxxx
 | AI Model | DeepSeek / OpenAI / Ollama / compatible APIs |
 | Database | SQLite (platform-level + per-workspace) |
 | Isolation | subprocess + independent ports |
-| Packaging | PyInstaller |
+| Packaging | Lightweight launcher (PyInstaller) + bundled Git/uv + auto-update |
 | Package Manager | uv + pyproject.toml |
 
 ---
