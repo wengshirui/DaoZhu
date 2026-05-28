@@ -171,7 +171,8 @@ const Chat = {
                 bubble = msgEl.querySelector('.message__bubble');
               }
               fullText += data.chunk;
-              bubble.textContent = fullText;
+              // 实时过滤 DSML 标记
+              bubble.textContent = this._cleanDSML(fullText);
               this._scrollToBottom();
             }
             if (data.conversation_id) {
@@ -300,13 +301,18 @@ const Chat = {
   _escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
-    let html = div.innerHTML;
+    return div.innerHTML;
+  },
+
+  _cleanDSML(text) {
     // 过滤 DeepSeek DSML 工具调用标记泄露
-    html = html.replace(/&lt;\s*[｜|]\s*[｜|]?\s*DSML\s*[｜|]\s*[｜|]?.*?&gt;/g, '');
-    html = html.replace(/<\s*[｜|]\s*[｜|]?\s*DSML\s*[｜|]\s*[｜|]?[^>]*>/g, '');
-    // 清理残留的空行
-    html = html.replace(/\n{3,}/g, '\n\n');
-    return html.trim();
+    return text
+      .replace(/<[/]?\s*[|｜]\s*[|｜]?\s*DSML\s*[|｜]\s*[|｜]?[^>]*>/gi, '')
+      .replace(/[|｜]\s*[|｜]?\s*tool_calls\s*>/gi, '')
+      .replace(/[|｜]\s*[|｜]?\s*invoke[^>]*>/gi, '')
+      .replace(/[|｜]\s*[|｜]?\s*parameter[^>]*>/gi, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
   }
 };
 

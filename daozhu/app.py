@@ -503,8 +503,10 @@ async def chat_api(body: dict):
 
         # 清理 DeepSeek DSML 标记泄露
         import re
-        full_response = re.sub(r'<[｜|]\s*[｜|]?\s*DSML\s*[｜|]\s*[｜|]?.*?>', '', full_response)
-        full_response = re.sub(r'<[｜|]\s*DSML\s*[｜|][^>]*>', '', full_response)
+        full_response = re.sub(r'</?[|｜]\s*[|｜]?\s*DSML\s*[|｜]\s*[|｜]?[^>]*>', '', full_response)
+        full_response = re.sub(r'[|｜]\s*[|｜]?\s*tool_calls\s*>', '', full_response)
+        full_response = re.sub(r'[|｜]\s*[|｜]?\s*invoke[^>]*>', '', full_response)
+        full_response = re.sub(r'[|｜]\s*[|｜]?\s*parameter[^>]*>', '', full_response)
         full_response = full_response.strip()
 
         # 保存完整的 AI 回复
