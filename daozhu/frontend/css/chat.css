@@ -326,6 +326,10 @@
 
 
 /* === 工具调用面板（指挥官终端风格）=== */
+.message:has(.tool-panel) {
+  max-width: 95%;
+}
+
 .tool-panel {
   background: #1e2530;
   border-radius: var(--radius-md);
