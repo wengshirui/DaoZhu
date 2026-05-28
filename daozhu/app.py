@@ -67,7 +67,9 @@ def _mount_lightweight_workspaces(app: FastAPI):
 
             if hasattr(mod, 'app') and hasattr(mod.app, 'routes'):
                 # 挂载为子应用
-                app.mount(f"/ws/{ws.id}", mod.app)
+                # 注意：用 mount 挂载子 FastAPI app，路径前缀会自动处理
+                from starlette.routing import Mount
+                app.router.routes.insert(0, Mount(f"/ws/{ws.id}", app=mod.app))
                 ws.status = WorkspaceStatus.RUNNING
                 ws.port = 7788  # 共享主端口
         except Exception as e:
