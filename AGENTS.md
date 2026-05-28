@@ -365,6 +365,50 @@ ruff format .                   # format
 5. **文件精简** — 宁可多文件，不可单文件臃肿
 6. **配置不依赖路径** — 轻挂载用 `from daozhu.config_db import get_secret`；独立进程用平台 API
 
+## 打包与发布（v1.0+ 轻量启动器方案）
+
+### 架构
+
+```
+DaoZhu/
+├── 岛主DaoZhu.exe          # 启动器（PyInstaller 打包 launcher.py）
+├── vendor/
+│   ├── git/cmd/git.exe     # 便携版 MinGit（~45MB）
+│   └── uv/uv.exe           # uv 包管理器（~22MB）
+├── launcher.py             # 启动器源码
+├── build_launcher.py       # 打包启动器 exe
+├── pack_release.py         # 打包分发 zip
+├── scripts/publish_release.py  # 一键发布到 Gitee
+└── daozhu/                 # 项目源码
+```
+
+### 启动器工作流程
+
+```
+用户双击 exe
+  → 使用 vendor/git 执行 git pull（自动更新）
+  → 使用 vendor/uv 创建 .venv + 安装依赖
+  → 启动 uvicorn 服务 + 打开浏览器
+```
+
+### 发布命令
+
+```bash
+# 一键发布（打包 + 压缩 + 上传 Gitee Release）
+python scripts/publish_release.py v1.0.0
+
+# 或分步执行
+python build_launcher.py        # 打包启动器 exe
+python pack_release.py          # 打包分发 zip（含 vendor）
+```
+
+### 日常更新
+
+代码 push 到 Gitee 即可，用户下次启动 exe 自动 git pull 拉取最新。
+只有 `launcher.py` 本身改动时才需要重新打包 exe 并发新 Release。
+
+---
+
 ## 已知坑（开发时避免）
 
 | 坑 | 解决 |
