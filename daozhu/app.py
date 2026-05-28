@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI):
     await manager.shutdown()
 
 
-def _mount_lightweight_workspaces(app: FastAPI):
+def _mount_lightweight_workspaces(the_app: FastAPI):
     """将 mode=lightweight 的工作区挂载为主进程子路由"""
     import importlib.util
     import sys
@@ -55,8 +55,17 @@ def _mount_lightweight_workspaces(app: FastAPI):
         if not app_file.exists():
             continue
         try:
-            # 将工作区目录加入 sys.path（让内部 import 正常工作）
             ws_path_str = str(ws.path)
+
+            # 临时将工作区目录放到 sys.path 最前面
+            # 并在导入后保留（工作区运行时需要）
+            # 关键：清除可能被其他工作区污染的 routes 模块缓存
+            for mod_name in list(sys.modules.keys()):
+                if mod_name == "routes" or mod_name.startswith("routes."):
+                    del sys.modules[mod_name]
+                if mod_name == "db" or mod_name == "gitee_client":
+                    del sys.modules[mod_name]
+
             if ws_path_str not in sys.path:
                 sys.path.insert(0, ws_path_str)
 
@@ -66,16 +75,12 @@ def _mount_lightweight_workspaces(app: FastAPI):
             spec.loader.exec_module(mod)
 
             if hasattr(mod, 'app') and hasattr(mod.app, 'routes'):
-                # 挂载为子应用
-                # 注意：用 mount 挂载子 FastAPI app，路径前缀会自动处理
-                from starlette.routing import Mount
-                app.router.routes.insert(0, Mount(f"/ws/{ws.id}", app=mod.app))
+                the_app.mount(f"/ws/{ws.id}", mod.app)
                 ws.status = WorkspaceStatus.RUNNING
-                ws.port = 7788  # 共享主端口
+                ws.port = 7788
         except Exception as e:
             import logging
             logging.getLogger(__name__).warning(f"轻挂载 {ws.id} 失败: {e}")
-            # 挂载失败不阻塞平台，降级为 standard 模式
             ws.mode = "standard"
 
 
