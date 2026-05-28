@@ -156,7 +156,7 @@ const Panel = {
               const tools = JSON.parse(msg.content);
               const container = document.getElementById('chat-messages');
               const wrapper = document.createElement('div');
-              wrapper.className = 'message message--assistant';
+              wrapper.className = 'message message--assistant message--tool';
 
               const steps = tools.map(t => {
                 const icon = t.status === 'ok' ? '✅' : t.status === 'error' ? '❌' : '⏳';

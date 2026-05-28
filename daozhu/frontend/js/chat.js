@@ -100,7 +100,7 @@ const Chat = {
               const container = document.getElementById('chat-messages');
               if (!this._toolPanel) {
                 const wrapper = document.createElement('div');
-                wrapper.className = 'message message--assistant';
+                wrapper.className = 'message message--assistant message--tool';
                 wrapper.innerHTML = `
                   <div class="message__avatar">
                     <img src="/img/librarian.svg" alt="岛管理员" style="width:28px;height:28px;image-rendering:pixelated" class="librarian-avatar">
