@@ -237,6 +237,13 @@
   gap: 4px;
 }
 
+.statusbar__version {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  opacity: 0.7;
+  cursor: default;
+}
+
 .statusbar__connection::before {
   content: '';
   width: 6px;

@@ -311,6 +311,15 @@ const App = {
       info.textContent = '状态获取失败';
     });
 
+    // 加载版本号
+    fetch('/api/version').then(r => r.json()).then(data => {
+      const el = document.getElementById('status-version');
+      if (el && data.version) {
+        const hash = data.git_hash ? ` (${data.git_hash})` : '';
+        el.textContent = `v${data.version}${hash}`;
+      }
+    }).catch(() => {});
+
     // 加载岛名到顶栏
     fetch('/api/config').then(r => r.json()).then(data => {
       const name = data.config?.island_name;

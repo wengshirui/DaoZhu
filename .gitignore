@@ -24,3 +24,6 @@ Thumbs.db
 
 # Environment
 .env
+
+# Vendor binaries (bundled in release zip, not in git)
+vendor/

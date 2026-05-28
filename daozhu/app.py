@@ -500,6 +500,44 @@ async def chat_api(body: dict):
     )
 
 
+# === 版本 API ===
+@app.get("/api/version")
+async def get_version():
+    """获取项目版本号和 Git 信息"""
+    import subprocess
+    from .config import PLATFORM_ROOT
+
+    # 从 pyproject.toml 读取版本
+    version = "unknown"
+    toml_path = PLATFORM_ROOT / "pyproject.toml"
+    if toml_path.exists():
+        for line in toml_path.read_text(encoding="utf-8").splitlines():
+            if line.strip().startswith("version"):
+                version = line.split('"')[1]
+                break
+
+    # 尝试获取 Git 信息
+    git_hash = None
+    git_time = None
+    try:
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%h|%ci"],
+            cwd=PLATFORM_ROOT, capture_output=True, text=True, timeout=5,
+        )
+        if result.returncode == 0:
+            parts = result.stdout.strip().split("|", 1)
+            git_hash = parts[0]
+            git_time = parts[1] if len(parts) > 1 else None
+    except Exception:
+        pass
+
+    return {
+        "version": version,
+        "git_hash": git_hash,
+        "git_time": git_time,
+    }
+
+
 # === 配置 API ===
 @app.get("/api/config")
 async def get_config():
