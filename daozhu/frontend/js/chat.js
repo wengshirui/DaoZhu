@@ -78,12 +78,10 @@ const Chat = {
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      const msgEl = this._addMessageElement('assistant', '');
-      const bubble = msgEl.querySelector('.message__bubble');
-      let fullText = '';
-
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      let msgEl = null;
+      let bubble = null;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -97,7 +95,7 @@ const Chat = {
           try {
             const data = JSON.parse(line.slice(6));
             if (data.tool) {
-              // 工具调用状态行（简洁，参考 AccoBot）
+              // 工具调用状态行
               const container = document.getElementById('chat-messages');
               const toolLine = document.createElement('div');
               toolLine.className = 'tool-status-line';
@@ -127,6 +125,12 @@ const Chat = {
               continue;
             }
             if (data.chunk) {
+              // 收到文本 chunk 时，确保消息气泡在工具行之后
+              if (!msgEl) {
+                msgEl = this._addMessageElement('assistant', '');
+                bubble = msgEl.querySelector('.message__bubble');
+                fullText = '';
+              }
               fullText += data.chunk;
               bubble.textContent = fullText;
               this._scrollToBottom();
