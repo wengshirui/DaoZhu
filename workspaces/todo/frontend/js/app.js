@@ -173,7 +173,7 @@ const App = {
 
     const priority = document.getElementById('task-priority').value;
     const due_date = document.getElementById('task-due').value || null;
-    const project_id = this.currentProject || null;
+    const project_id = document.getElementById('task-project').value || (this.currentProject || null);
 
     await API.createTask({ title, priority, due_date, project_id });
     input.value = '';
@@ -254,6 +254,14 @@ const App = {
         </span>
       </div>
     `).join('');
+
+    // 填充新建任务的分类选择器
+    const projectSelect = document.getElementById('task-project');
+    if (projectSelect) {
+      projectSelect.innerHTML = this.projects.map((p, i) =>
+        `<option value="${p.id}" ${i === 0 ? 'selected' : ''}>${p.icon} ${p.name}</option>`
+      ).join('');
+    }
 
     // 绑定点击切换分类
     container.querySelectorAll('[data-project]').forEach(el => {

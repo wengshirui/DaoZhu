@@ -218,6 +218,25 @@
   border-radius: var(--radius);
   background: var(--bg-card);
   min-width: 130px;
+  cursor: pointer;
+}
+
+/* 让日期输入框点击任意位置都弹出日历 */
+.task-input__date::-webkit-calendar-picker-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: auto;
+  height: auto;
+  color: transparent;
+  background: transparent;
+  cursor: pointer;
+}
+
+.task-input__date {
+  position: relative;
 }
 
 .task-input__btn {
