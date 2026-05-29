@@ -4,13 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🐾 桌面宠物</title>
-    <link rel="stylesheet" href="/css/pet.css">
+    <link rel="stylesheet" href="/css/pet.css?v=3">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="app">
-        <!-- 顶部导航 -->
         <header class="header">
             <div class="header-left">
                 <div class="logo">
@@ -19,36 +18,40 @@
                 </div>
             </div>
             <nav class="nav-tabs">
-                <button class="nav-tab" data-tab="store">🛒 商店</button>
-                <button class="nav-tab active" data-tab="my-pets">🐾 我的宠物</button>
+                <button class="nav-tab active" data-tab="store">🛒 商店</button>
+                <button class="nav-tab" data-tab="my-pets">🐾 我的宠物</button>
                 <button class="nav-tab" data-tab="interact">🎮 互动</button>
             </nav>
+            <div class="header-right">
+                <span class="pet-count" id="pet-count">0 只宠物</span>
+            </div>
         </header>
 
-        <!-- 商店页（iframe 嵌入 codex-pet.org） -->
-        <section id="page-store" class="page">
-            <div class="store-download-bar">
-                <p class="hint">在下方网页中浏览宠物，找到喜欢的后复制宠物名称，粘贴到这里下载：</p>
-                <div class="download-row">
-                    <input type="text" id="download-name" placeholder="输入宠物名称，如 ikkun" />
-                    <button class="btn-primary" id="btn-download">下载到本地</button>
+        <!-- 商店页 -->
+        <section id="page-store" class="page active">
+            <div class="store-toolbar">
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="搜索宠物名称..." />
                 </div>
-                <div class="download-status" id="download-status"></div>
+                <div class="toolbar-right">
+                    <button class="btn-ghost" id="btn-refresh">↻ 刷新目录</button>
+                    <span class="total-label" id="total-label"></span>
+                </div>
             </div>
-            <div class="store-iframe-wrap">
-                <iframe id="store-iframe" src="https://codex-pet.org/zh/#gallery"
-                        sandbox="allow-scripts allow-same-origin allow-popups"
-                        loading="lazy"></iframe>
+            <div class="kind-bar" id="kind-bar"></div>
+            <div class="gallery-grid" id="gallery-grid">
+                <div class="empty-hint"><p>点击「刷新目录」加载 Petdex 2700+ 宠物</p></div>
             </div>
+            <div class="pagination" id="pagination"></div>
         </section>
 
         <!-- 我的宠物页 -->
-        <section id="page-my-pets" class="page active">
+        <section id="page-my-pets" class="page">
             <div class="active-pet-stage" id="active-stage" style="display:none;">
                 <canvas id="pet-canvas" width="192" height="208"></canvas>
                 <div class="active-pet-info">
                     <h3 id="active-pet-name"></h3>
-                    <div class="status-bars" id="status-bars">
+                    <div class="status-bars">
                         <div class="stat-row"><span class="stat-emoji">🍖</span><div class="stat-track"><div class="stat-fill hunger" id="bar-hunger"></div></div><span class="stat-num" id="val-hunger">100</span></div>
                         <div class="stat-row"><span class="stat-emoji">💧</span><div class="stat-track"><div class="stat-fill thirst" id="bar-thirst"></div></div><span class="stat-num" id="val-thirst">100</span></div>
                         <div class="stat-row"><span class="stat-emoji">💛</span><div class="stat-track"><div class="stat-fill happiness" id="bar-happiness"></div></div><span class="stat-num" id="val-happiness">100</span></div>
@@ -57,10 +60,7 @@
                 </div>
             </div>
             <div class="my-pets-grid" id="my-pets-grid">
-                <div class="empty-hint">
-                    <p>还没有宠物</p>
-                    <p class="sub">去商店浏览并下载一只吧 →</p>
-                </div>
+                <div class="empty-hint"><p>还没有宠物</p><p class="sub">去商店领养一只吧 →</p></div>
             </div>
         </section>
 
@@ -79,8 +79,8 @@
         </section>
     </div>
 
-    <script src="/js/api.js?v=2"></script>
-    <script src="/js/renderer.js?v=2"></script>
-    <script src="/js/app.js?v=2"></script>
+    <script src="/js/api.js?v=3"></script>
+    <script src="/js/renderer.js?v=3"></script>
+    <script src="/js/app.js?v=3"></script>
 </body>
 </html>

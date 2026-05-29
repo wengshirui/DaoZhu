@@ -1,10 +1,23 @@
 /**
- * 桌面宠物 — API 封装
+ * 桌面宠物 — API 封装 v3
  */
 const PetAPI = {
-    // === 商店（下载） ===
-    async downloadPet(name) {
-        const res = await fetch(`/api/store/download?name=${encodeURIComponent(name)}`, { method: 'POST' });
+    // === 商店 ===
+    async getManifest(page = 1, kind = '') {
+        const params = new URLSearchParams({ page, per_page: 24 });
+        if (kind) params.set('kind', kind);
+        const res = await fetch(`/api/store/manifest?${params}`);
+        if (!res.ok) throw new Error('加载失败');
+        return res.json();
+    },
+
+    async refreshManifest() {
+        const res = await fetch('/api/store/refresh', { method: 'POST' });
+        return res.json();
+    },
+
+    async downloadPet(slug) {
+        const res = await fetch(`/api/store/download?slug=${encodeURIComponent(slug)}`, { method: 'POST' });
         if (!res.ok) {
             const err = await res.json();
             throw new Error(err.detail || '下载失败');
@@ -12,8 +25,14 @@ const PetAPI = {
         return res.json();
     },
 
-    async listLocalPets() {
-        const res = await fetch('/api/store/local');
+    async searchPets(q) {
+        const res = await fetch(`/api/store/search?q=${encodeURIComponent(q)}`);
+        return res.json();
+    },
+
+    async getKinds() {
+        const res = await fetch('/api/store/kinds');
+        if (!res.ok) return [];
         return res.json();
     },
 

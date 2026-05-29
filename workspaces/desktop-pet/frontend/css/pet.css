@@ -119,15 +119,91 @@ body {
 .download-status.success { color: var(--green); }
 .download-status.error { color: var(--red); }
 
-.store-iframe-wrap {
-    flex: 1; margin-top: 12px; border-radius: var(--radius);
-    overflow: hidden; border: 1px solid var(--border);
+/* === Kind filter bar === */
+.kind-bar {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    margin-bottom: 16px; padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
 }
 
-.store-iframe-wrap iframe {
-    width: 100%; height: 100%; border: none;
-    background: #111;
+.kind-chip {
+    font-size: 12px; padding: 5px 12px;
+    background: var(--bg-surface); color: var(--text-dim);
+    border: 1px solid var(--border); border-radius: 16px;
+    cursor: pointer; transition: all 0.15s;
 }
+
+.kind-chip:hover { border-color: var(--accent); color: var(--accent-light); }
+.kind-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* === Gallery Grid === */
+.store-toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 14px 0; flex-shrink: 0;
+}
+
+.search-box { flex: 1; max-width: 300px; }
+.search-box input {
+    width: 100%; padding: 9px 14px; background: var(--bg-surface);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text); font-size: 13px; outline: none;
+}
+.search-box input:focus { border-color: var(--accent); }
+
+.toolbar-right { display: flex; align-items: center; gap: 12px; }
+
+.btn-ghost {
+    font-size: 13px; padding: 8px 14px; background: transparent;
+    color: var(--text-dim); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s;
+}
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+.btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.total-label { font-size: 12px; color: var(--text-muted); }
+
+.pet-count { font-size: 12px; color: var(--text-muted); background: var(--bg-surface); padding: 4px 10px; border-radius: 12px; }
+
+.gallery-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px; margin-bottom: 20px; overflow-y: auto; flex: 1;
+}
+
+.pet-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden; transition: all 0.2s;
+}
+.pet-card:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+
+.card-preview {
+    background: #0a0a14; display: flex; align-items: center;
+    justify-content: center; height: 120px; overflow: hidden;
+}
+.card-preview canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+.card-body { padding: 12px; }
+.card-title { font-family: var(--font-pixel); font-size: 10px; color: var(--text); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
+.card-kind { background: rgba(124,92,252,0.1); color: var(--accent-light); padding: 1px 6px; border-radius: 8px; font-size: 10px; }
+
+.btn-adopt {
+    width: 100%; padding: 7px; background: var(--accent); color: #fff;
+    border: none; border-radius: 6px; font-size: 12px; font-weight: 500;
+    cursor: pointer; transition: all 0.15s;
+}
+.btn-adopt:hover { background: var(--accent-light); }
+.btn-adopt:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-adopt.adopted { background: var(--green); }
+
+.pagination { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 0; flex-shrink: 0; }
+.page-btn {
+    font-size: 13px; padding: 7px 14px; background: var(--bg-surface);
+    color: var(--text-dim); border: 1px solid var(--border); border-radius: 6px;
+    cursor: pointer; transition: all 0.15s;
+}
+.page-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.page-info { font-size: 12px; color: var(--text-muted); }
 
 /* === 我的宠物页 === */
 #page-my-pets { overflow-y: auto; padding: 16px 0; }
