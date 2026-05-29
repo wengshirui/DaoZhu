@@ -340,7 +340,7 @@ async def agent_chat_stream(
                         _tool_error = None
                         try:
                             r = json.loads(result)
-                            if r.get("error"):
+                            if isinstance(r, dict) and r.get("error"):
                                 _tool_success = False
                                 _tool_error = r["error"][:200]
                         except (json.JSONDecodeError, TypeError):
@@ -361,7 +361,7 @@ async def agent_chat_stream(
                         # 连续失败检测
                         try:
                             r = json.loads(result)
-                            if r.get("error"):
+                            if isinstance(r, dict) and r.get("error"):
                                 _consecutive_failures[tool_name] = _consecutive_failures.get(tool_name, 0) + 1
 
                                 # 自我优化：记录失败教训到 knowledge
@@ -386,7 +386,7 @@ async def agent_chat_stream(
                         # 推送工具结果状态
                         try:
                             r = json.loads(result)
-                            if r.get("error"):
+                            if isinstance(r, dict) and r.get("error"):
                                 yield f"[TOOL_ERR:{tool_name}:{r['error'][:50]}]"
                             else:
                                 yield f"[TOOL_OK:{tool_name}]"
