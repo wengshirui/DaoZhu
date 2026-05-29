@@ -1,6 +1,6 @@
 /**
  * 桌面宠物 — Spritesheet 动画渲染器
- * 兼容 Codex Pet 格式（8列×9行 spritesheet）
+ * 使用 requestAnimationFrame 驱动，平滑无跳帧
  */
 class PetRenderer {
     constructor(canvas, options = {}) {
@@ -9,14 +9,17 @@ class PetRenderer {
         this.spritesheet = null;
         this.frameWidth = options.frameWidth || 192;
         this.frameHeight = options.frameHeight || 208;
-        this.columns = options.columns || 8;
-        this.rows = options.rows || 9;
-        this.fps = options.fps || 5;
+        this.columns = options.columns || 9;
+        this.rows = options.rows || 8;
+        this.fps = options.fps || 4;
         this.scale = options.scale || 1;
 
         this.currentRow = 0;
         this.currentFrame = 0;
-        this.animTimer = null;
+        this.playing = false;
+        this.rafId = null;
+        this.lastFrameTime = 0;
+        this.frameInterval = 1000 / this.fps;
         this.loaded = false;
     }
 
@@ -31,8 +34,9 @@ class PetRenderer {
                     this.frameWidth = Math.floor(img.width / this.columns);
                     this.frameHeight = Math.floor(img.height / this.rows);
                 }
-                // 不改变 canvas 尺寸（由外部预设），只确保像素锐利
                 this.ctx.imageSmoothingEnabled = false;
+                // 立即渲染第一帧（无闪烁）
+                this.render();
                 resolve();
             };
             img.onerror = () => reject(new Error('加载失败'));
@@ -41,18 +45,31 @@ class PetRenderer {
     }
 
     play() {
-        if (this.animTimer) return;
-        this.animTimer = setInterval(() => {
-            this.currentFrame = (this.currentFrame + 1) % this.columns;
-            this.render();
-        }, 1000 / this.fps);
-        this.render();
+        if (this.playing) return;
+        this.playing = true;
+        this.lastFrameTime = performance.now();
+        this._tick();
+    }
+
+    _tick() {
+        if (!this.playing) return;
+        this.rafId = requestAnimationFrame((now) => {
+            if (!this.playing) return;
+            const elapsed = now - this.lastFrameTime;
+            if (elapsed >= this.frameInterval) {
+                this.currentFrame = (this.currentFrame + 1) % this.columns;
+                this.render();
+                this.lastFrameTime = now - (elapsed % this.frameInterval);
+            }
+            this._tick();
+        });
     }
 
     stop() {
-        if (this.animTimer) {
-            clearInterval(this.animTimer);
-            this.animTimer = null;
+        this.playing = false;
+        if (this.rafId) {
+            cancelAnimationFrame(this.rafId);
+            this.rafId = null;
         }
     }
 
@@ -60,6 +77,7 @@ class PetRenderer {
         if (row >= 0 && row < this.rows) {
             this.currentRow = row;
             this.currentFrame = 0;
+            if (this.loaded) this.render();
         }
     }
 
@@ -75,22 +93,30 @@ class PetRenderer {
     playOnce(row, callback) {
         const prevRow = this.currentRow;
         this.setState(row);
-        this.currentFrame = 0;
         let framesPlayed = 0;
-        const onceTimer = setInterval(() => {
+        const origFps = this.fps;
+        // 临时用稍快的帧率播放一次性动画
+        this.fps = 6;
+        this.frameInterval = 1000 / this.fps;
+        const checkDone = () => {
             framesPlayed++;
             if (framesPlayed >= this.columns) {
-                clearInterval(onceTimer);
+                this.fps = origFps;
+                this.frameInterval = 1000 / this.fps;
                 this.setState(prevRow);
                 if (callback) callback();
             }
-        }, 1000 / this.fps);
+        };
+        // 监听帧变化
+        this._onceCallback = checkDone;
     }
 
     render() {
         if (!this.loaded || !this.spritesheet) return;
         const w = this.canvas.width;
         const h = this.canvas.height;
+        // 直接绘制，不 clearRect（spritesheet 帧本身有透明背景会自动覆盖）
+        // 但为了安全还是清一下
         this.ctx.clearRect(0, 0, w, h);
         this.ctx.drawImage(
             this.spritesheet,
@@ -99,41 +125,50 @@ class PetRenderer {
             this.frameWidth, this.frameHeight,
             0, 0, w, h
         );
+        // 一次性动画回调
+        if (this._onceCallback) {
+            this._onceCallback();
+        }
     }
 
     destroy() {
         this.stop();
         this.spritesheet = null;
         this.loaded = false;
+        this._onceCallback = null;
     }
 }
 
 /**
- * 快速创建一个预览渲染器（用于商店卡片）
- * 远程 URL 通过后端代理加载（解决 CORS），本地路径直接加载
+ * 创建预览渲染器（商店卡片用）
  */
 function createPreviewRenderer(canvas, spritesheetUrl, scale = 0.5) {
-    // 预设 canvas 尺寸（避免加载后尺寸变化导致闪烁）
-    canvas.width = Math.round(192 * scale);
-    canvas.height = Math.round(208 * scale);
-    canvas.getContext('2d').imageSmoothingEnabled = false;
+    // 预设固定尺寸
+    const w = Math.round(192 * scale);
+    const h = Math.round(208 * scale);
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    // 先画一个淡色占位背景
+    ctx.fillStyle = '#eaf1ff';
+    ctx.fillRect(0, 0, w, h);
 
-    const renderer = new PetRenderer(canvas, { fps: 3, scale });
+    const renderer = new PetRenderer(canvas, { fps: 4, scale });
     let loadUrl = spritesheetUrl;
-    // 远程 URL 走代理
     if (spritesheetUrl.startsWith('http')) {
         loadUrl = `/api/proxy/spritesheet?url=${encodeURIComponent(spritesheetUrl)}`;
     }
-    renderer.load(loadUrl).then(() => renderer.play()).catch(() => {
-        const ctx = canvas.getContext('2d');
-        canvas.width = Math.round(192 * scale);
-        canvas.height = Math.round(208 * scale);
-        ctx.fillStyle = '#12122a';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.font = '24px serif';
+    renderer.load(loadUrl).then(() => {
+        renderer.play();
+    }).catch(() => {
+        // 加载失败保持占位
+        ctx.fillStyle = '#eaf1ff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.font = '20px serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('🐾', canvas.width / 2, canvas.height / 2);
+        ctx.fillText('🐾', w / 2, h / 2);
     });
     return renderer;
 }
