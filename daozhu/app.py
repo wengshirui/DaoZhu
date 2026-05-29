@@ -242,6 +242,11 @@ app.mount("/css", StaticFiles(directory=FRONTEND_DIR / "css"), name="css")
 app.mount("/js", StaticFiles(directory=FRONTEND_DIR / "js"), name="js")
 app.mount("/img", StaticFiles(directory=FRONTEND_DIR / "img"), name="img")
 
+# 宠物资源（供主界面浮动宠物加载 spritesheet）
+_pets_dir = Path(__file__).parent.parent / "workspaces" / "desktop-pet" / "pets"
+if _pets_dir.exists():
+    app.mount("/pets", StaticFiles(directory=_pets_dir), name="pet_assets")
+
 
 # === 工作区 API ===
 @app.get("/api/workspaces")
@@ -620,6 +625,42 @@ async def get_memory_knowledge(q: str = ""):
 async def get_skill_stats_api():
     """获取 skill 使用统计"""
     return {"stats": get_skill_stats(), "stale": get_stale_skills()}
+
+
+# === 宠物 API（供主界面浮动宠物使用） ===
+@app.get("/api/pet/active")
+async def get_active_pet():
+    """获取当前活跃宠物的 spritesheet 信息（供主界面浮动宠物渲染）"""
+    from .config import PLATFORM_ROOT
+    import sqlite3
+
+    pet_db = PLATFORM_ROOT / "workspaces" / "desktop-pet" / "data.db"
+    if not pet_db.exists():
+        return {"pet": None}
+
+    try:
+        conn = sqlite3.connect(str(pet_db))
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT id, name, display_name, local_path FROM pets WHERE is_active = 1 LIMIT 1"
+        ).fetchone()
+        conn.close()
+
+        if not row:
+            return {"pet": None}
+
+        # 构建 spritesheet URL（通过工作区静态文件服务）
+        name = row["name"]
+        return {
+            "pet": {
+                "id": row["id"],
+                "name": name,
+                "displayName": row["display_name"] or name,
+                "spritesheetUrl": f"/pets/{name}/spritesheet.webp",
+            }
+        }
+    except Exception:
+        return {"pet": None}
 
 
 if __name__ == "__main__":
