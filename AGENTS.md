@@ -132,6 +132,8 @@ ruff check . && ruff format .   # lint + format
 | 工具连续失败无限循环 | 连续 2 次失败后注入 hint |
 | 前端 API 路径轻挂载后 404 | 用动态 `API_BASE` |
 | 前端反复调试不成功 | 去看开源项目怎么做，直接复用 |
+| Agent 不知道新工作区的 API | 系统提示动态注入工作区列表（agent.py 自动扫描） |
+| tool_call 消息发给 LLM 报 400 | 构建历史时过滤非 user/assistant 角色 |
 
 ---
 

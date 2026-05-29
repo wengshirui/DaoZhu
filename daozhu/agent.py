@@ -223,6 +223,16 @@ async def agent_chat_stream(
     if skills_summary:
         system_content += "\n\n" + skills_summary
 
+    # 动态注入工作区列表（让 Agent 知道可以操作哪些工作区）
+    from .workspace_manager import manager
+    ws_lines = []
+    for ws in manager.workspaces.values():
+        if ws.hidden:
+            continue
+        ws_lines.append(f"  - {ws.id}: {ws.name}（端口 {ws.port}）")
+    if ws_lines:
+        system_content += "\n\n[当前可用工作区（用 call_workspace_api 操作）：]\n" + "\n".join(ws_lines)
+
     # 注入使用统计（触发优化建议）
     stats_context = _build_stats_context()
     if stats_context:
