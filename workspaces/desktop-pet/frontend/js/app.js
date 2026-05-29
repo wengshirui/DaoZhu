@@ -7,7 +7,6 @@
     let activePet = null;
     let mainRenderer = null;
     let interactRenderer = null;
-    let cardRenderers = [];
     let currentPage = 1;
     let currentKind = '';
 
@@ -143,18 +142,14 @@
     }
 
     function renderGallery(items) {
-        cardRenderers.forEach(r => r.destroy());
-        cardRenderers = [];
         const grid = $('#gallery-grid');
         if (!items || items.length === 0) {
             grid.innerHTML = '<div class="empty-hint"><p>没有找到宠物</p></div>';
             return;
         }
-        grid.innerHTML = items.map((p, i) => `
+        grid.innerHTML = items.map((p) => `
             <div class="pet-card" data-slug="${p.slug}">
-                <div class="card-preview">
-                    <canvas id="preview-${i}" width="96" height="104"></canvas>
-                </div>
+                <div class="card-preview" data-url="${p.spritesheetUrl || ''}"></div>
                 <div class="card-body">
                     <div class="card-title">${p.displayName || p.slug}</div>
                     <div class="card-meta">
@@ -166,14 +161,11 @@
             </div>
         `).join('');
 
-        // 加载 spritesheet 动画预览（通过代理）
-        items.forEach((p, i) => {
-            if (p.spritesheetUrl) {
-                const canvas = document.getElementById(`preview-${i}`);
-                if (canvas) {
-                    const r = createPreviewRenderer(canvas, p.spritesheetUrl, 0.5);
-                    cardRenderers.push(r);
-                }
+        // 纯 CSS sprite 动画（零 JS 定时器，零闪烁）
+        grid.querySelectorAll('.card-preview').forEach(container => {
+            const url = container.dataset.url;
+            if (url) {
+                createSpritePreview(container, url, { width: 128, height: 139, columns: 9, rows: 8, fps: 4 });
             }
         });
 

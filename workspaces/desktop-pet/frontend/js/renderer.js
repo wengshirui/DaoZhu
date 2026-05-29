@@ -1,6 +1,78 @@
 /**
  * 桌面宠物 — Spritesheet 动画渲染器
- * 使用 requestAnimationFrame 驱动，平滑无跳帧
+ * 使用纯 CSS background-position + steps() 动画（参考 codex-pet.org）
+ * 零 Canvas、零 JS 定时器、零闪烁
+ */
+
+/**
+ * 为商店卡片创建 CSS sprite 动画预览
+ * @param {HTMLElement} container - 预览容器 div
+ * @param {string} spritesheetUrl - spritesheet 图片 URL
+ * @param {object} options - { width, height, columns, rows, fps }
+ */
+function createSpritePreview(container, spritesheetUrl, options = {}) {
+    const cols = options.columns || 9;
+    const rows = options.rows || 8;
+    const fps = options.fps || 4;
+    const width = options.width || 128;
+    const height = options.height || 139;
+
+    // 远程 URL 走代理
+    let imgUrl = spritesheetUrl;
+    if (spritesheetUrl.startsWith('http')) {
+        imgUrl = `/api/proxy/spritesheet?url=${encodeURIComponent(spritesheetUrl)}`;
+    }
+
+    // 创建 sprite 元素
+    const sprite = document.createElement('span');
+    sprite.className = 'sprite-anim';
+    sprite.style.display = 'inline-block';
+    sprite.style.width = width + 'px';
+    sprite.style.height = height + 'px';
+    sprite.style.backgroundImage = `url("${imgUrl}")`;
+    sprite.style.backgroundSize = `${cols * 100}% ${rows * 100}%`;
+    sprite.style.backgroundPosition = '0 0';
+    sprite.style.backgroundRepeat = 'no-repeat';
+    sprite.style.imageRendering = 'pixelated';
+
+    // 动画：只播放第一行（idle），cols 帧循环
+    const duration = cols / fps; // 秒
+    sprite.style.animation = `sprite-row-${cols} ${duration}s steps(${cols}) infinite`;
+
+    container.innerHTML = '';
+    container.appendChild(sprite);
+
+    return sprite;
+}
+
+/**
+ * 注入全局 CSS keyframes（只需一次）
+ */
+(function injectKeyframes() {
+    if (document.getElementById('sprite-keyframes')) return;
+    const style = document.createElement('style');
+    style.id = 'sprite-keyframes';
+    // 为不同列数生成 keyframes
+    style.textContent = `
+        @keyframes sprite-row-8 {
+            from { background-position-x: 0; }
+            to { background-position-x: -800%; }
+        }
+        @keyframes sprite-row-9 {
+            from { background-position-x: 0; }
+            to { background-position-x: -900%; }
+        }
+        .sprite-anim {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+    `;
+    document.head.appendChild(style);
+})();
+
+
+/**
+ * Canvas 渲染器（用于互动页大画面，需要动态切换状态行）
  */
 class PetRenderer {
     constructor(canvas, options = {}) {
@@ -19,7 +91,6 @@ class PetRenderer {
         this.playing = false;
         this.rafId = null;
         this.lastFrameTime = 0;
-        this.frameInterval = 1000 / this.fps;
         this.loaded = false;
     }
 
@@ -34,8 +105,9 @@ class PetRenderer {
                     this.frameWidth = Math.floor(img.width / this.columns);
                     this.frameHeight = Math.floor(img.height / this.rows);
                 }
+                this.canvas.width = Math.round(this.frameWidth * this.scale);
+                this.canvas.height = Math.round(this.frameHeight * this.scale);
                 this.ctx.imageSmoothingEnabled = false;
-                // 立即渲染第一帧（无闪烁）
                 this.render();
                 resolve();
             };
@@ -56,10 +128,11 @@ class PetRenderer {
         this.rafId = requestAnimationFrame((now) => {
             if (!this.playing) return;
             const elapsed = now - this.lastFrameTime;
-            if (elapsed >= this.frameInterval) {
+            const interval = 1000 / this.fps;
+            if (elapsed >= interval) {
                 this.currentFrame = (this.currentFrame + 1) % this.columns;
                 this.render();
-                this.lastFrameTime = now - (elapsed % this.frameInterval);
+                this.lastFrameTime = now - (elapsed % interval);
             }
             this._tick();
         });
@@ -84,39 +157,31 @@ class PetRenderer {
     setStateFromStatus(status) {
         if (!status) { this.setState(0); return; }
         const { hunger, thirst, happiness } = status;
-        if (hunger !== undefined && hunger < 30) { this.setState(2); return; }
-        if (thirst !== undefined && thirst < 30) { this.setState(3); return; }
-        if (happiness !== undefined && happiness > 80) { this.setState(1); return; }
+        if (hunger !== undefined && hunger < 30) { this.setState(3); return; }
+        if (thirst !== undefined && thirst < 30) { this.setState(4); return; }
+        if (happiness !== undefined && happiness > 80) { this.setState(5); return; }
         this.setState(0);
     }
 
     playOnce(row, callback) {
         const prevRow = this.currentRow;
         this.setState(row);
-        let framesPlayed = 0;
-        const origFps = this.fps;
-        // 临时用稍快的帧率播放一次性动画
-        this.fps = 6;
-        this.frameInterval = 1000 / this.fps;
-        const checkDone = () => {
-            framesPlayed++;
-            if (framesPlayed >= this.columns) {
-                this.fps = origFps;
-                this.frameInterval = 1000 / this.fps;
+        let count = 0;
+        const check = () => {
+            count++;
+            if (count >= this.columns) {
                 this.setState(prevRow);
                 if (callback) callback();
+                this._onFrame = null;
             }
         };
-        // 监听帧变化
-        this._onceCallback = checkDone;
+        this._onFrame = check;
     }
 
     render() {
         if (!this.loaded || !this.spritesheet) return;
         const w = this.canvas.width;
         const h = this.canvas.height;
-        // 直接绘制，不 clearRect（spritesheet 帧本身有透明背景会自动覆盖）
-        // 但为了安全还是清一下
         this.ctx.clearRect(0, 0, w, h);
         this.ctx.drawImage(
             this.spritesheet,
@@ -125,50 +190,13 @@ class PetRenderer {
             this.frameWidth, this.frameHeight,
             0, 0, w, h
         );
-        // 一次性动画回调
-        if (this._onceCallback) {
-            this._onceCallback();
-        }
+        if (this._onFrame) this._onFrame();
     }
 
     destroy() {
         this.stop();
         this.spritesheet = null;
         this.loaded = false;
-        this._onceCallback = null;
+        this._onFrame = null;
     }
-}
-
-/**
- * 创建预览渲染器（商店卡片用）
- */
-function createPreviewRenderer(canvas, spritesheetUrl, scale = 0.5) {
-    // 预设固定尺寸
-    const w = Math.round(192 * scale);
-    const h = Math.round(208 * scale);
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = false;
-    // 先画一个淡色占位背景
-    ctx.fillStyle = '#eaf1ff';
-    ctx.fillRect(0, 0, w, h);
-
-    const renderer = new PetRenderer(canvas, { fps: 4, scale });
-    let loadUrl = spritesheetUrl;
-    if (spritesheetUrl.startsWith('http')) {
-        loadUrl = `/api/proxy/spritesheet?url=${encodeURIComponent(spritesheetUrl)}`;
-    }
-    renderer.load(loadUrl).then(() => {
-        renderer.play();
-    }).catch(() => {
-        // 加载失败保持占位
-        ctx.fillStyle = '#eaf1ff';
-        ctx.fillRect(0, 0, w, h);
-        ctx.font = '20px serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('🐾', w / 2, h / 2);
-    });
-    return renderer;
 }
