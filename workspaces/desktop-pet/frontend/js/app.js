@@ -19,6 +19,7 @@
         setupSearch();
         setupActions();
         await loadStore();
+        // loadKinds 不触发 loadStore，只渲染分类按钮
         await loadKinds();
         await loadMyPets();
         await loadActivePet();
@@ -87,7 +88,11 @@
         try {
             const result = await PetAPI.refreshManifest();
             if (result.success) {
-                await loadStore(1);
+                // 刷新成功后重新加载商店和分类
+                const data = await PetAPI.getManifest(1, currentKind);
+                renderGallery(data.items);
+                renderPagination(data);
+                $('#total-label').textContent = `${data.total} 只宠物`;
                 await loadKinds();
             } else {
                 grid.innerHTML = '<div class="empty-hint"><div class="icon">📡</div><p>无法连接 Petdex 服务</p><p class="sub">请检查网络后点击刷新</p></div>';
@@ -124,7 +129,10 @@
         try {
             const result = await PetAPI.refreshManifest();
             if (result.success) {
-                await loadStore();
+                const data = await PetAPI.getManifest(1, currentKind);
+                renderGallery(data.items);
+                renderPagination(data);
+                $('#total-label').textContent = `${data.total} 只宠物`;
                 await loadKinds();
             } else {
                 alert(result.message || '刷新失败');
