@@ -1,6 +1,6 @@
 # 052 — 桌面宠物工作区
 
-> 状态: 🆕 待开发
+> 状态: 🚧 Phase 1 已完成骨架，待修复 bug
 > 优先级: P0
 > T-shirt Size: L — 新工作区 + 桌面应用（PySide6）+ 开源资源集成 + 跨界面穿梭机制
 > 录入日期: 2026-05-29
@@ -333,17 +333,49 @@ CREATE TABLE accessories (
 
 ## 开发计划
 
-| 阶段 | 内容 | 预估 |
-|------|------|------|
-| Step 1 | 工作区骨架 + 宠物商店（浏览 petdex 列表） | 1 天 |
-| Step 2 | 下载宠物 + 我的宠物管理 | 0.5 天 |
-| Step 3 | Web 端 spritesheet 渲染器 | 0.5 天 |
-| Step 4 | 状态系统 + 互动（喂食/喂水） | 1 天 |
-| Step 5 | 岛主主界面宠物叠加层（Phase 1 穿梭） | 1 天 |
-| Step 6 | PySide6 桌面透明窗口（Phase 2） | 2 天 |
-| Step 7 | 系统托盘 + 桌面伴侣整合 | 1 天 |
+| 阶段 | 内容 | 预估 | 状态 |
+|------|------|------|------|
+| Step 1 | 工作区骨架 + 后端 API（商店/宠物/互动） | 1 天 | ✅ 完成 |
+| Step 2 | 前端 HTML/CSS/JS + spritesheet 渲染器 | 1 天 | ✅ 完成 |
+| Step 3 | 对接 codex-pet.org 真实数据 + 后端代理 | 0.5 天 | ✅ 完成 |
+| Step 4 | 前端 bug 修复 + 视觉打磨 | 0.5 天 | 🚧 待做 |
+| Step 5 | 宠物下载 + 本地管理完善 | 0.5 天 | 待做 |
+| Step 6 | 岛主主界面宠物叠加层（Phase 1 穿梭） | 1 天 | 待做 |
+| Step 7 | PySide6 桌面透明窗口（Phase 2） | 2 天 | 待做 |
+| Step 8 | 系统托盘 + 桌面伴侣整合 | 1 天 | 待做 |
 
-**总计：约 7 天**
+**已完成：Step 1-3（约 2.5 天）**
+**剩余：Step 4-8（约 5 天）**
+
+### 已完成内容（2026-05-29）
+
+**后端（完整可用）：**
+- `app.py` — FastAPI 入口，端口 7805，含 spritesheet 代理
+- `db.py` — SQLite 连接工具
+- `schema.sql` — 4 张表（pets/pet_state/interactions/settings）
+- `routes/store.py` — 商店 API（目录/标签/搜索/刷新/下载）
+- `routes/pets.py` — 宠物 CRUD + 状态衰减计算
+- `routes/interact.py` — 互动 API（喂食/喂水/抚摸/玩耍）
+- `/api/proxy/spritesheet` — 代理远程 spritesheet（绕过 CORS）
+
+**前端（基本可用，待打磨）：**
+- `index.html` — 三页面结构（宠物库/我的宠物/互动）
+- `css/pet.css` — Codex Pet Gallery 风格暗色主题
+- `js/api.js` — API 封装层
+- `js/renderer.js` — Spritesheet 动画渲染器 + 代理加载
+- `js/app.js` — 主逻辑（Tab/商店/宠物管理/互动/状态条）
+
+**数据源：**
+- 内置 12 只热门宠物（含真实 assets.codex-pet.org spritesheet URL）--全部下载下来
+- 支持"刷新"从 codex-pet.org 爬取更多宠物
+- 标签筛选 + 搜索 + 分页
+
+### 已知问题
+
+- [ ] 旧进程缓存导致需要手动清理 `__pycache__` 后重启
+- [ ] workspace.json 中 `start_mode` 需要与岛主平台对接
+- [ ] 刷新按钮爬取逻辑需要更健壮的 HTML 解析
+- [ ] 前端卡片在 spritesheet 加载慢时无 loading 状态提示
 
 ---
 

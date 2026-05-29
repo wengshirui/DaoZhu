@@ -111,12 +111,12 @@ class PetRenderer {
 
 /**
  * 快速创建一个预览渲染器（用于商店卡片）
- * 远程 URL 通过后端代理加载（绕过 CORS）
+ * 本地路径直接加载，远程 URL 走后端代理（绕过 CORS）
  */
 function createPreviewRenderer(canvas, spritesheetUrl, scale = 0.5) {
     const renderer = new PetRenderer(canvas, { fps: 6, scale });
-    // 远程 URL 走代理
     let loadUrl = spritesheetUrl;
+    // 只有远程 URL 才走代理，本地路径直接加载
     if (spritesheetUrl.startsWith('https://assets.codex-pet.org/')) {
         loadUrl = `/api/proxy/spritesheet?url=${encodeURIComponent(spritesheetUrl)}`;
     }

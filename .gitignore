@@ -28,5 +28,8 @@ Thumbs.db
 # Vendor binaries (bundled in release zip, not in git)
 vendor/
 
+# Pet spritesheet assets (downloaded at runtime, too large for git)
+workspaces/desktop-pet/pets/
+
 # PyInstaller temp
 *.spec

@@ -231,8 +231,9 @@ def _load_catalog() -> list:
 
 
 def _builtin_catalog() -> list:
-    """内置热门宠物列表（离线可用，含真实 spritesheet URL）"""
-    return [
+    """内置宠物列表 — 优先使用本地已下载的资源"""
+    local_pets = _scan_local_pets()
+    remote_pets = [
         {
             "name": "ikkun",
             "display_name": "ikkun",
@@ -342,3 +343,44 @@ def _builtin_catalog() -> list:
             "tags": ["Pet", "Fantasy"],
         },
     ]
+
+    # 本地已有的宠物用本地路径，排在前面
+    result = []
+    local_names = {p["name"] for p in local_pets}
+    for p in local_pets:
+        result.append(p)
+    for p in remote_pets:
+        if p["name"] not in local_names:
+            result.append(p)
+    return result
+
+
+def _scan_local_pets() -> list:
+    """扫描本地 pets/ 目录中已下载的宠物"""
+    pets = []
+    if not PETS_DIR.exists():
+        return pets
+    for pet_dir in PETS_DIR.iterdir():
+        if not pet_dir.is_dir() or pet_dir.name.startswith("_"):
+            continue
+        pet_json_path = pet_dir / "pet.json"
+        spritesheet_path = pet_dir / "spritesheet.webp"
+        if not spritesheet_path.exists():
+            continue
+        meta = {}
+        if pet_json_path.exists():
+            try:
+                meta = json.loads(pet_json_path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, IOError):
+                pass
+        pets.append({
+            "name": pet_dir.name,
+            "display_name": meta.get("name", pet_dir.name),
+            "description": meta.get("description", ""),
+            "spritesheet_url": f"/pets/{pet_dir.name}/spritesheet.webp",
+            "url": "",
+            "creator": meta.get("creator", ""),
+            "tags": meta.get("tags", ["Pet"]),
+            "local": True,
+        })
+    return pets
