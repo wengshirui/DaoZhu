@@ -71,10 +71,11 @@ async def call_workspace_api_tool(
 registry.register(
     name="call_workspace_api",
     description="""调用工作区的 API 接口来操作数据。例如：
-- 添加待办: workspace_id='todo', method='POST', path='/tasks/', body='{"title":"开会"}'
-- 查询待办: workspace_id='todo', method='GET', path='/tasks/'
-- 记账: workspace_id='accobot', method='POST', path='/vouchers/', body='{...}'
-- 查询科目: workspace_id='accobot', method='GET', path='/accounts/'
+- 添加待办: workspace_id='todo', method='GET', path='/tasks/'
+- 记账查询: workspace_id='accobot', method='GET', path='/accounts/'
+- 查询我的宠物: workspace_id='desktop-pet', method='GET', path='/pets/'
+- 查询活跃宠物: workspace_id='desktop-pet', method='GET', path='/pets/active'
+- 商店宠物数量: workspace_id='desktop-pet', method='GET', path='/store/manifest?page=1&per_page=1'
 如果工作区未运行会自动启动。""",
     parameters={
         "type": "object",
