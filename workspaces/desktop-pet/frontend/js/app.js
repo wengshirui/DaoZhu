@@ -266,7 +266,7 @@
             if (mainRenderer) mainRenderer.destroy();
             mainRenderer = new PetRenderer(canvas, {
                 frameWidth: info.frame_width, frameHeight: info.frame_height,
-                columns: info.columns, rows: info.rows, fps: 8, scale: 1,
+                columns: info.columns, rows: info.rows, fps: 5, scale: 1,
             });
             await mainRenderer.load(info.spritesheet_url);
             mainRenderer.setStateFromStatus(pet);
@@ -291,7 +291,7 @@
             if (interactRenderer) interactRenderer.destroy();
             interactRenderer = new PetRenderer(canvas, {
                 frameWidth: info.frame_width, frameHeight: info.frame_height,
-                columns: info.columns, rows: info.rows, fps: 8, scale: 2,
+                columns: info.columns, rows: info.rows, fps: 5, scale: 2,
             });
             await interactRenderer.load(info.spritesheet_url);
             interactRenderer.setStateFromStatus(activePet);

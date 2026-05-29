@@ -161,8 +161,8 @@ body::after {
 /* === Gallery 宠物网格 === */
 .gallery-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 14px; overflow-y: auto; flex: 1;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px; overflow-y: auto; flex: 1;
     padding: 4px 2px 20px;
 }
 
@@ -188,7 +188,7 @@ body::after {
 
 .card-preview {
     position: relative; background: #12122a;
-    height: 130px; display: flex; align-items: center;
+    height: 100px; display: flex; align-items: center;
     justify-content: center; overflow: hidden;
 }
 .card-preview canvas {

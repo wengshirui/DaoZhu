@@ -11,7 +11,7 @@ class PetRenderer {
         this.frameHeight = options.frameHeight || 208;
         this.columns = options.columns || 8;
         this.rows = options.rows || 9;
-        this.fps = options.fps || 8;
+        this.fps = options.fps || 5;
         this.scale = options.scale || 1;
 
         this.currentRow = 0;
@@ -114,7 +114,7 @@ class PetRenderer {
  * 远程 URL 通过后端代理加载（解决 CORS），本地路径直接加载
  */
 function createPreviewRenderer(canvas, spritesheetUrl, scale = 0.5) {
-    const renderer = new PetRenderer(canvas, { fps: 6, scale });
+    const renderer = new PetRenderer(canvas, { fps: 3, scale });
     let loadUrl = spritesheetUrl;
     // 远程 URL 走代理
     if (spritesheetUrl.startsWith('http')) {
