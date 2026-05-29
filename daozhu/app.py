@@ -465,6 +465,7 @@ async def chat_api(body: dict):
     history = [
         {"role": m["role"], "content": m["content"]}
         for m in conv_data["messages"]
+        if m["role"] in ("user", "assistant")  # 过滤掉 tool_call 等非标准 role
     ]
 
     # 流式响应
