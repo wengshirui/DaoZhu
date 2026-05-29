@@ -2,22 +2,9 @@
  * 桌面宠物 — API 封装
  */
 const PetAPI = {
-    base: '',
-
-    // === 商店 ===
-    async getCatalog(page = 1) {
-        const res = await fetch(`${this.base}/api/store/catalog?page=${page}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-    },
-
-    async refreshCatalog() {
-        const res = await fetch(`${this.base}/api/store/refresh`, { method: 'POST' });
-        return res.json();
-    },
-
+    // === 商店（下载） ===
     async downloadPet(name) {
-        const res = await fetch(`${this.base}/api/store/download/${name}`, { method: 'POST' });
+        const res = await fetch(`/api/store/download?name=${encodeURIComponent(name)}`, { method: 'POST' });
         if (!res.ok) {
             const err = await res.json();
             throw new Error(err.detail || '下载失败');
@@ -25,40 +12,40 @@ const PetAPI = {
         return res.json();
     },
 
-    async searchCatalog(q) {
-        const res = await fetch(`${this.base}/api/store/search?q=${encodeURIComponent(q)}`);
+    async listLocalPets() {
+        const res = await fetch('/api/store/local');
         return res.json();
     },
 
     // === 我的宠物 ===
     async listPets() {
-        const res = await fetch(`${this.base}/api/pets/`);
+        const res = await fetch('/api/pets/');
         return res.json();
     },
 
     async getActivePet() {
-        const res = await fetch(`${this.base}/api/pets/active`);
+        const res = await fetch('/api/pets/active');
         return res.json();
     },
 
     async activatePet(petId) {
-        const res = await fetch(`${this.base}/api/pets/${petId}/activate`, { method: 'POST' });
+        const res = await fetch(`/api/pets/${petId}/activate`, { method: 'POST' });
         return res.json();
     },
 
     async deletePet(petId) {
-        const res = await fetch(`${this.base}/api/pets/${petId}`, { method: 'DELETE' });
+        const res = await fetch(`/api/pets/${petId}`, { method: 'DELETE' });
         return res.json();
     },
 
     async getSpriteInfo(petId) {
-        const res = await fetch(`${this.base}/api/pets/${petId}/spritesheet`);
+        const res = await fetch(`/api/pets/${petId}/spritesheet`);
         return res.json();
     },
 
     // === 互动 ===
     async interact(petId, action) {
-        const res = await fetch(`${this.base}/api/interact/`, {
+        const res = await fetch('/api/interact/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ pet_id: petId, action }),
@@ -67,11 +54,6 @@ const PetAPI = {
             const err = await res.json();
             throw new Error(err.detail || '操作失败');
         }
-        return res.json();
-    },
-
-    async getHistory(petId, limit = 20) {
-        const res = await fetch(`${this.base}/api/interact/history/${petId}?limit=${limit}`);
         return res.json();
     },
 };
