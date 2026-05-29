@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐾 桌面宠物</title>
+    <link rel="stylesheet" href="/css/pet.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app">
+        <!-- 顶部导航 -->
+        <header class="header">
+            <div class="header-left">
+                <div class="logo">
+                    <span class="logo-pixel">▣</span>
+                    <span class="logo-text">宠物小屋</span>
+                </div>
+            </div>
+            <nav class="nav-tabs">
+                <button class="nav-tab active" data-tab="store">宠物库</button>
+                <button class="nav-tab" data-tab="my-pets">我的宠物</button>
+                <button class="nav-tab" data-tab="interact">互动</button>
+            </nav>
+            <div class="header-right">
+                <span class="pet-count" id="pet-count">0 只宠物</span>
+            </div>
+        </header>
+
+        <!-- 商店页 -->
+        <section id="page-store" class="page active">
+            <div class="store-hero">
+                <h1>Codex 宠物画廊</h1>
+                <p>浏览、预览并领养像素宠物伙伴</p>
+            </div>
+
+            <div class="store-toolbar">
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="搜索宠物..." />
+                </div>
+                <div class="toolbar-actions">
+                    <button class="btn-ghost" id="btn-refresh">↻ 刷新</button>
+                    <span class="total-label" id="total-label">12 个宠物</span>
+                </div>
+            </div>
+
+            <div class="tag-bar" id="tag-bar">
+                <button class="tag-chip active" data-tag="">全部</button>
+            </div>
+
+            <div class="gallery-grid" id="gallery-grid">
+                <!-- 动态填充 -->
+            </div>
+
+            <div class="pagination" id="pagination"></div>
+        </section>
+
+        <!-- 我的宠物页 -->
+        <section id="page-my-pets" class="page">
+            <div class="my-pets-header">
+                <h2>我的宠物</h2>
+            </div>
+            <div class="active-pet-stage" id="active-stage" style="display:none;">
+                <canvas id="pet-canvas" width="192" height="208"></canvas>
+                <div class="active-pet-info">
+                    <h3 id="active-pet-name"></h3>
+                    <div class="status-bars" id="status-bars">
+                        <div class="stat-row">
+                            <span class="stat-emoji">🍖</span>
+                            <div class="stat-track"><div class="stat-fill hunger" id="bar-hunger"></div></div>
+                            <span class="stat-num" id="val-hunger">100</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-emoji">💧</span>
+                            <div class="stat-track"><div class="stat-fill thirst" id="bar-thirst"></div></div>
+                            <span class="stat-num" id="val-thirst">100</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-emoji">💛</span>
+                            <div class="stat-track"><div class="stat-fill happiness" id="bar-happiness"></div></div>
+                            <span class="stat-num" id="val-happiness">100</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-emoji">⚡</span>
+                            <div class="stat-track"><div class="stat-fill energy" id="bar-energy"></div></div>
+                            <span class="stat-num" id="val-energy">100</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="my-pets-grid" id="my-pets-grid">
+                <div class="empty-hint">
+                    <p>还没有宠物</p>
+                    <p class="sub">去宠物库领养一只吧 →</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 互动页 -->
+        <section id="page-interact" class="page">
+            <div class="interact-stage">
+                <canvas id="interact-canvas" width="384" height="416"></canvas>
+            </div>
+            <div class="action-bar">
+                <button class="action-btn" data-action="feed"><span>🍖</span>喂食</button>
+                <button class="action-btn" data-action="water"><span>💧</span>喂水</button>
+                <button class="action-btn" data-action="pet"><span>🤚</span>抚摸</button>
+                <button class="action-btn" data-action="play"><span>🎾</span>玩耍</button>
+            </div>
+            <div class="interact-log" id="interact-log"></div>
+        </section>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/renderer.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>

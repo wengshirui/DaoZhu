@@ -1,0 +1,17 @@
+{
+  "id": "desktop-pet",
+  "name": "桌面宠物",
+  "icon": "🐾",
+  "color": "#F59E0B",
+  "version": "1.0.0",
+  "description": "养一只桌面宠物，陪你写代码",
+  "port": 7805,
+  "entry": "app.py",
+  "python": ".venv",
+  "tags": ["趣味", "宠物", "桌面"],
+  "start_mode": "manual",
+  "hidden": false,
+  "source": "self-built",
+  "mode": "standard",
+  "sort_order": 5
+}
