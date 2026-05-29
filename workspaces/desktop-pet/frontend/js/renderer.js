@@ -31,8 +31,7 @@ class PetRenderer {
                     this.frameWidth = Math.floor(img.width / this.columns);
                     this.frameHeight = Math.floor(img.height / this.rows);
                 }
-                this.canvas.width = Math.round(this.frameWidth * this.scale);
-                this.canvas.height = Math.round(this.frameHeight * this.scale);
+                // 不改变 canvas 尺寸（由外部预设），只确保像素锐利
                 this.ctx.imageSmoothingEnabled = false;
                 resolve();
             };
@@ -114,6 +113,11 @@ class PetRenderer {
  * 远程 URL 通过后端代理加载（解决 CORS），本地路径直接加载
  */
 function createPreviewRenderer(canvas, spritesheetUrl, scale = 0.5) {
+    // 预设 canvas 尺寸（避免加载后尺寸变化导致闪烁）
+    canvas.width = Math.round(192 * scale);
+    canvas.height = Math.round(208 * scale);
+    canvas.getContext('2d').imageSmoothingEnabled = false;
+
     const renderer = new PetRenderer(canvas, { fps: 3, scale });
     let loadUrl = spritesheetUrl;
     // 远程 URL 走代理
