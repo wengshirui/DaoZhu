@@ -4,7 +4,7 @@
 const PetAPI = {
     // === 商店 ===
     async getManifest(page = 1, kind = '') {
-        const params = new URLSearchParams({ page, per_page: 24 });
+        const params = new URLSearchParams({ page, per_page: 12 });
         if (kind) params.set('kind', kind);
         const res = await fetch(`/api/store/manifest?${params}`);
         if (!res.ok) throw new Error('加载失败');

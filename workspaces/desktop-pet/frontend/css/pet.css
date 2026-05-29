@@ -153,13 +153,8 @@ body {
 
 .card-preview {
     background: var(--bg-preview);
-    height: 100px; display: flex; align-items: center;
+    height: 110px; display: flex; align-items: center;
     justify-content: center; overflow: hidden;
-}
-
-.preview-emoji {
-    font-size: 40px;
-    opacity: 0.7;
 }
 
 .card-body { padding: 12px 14px; }

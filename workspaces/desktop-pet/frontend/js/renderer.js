@@ -1,70 +1,58 @@
 /**
- * 桌面宠物 — Spritesheet 动画渲染器
- * 使用纯 CSS background-position + steps() 动画（参考 codex-pet.org）
- * 零 Canvas、零 JS 定时器、零闪烁
+ * 桌面宠物 — Spritesheet 渲染
+ * 商店预览：纯 CSS background-image + steps() 动画（参考 petdex.crafter.run）
+ * 互动页：Canvas（需要动态切换状态行）
  */
 
 /**
- * 为商店卡片创建 CSS sprite 动画预览
- * @param {HTMLElement} container - 预览容器 div
- * @param {string} spritesheetUrl - spritesheet 图片 URL
- * @param {object} options - { width, height, columns, rows, fps }
+ * 为商店卡片创建 CSS sprite 动画
+ * 直接从 CDN 加载图片（CSS background-image 不受 CORS 限制）
+ * @param {HTMLElement} container - .card-preview 容器
+ * @param {string} spritesheetUrl - spritesheet 图片 URL（CDN 直链）
  */
-function createSpritePreview(container, spritesheetUrl, options = {}) {
-    const cols = options.columns || 9;
-    const rows = options.rows || 8;
-    const fps = options.fps || 4;
-    const width = options.width || 128;
-    const height = options.height || 139;
+function createSpritePreview(container, spritesheetUrl) {
+    // 外层 frame：裁剪窗口
+    const frame = document.createElement('div');
+    frame.className = 'sprite-frame';
 
-    // 远程 URL 走代理
-    let imgUrl = spritesheetUrl;
-    if (spritesheetUrl.startsWith('http')) {
-        imgUrl = `/api/proxy/spritesheet?url=${encodeURIComponent(spritesheetUrl)}`;
-    }
-
-    // 创建 sprite 元素
-    const sprite = document.createElement('span');
+    // 内层 sprite：实际动画元素
+    const sprite = document.createElement('div');
     sprite.className = 'sprite-anim';
-    sprite.style.display = 'inline-block';
-    sprite.style.width = width + 'px';
-    sprite.style.height = height + 'px';
-    sprite.style.backgroundImage = `url("${imgUrl}")`;
-    sprite.style.backgroundSize = `${cols * 100}% ${rows * 100}%`;
-    sprite.style.backgroundPosition = '0 0';
-    sprite.style.backgroundRepeat = 'no-repeat';
-    sprite.style.imageRendering = 'pixelated';
+    sprite.style.backgroundImage = `url("${spritesheetUrl}")`;
 
-    // 动画：只播放第一行（idle），cols 帧循环
-    const duration = cols / fps; // 秒
-    sprite.style.animation = `sprite-row-${cols} ${duration}s steps(${cols}) infinite`;
-
-    container.innerHTML = '';
-    container.appendChild(sprite);
-
-    return sprite;
+    frame.appendChild(sprite);
+    container.appendChild(frame);
 }
 
-/**
- * 注入全局 CSS keyframes（只需一次）
- */
-(function injectKeyframes() {
-    if (document.getElementById('sprite-keyframes')) return;
+// 注入全局 CSS（sprite 动画 keyframes）
+(function injectSpriteCSS() {
+    if (document.getElementById('sprite-css')) return;
     const style = document.createElement('style');
-    style.id = 'sprite-keyframes';
-    // 为不同列数生成 keyframes
+    style.id = 'sprite-css';
     style.textContent = `
-        @keyframes sprite-row-8 {
-            from { background-position-x: 0; }
-            to { background-position-x: -800%; }
-        }
-        @keyframes sprite-row-9 {
-            from { background-position-x: 0; }
-            to { background-position-x: -900%; }
+        .sprite-frame {
+            width: 96px;
+            height: 104px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .sprite-anim {
+            width: 192px;
+            height: 208px;
+            background-size: 1728px 1664px;
+            background-repeat: no-repeat;
+            background-position: 0 0;
             image-rendering: pixelated;
             image-rendering: crisp-edges;
+            animation: pet-idle 1.5s steps(9) infinite;
+            transform: scale(0.5);
+            transform-origin: top left;
+        }
+        @keyframes pet-idle {
+            from { background-position-x: 0; }
+            to { background-position-x: -1728px; }
         }
     `;
     document.head.appendChild(style);
@@ -72,7 +60,8 @@ function createSpritePreview(container, spritesheetUrl, options = {}) {
 
 
 /**
- * Canvas 渲染器（用于互动页大画面，需要动态切换状态行）
+ * Canvas 渲染器（互动页 + 我的宠物页）
+ * 用于需要动态切换状态行的场景
  */
 class PetRenderer {
     constructor(canvas, options = {}) {
@@ -163,21 +152,6 @@ class PetRenderer {
         this.setState(0);
     }
 
-    playOnce(row, callback) {
-        const prevRow = this.currentRow;
-        this.setState(row);
-        let count = 0;
-        const check = () => {
-            count++;
-            if (count >= this.columns) {
-                this.setState(prevRow);
-                if (callback) callback();
-                this._onFrame = null;
-            }
-        };
-        this._onFrame = check;
-    }
-
     render() {
         if (!this.loaded || !this.spritesheet) return;
         const w = this.canvas.width;
@@ -190,13 +164,11 @@ class PetRenderer {
             this.frameWidth, this.frameHeight,
             0, 0, w, h
         );
-        if (this._onFrame) this._onFrame();
     }
 
     destroy() {
         this.stop();
         this.spritesheet = null;
         this.loaded = false;
-        this._onFrame = null;
     }
 }

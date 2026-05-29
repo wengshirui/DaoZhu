@@ -147,12 +147,9 @@
             grid.innerHTML = '<div class="empty-hint"><p>没有找到宠物</p></div>';
             return;
         }
-        const kindEmoji = { creature: '🐾', character: '👤', object: '📦' };
         grid.innerHTML = items.map((p) => `
             <div class="pet-card" data-slug="${p.slug}">
-                <div class="card-preview">
-                    <span class="preview-emoji">${kindEmoji[p.kind] || '✨'}</span>
-                </div>
+                <div class="card-preview" data-sprite="${p.spritesheetUrl || ''}"></div>
                 <div class="card-body">
                     <div class="card-title">${p.displayName || p.slug}</div>
                     <div class="card-meta">
@@ -163,6 +160,12 @@
                 </div>
             </div>
         `).join('');
+
+        // CSS sprite 动画（直接从 CDN 加载，不走代理，不闪烁）
+        grid.querySelectorAll('.card-preview').forEach(container => {
+            const url = container.dataset.sprite;
+            if (url) createSpritePreview(container, url);
+        });
 
         // 领养按钮
         grid.querySelectorAll('.btn-adopt').forEach(btn => {
