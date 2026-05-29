@@ -111,24 +111,25 @@ class PetRenderer {
 
 /**
  * 快速创建一个预览渲染器（用于商店卡片）
- * 本地路径直接加载，远程 URL 走后端代理（绕过 CORS）
+ * 远程 URL 通过后端代理加载（解决 CORS），本地路径直接加载
  */
 function createPreviewRenderer(canvas, spritesheetUrl, scale = 0.5) {
     const renderer = new PetRenderer(canvas, { fps: 6, scale });
     let loadUrl = spritesheetUrl;
-    // 只有远程 URL 才走代理，本地路径直接加载
-    if (spritesheetUrl.startsWith('https://assets.codex-pet.org/')) {
+    // 远程 URL 走代理
+    if (spritesheetUrl.startsWith('http')) {
         loadUrl = `/api/proxy/spritesheet?url=${encodeURIComponent(spritesheetUrl)}`;
     }
     renderer.load(loadUrl).then(() => renderer.play()).catch(() => {
         const ctx = canvas.getContext('2d');
-        canvas.width = 96;
-        canvas.height = 104;
-        ctx.fillStyle = '#1a1a2e';
-        ctx.fillRect(0, 0, 96, 104);
-        ctx.font = '32px serif';
+        canvas.width = Math.round(192 * scale);
+        canvas.height = Math.round(208 * scale);
+        ctx.fillStyle = '#12122a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.font = '24px serif';
         ctx.textAlign = 'center';
-        ctx.fillText('🐾', 48, 64);
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🐾', canvas.width / 2, canvas.height / 2);
     });
     return renderer;
 }

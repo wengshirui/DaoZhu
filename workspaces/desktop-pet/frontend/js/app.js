@@ -68,11 +68,32 @@
         currentPage = page;
         try {
             const data = await PetAPI.getManifest(page, currentKind);
+            if (data.total === 0) {
+                // 本地没有缓存，自动刷新
+                await autoRefresh();
+                return;
+            }
             renderGallery(data.items);
             renderPagination(data);
             $('#total-label').textContent = `${data.total} 只宠物`;
         } catch (e) {
-            $('#gallery-grid').innerHTML = '<div class="empty-hint"><p>点击「刷新目录」加载 Petdex 2700+ 宠物</p></div>';
+            await autoRefresh();
+        }
+    }
+
+    async function autoRefresh() {
+        const grid = $('#gallery-grid');
+        grid.innerHTML = '<div class="empty-hint"><div class="loading-spinner"></div><p>正在从 Petdex 加载宠物目录...</p></div>';
+        try {
+            const result = await PetAPI.refreshManifest();
+            if (result.success) {
+                await loadStore(1);
+                await loadKinds();
+            } else {
+                grid.innerHTML = '<div class="empty-hint"><div class="icon">📡</div><p>无法连接 Petdex 服务</p><p class="sub">请检查网络后点击刷新</p></div>';
+            }
+        } catch (e) {
+            grid.innerHTML = '<div class="empty-hint"><div class="icon">📡</div><p>网络错误</p><p class="sub">请检查网络连接</p></div>';
         }
     }
 

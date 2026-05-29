@@ -60,9 +60,11 @@ async def index():
 async def proxy_spritesheet(url: str):
     """代理远程 spritesheet 图片（绕过 CORS）"""
     import httpx
-    if not url.startswith("https://assets.codex-pet.org/"):
+    # 允许 codex-pet.org 和 petdex R2 CDN
+    allowed = ("https://assets.codex-pet.org/", "https://pub-94495283df974cfea5e98d6a9e3fa462.r2.dev/")
+    if not any(url.startswith(prefix) for prefix in allowed):
         from fastapi import HTTPException
-        raise HTTPException(400, "仅支持 codex-pet.org 资源")
+        raise HTTPException(400, "仅支持 codex-pet / petdex 资源")
     async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
         resp = await client.get(url)
         if resp.status_code != 200:
@@ -72,7 +74,7 @@ async def proxy_spritesheet(url: str):
         return Response(
             content=resp.content,
             media_type=resp.headers.get("content-type", "image/webp"),
-            headers={"Cache-Control": "public, max-age=86400"},
+            headers={"Cache-Control": "public, max-age=604800"},
         )
 
 
