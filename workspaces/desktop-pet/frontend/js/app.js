@@ -1,12 +1,10 @@
 /**
- * 桌面宠物 — 主入口 v3（Petdex manifest 驱动）
+ * 桌面宠物 — 主入口 v5（CSS sprite 方案，对齐 Petdex）
  */
 (function () {
     'use strict';
 
     let activePet = null;
-    let mainRenderer = null;
-    let interactRenderer = null;
     let currentPage = 1;
     let currentKind = '';
 
@@ -16,9 +14,7 @@
     async function init() {
         setupTabs();
         setupSearch();
-        setupActions();
         await loadStore();
-        // loadKinds 不触发 loadStore，只渲染分类按钮
         await loadKinds();
         await loadMyPets();
         await loadActivePet();
@@ -32,7 +28,6 @@
                 $$('.page').forEach(p => p.classList.remove('active'));
                 tab.classList.add('active');
                 $(`#page-${tab.dataset.tab}`).classList.add('active');
-                if (tab.dataset.tab === 'interact') loadInteractCanvas();
             });
         });
     }
@@ -56,48 +51,34 @@
         } catch (e) { console.error(e); }
     }
 
-    // === 互动 ===
-    function setupActions() {
-        $$('.action-btn').forEach(btn => {
-            btn.addEventListener('click', () => doInteract(btn.dataset.action));
-        });
-    }
-
     // === 商店 ===
     async function loadStore(page = 1) {
         currentPage = page;
         try {
             const data = await PetAPI.getManifest(page, currentKind);
-            if (data.total === 0) {
-                // 本地没有缓存，自动刷新
-                await autoRefresh();
-                return;
-            }
+            if (data.total === 0) { await autoRefresh(); return; }
             renderGallery(data.items);
             renderPagination(data);
             $('#total-label').textContent = `${data.total} 只宠物`;
-        } catch (e) {
-            await autoRefresh();
-        }
+        } catch (e) { await autoRefresh(); }
     }
 
     async function autoRefresh() {
         const grid = $('#gallery-grid');
-        grid.innerHTML = '<div class="empty-hint"><div class="loading-spinner"></div><p>正在从 Petdex 加载宠物目录...</p></div>';
+        grid.innerHTML = '<div class="empty-hint"><div class="loading-spinner"></div><p>正在从 Petdex 加载...</p></div>';
         try {
             const result = await PetAPI.refreshManifest();
             if (result.success) {
-                // 刷新成功后重新加载商店和分类
                 const data = await PetAPI.getManifest(1, currentKind);
                 renderGallery(data.items);
                 renderPagination(data);
                 $('#total-label').textContent = `${data.total} 只宠物`;
                 await loadKinds();
             } else {
-                grid.innerHTML = '<div class="empty-hint"><div class="icon">📡</div><p>无法连接 Petdex 服务</p><p class="sub">请检查网络后点击刷新</p></div>';
+                grid.innerHTML = '<div class="empty-hint"><div class="icon">📡</div><p>无法连接 Petdex</p></div>';
             }
         } catch (e) {
-            grid.innerHTML = '<div class="empty-hint"><div class="icon">📡</div><p>网络错误</p><p class="sub">请检查网络连接</p></div>';
+            grid.innerHTML = '<div class="empty-hint"><div class="icon">📡</div><p>网络错误</p></div>';
         }
     }
 
@@ -123,8 +104,7 @@
 
     async function refreshStore() {
         const btn = $('#btn-refresh');
-        btn.textContent = '刷新中...';
-        btn.disabled = true;
+        btn.textContent = '刷新中...'; btn.disabled = true;
         try {
             const result = await PetAPI.refreshManifest();
             if (result.success) {
@@ -133,12 +113,9 @@
                 renderPagination(data);
                 $('#total-label').textContent = `${data.total} 只宠物`;
                 await loadKinds();
-            } else {
-                alert(result.message || '刷新失败');
             }
-        } catch (e) { alert('网络错误'); }
-        btn.textContent = '↻ 刷新目录';
-        btn.disabled = false;
+        } catch (e) { /* ignore */ }
+        btn.textContent = '↻ 刷新目录'; btn.disabled = false;
     }
 
     function renderGallery(items) {
@@ -161,7 +138,7 @@
             </div>
         `).join('');
 
-        // CSS sprite 动画（直接从 CDN 加载，不走代理，不闪烁）
+        // CSS sprite 动画预览
         grid.querySelectorAll('.card-preview').forEach(container => {
             const url = container.dataset.sprite;
             if (url) createSpritePreview(container, url);
@@ -172,8 +149,7 @@
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const slug = btn.dataset.slug;
-                btn.textContent = '下载中...';
-                btn.disabled = true;
+                btn.textContent = '下载中...'; btn.disabled = true;
                 try {
                     const result = await PetAPI.downloadPet(slug);
                     btn.textContent = `✓ ${result.display_name}`;
@@ -212,20 +188,22 @@
             }
             grid.innerHTML = pets.map(p => `
                 <div class="my-pet-card ${p.is_active ? 'active' : ''}" data-id="${p.id}" data-name="${p.name}">
-                    <canvas class="thumb-canvas" width="64" height="72"></canvas>
+                    <canvas class="thumb-canvas" width="64" height="70"></canvas>
                     <div class="name">${p.display_name || p.name}</div>
                     <div class="actions">
                         ${p.is_active ? '<span class="badge-active">当前</span>' :
                             `<button class="btn-sm" data-act="activate" data-id="${p.id}">选择</button>`}
-                        <button class="btn-sm danger" data-act="delete" data-id="${p.id}">删除</button>
+                        <button class="btn-sm danger" data-act="delete" data-id="${p.id}">×</button>
                     </div>
                 </div>
             `).join('');
+
             grid.querySelectorAll('[data-act="activate"]').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     await PetAPI.activatePet(parseInt(btn.dataset.id));
-                    await loadMyPets(); await loadActivePet();
+                    await loadMyPets();
+                    await loadActivePet();
                 });
             });
             grid.querySelectorAll('[data-act="delete"]').forEach(btn => {
@@ -233,10 +211,13 @@
                     e.stopPropagation();
                     if (confirm('确定删除？')) {
                         await PetAPI.deletePet(parseInt(btn.dataset.id));
-                        await loadMyPets(); await loadActivePet();
+                        await loadMyPets();
+                        await loadActivePet();
                     }
                 });
             });
+
+            // 缩略图
             for (const p of pets) {
                 const card = grid.querySelector(`[data-name="${p.name}"]`);
                 if (!card) continue;
@@ -249,27 +230,71 @@
         } catch (e) { console.error(e); }
     }
 
-    // === 活跃宠物 ===
+    // === 活跃宠物详情（CSS sprite 方案，和 Petdex 一样） ===
     async function loadActivePet() {
         try {
             const pet = await PetAPI.getActivePet();
-            const stage = $('#active-stage');
-            if (!pet) { stage.style.display = 'none'; return; }
+            const detail = $('#pet-detail');
+            if (!pet) { detail.style.display = 'none'; return; }
             activePet = pet;
-            stage.style.display = '';
+            detail.style.display = '';
             $('#active-pet-name').textContent = pet.display_name || pet.name;
+            $('#active-pet-kind').textContent = pet.description || '';
+            $('#active-pet-desc').textContent = '';
             updateBars(pet);
+
+            // 用 CSS sprite 方案显示宠物动画（和 Petdex 完全一样）
             const info = await PetAPI.getSpriteInfo(pet.id);
-            const canvas = $('#pet-canvas');
-            if (mainRenderer) mainRenderer.destroy();
-            mainRenderer = new PetRenderer(canvas, {
-                frameWidth: info.frame_width, frameHeight: info.frame_height,
-                columns: info.columns, rows: info.rows, fps: 5, scale: 1,
-            });
-            await mainRenderer.load(info.spritesheet_url);
-            mainRenderer.setStateFromStatus(pet);
-            mainRenderer.play();
+            const sprite = $('#detail-sprite');
+            sprite.style.backgroundImage = `url("${info.spritesheet_url}")`;
+            // 默认 idle 状态
+            setSpriteState(0);
+
+            // 渲染状态切换器
+            renderStateSwitcher();
         } catch (e) { console.error(e); }
+    }
+
+    /** 设置 CSS sprite 的动画状态行 */
+    function setSpriteState(row) {
+        const state = PET_STATES[row] || PET_STATES[0];
+        const sprite = $('#detail-sprite');
+        sprite.style.setProperty('--sprite-row', state.row);
+        sprite.style.setProperty('--sprite-frames', state.frames);
+        sprite.style.setProperty('--sprite-duration', `${state.durationMs}ms`);
+    }
+
+    // 状态切换器
+    const STATE_LABELS = [
+        { name: '待机', icon: '😊' },
+        { name: '向右跑', icon: '🏃' },
+        { name: '向左跑', icon: '🏃' },
+        { name: '打招呼', icon: '👋' },
+        { name: '跳跃', icon: '🦘' },
+        { name: '难过', icon: '😢' },
+        { name: '等待', icon: '⏳' },
+        { name: '奔跑', icon: '💨' },
+        { name: '思考', icon: '🤔' },
+    ];
+
+    function renderStateSwitcher() {
+        const container = $('#state-switcher');
+        container.innerHTML = STATE_LABELS.map((s, i) => {
+            const state = PET_STATES[i];
+            return `<button class="state-btn ${i === 0 ? 'active' : ''}" data-row="${i}">
+                <span>${s.icon}</span>
+                <span class="state-name">${s.name}</span>
+                <span class="state-frames">${state.frames}帧</span>
+            </button>`;
+        }).join('');
+
+        container.querySelectorAll('.state-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                container.querySelectorAll('.state-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                setSpriteState(parseInt(btn.dataset.row));
+            });
+        });
     }
 
     function updateBars(pet) {
@@ -278,44 +303,6 @@
             const bar = $(`#bar-${f}`); if (bar) bar.style.width = `${v}%`;
             const num = $(`#val-${f}`); if (num) num.textContent = v;
         });
-    }
-
-    // === 互动 ===
-    async function loadInteractCanvas() {
-        if (!activePet) return;
-        try {
-            const info = await PetAPI.getSpriteInfo(activePet.id);
-            const canvas = $('#interact-canvas');
-            if (interactRenderer) interactRenderer.destroy();
-            interactRenderer = new PetRenderer(canvas, {
-                frameWidth: info.frame_width, frameHeight: info.frame_height,
-                columns: info.columns, rows: info.rows, fps: 5, scale: 2,
-            });
-            await interactRenderer.load(info.spritesheet_url);
-            interactRenderer.setStateFromStatus(activePet);
-            interactRenderer.play();
-        } catch (e) { console.error(e); }
-    }
-
-    async function doInteract(action) {
-        if (!activePet) { addLog('⚠️ 请先选择一只宠物'); return; }
-        try {
-            const result = await PetAPI.interact(activePet.id, action);
-            const labels = { feed: '🍖 喂食', water: '💧 喂水', pet: '🤚 抚摸', play: '🎾 玩耍' };
-            addLog(`✨ ${labels[action]} → ${result.effect}`);
-            if (interactRenderer) interactRenderer.playOnce(1);
-            if (mainRenderer) mainRenderer.playOnce(1);
-            if (result.state) { Object.assign(activePet, result.state); updateBars(activePet); }
-        } catch (e) { addLog(`❌ ${e.message}`); }
-    }
-
-    function addLog(msg) {
-        const log = $('#interact-log');
-        const el = document.createElement('div');
-        el.className = 'log-line';
-        el.textContent = msg;
-        log.prepend(el);
-        while (log.children.length > 20) log.removeChild(log.lastChild);
     }
 
     document.addEventListener('DOMContentLoaded', init);

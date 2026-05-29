@@ -110,8 +110,8 @@ async def download_pet(slug: str):
                     "kind": pet_info.get("kind", ""),
                     "submittedBy": pet_info.get("submittedBy", ""),
                     "spritesheet": "spritesheet.webp",
-                    "columns": 9,
-                    "rows": 8,
+                    "columns": 8,
+                    "rows": 9,
                     "frameWidth": 192,
                     "frameHeight": 208,
                 }
@@ -129,7 +129,7 @@ async def download_pet(slug: str):
                 frame_width, frame_height, columns, rows)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (slug, display_name, pet_info.get("kind", ""),
-             sheet_url, str(pet_dir), 192, 208, 9, 8),
+             sheet_url, str(pet_dir), 192, 208, 8, 9),
         )
         pet_id = db.execute("SELECT id FROM pets WHERE name = ?", (slug,)).fetchone()[0]
         db.execute("INSERT OR IGNORE INTO pet_state (pet_id) VALUES (?)", (pet_id,))

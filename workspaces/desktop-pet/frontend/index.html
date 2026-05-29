@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🐾 桌面宠物</title>
-    <link rel="stylesheet" href="/css/pet.css?v=10">
+    <link rel="stylesheet" href="/css/pet.css?v=13">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
@@ -20,7 +20,6 @@
             <nav class="nav-tabs">
                 <button class="nav-tab active" data-tab="store">🛒 商店</button>
                 <button class="nav-tab" data-tab="my-pets">🐾 我的宠物</button>
-                <button class="nav-tab" data-tab="interact">🎮 互动</button>
             </nav>
             <div class="header-right">
                 <span class="pet-count" id="pet-count">0 只宠物</span>
@@ -47,40 +46,47 @@
 
         <!-- 我的宠物页 -->
         <section id="page-my-pets" class="page">
-            <div class="active-pet-stage" id="active-stage" style="display:none;">
-                <canvas id="pet-canvas" width="192" height="208"></canvas>
-                <div class="active-pet-info">
-                    <h3 id="active-pet-name"></h3>
-                    <div class="status-bars">
-                        <div class="stat-row"><span class="stat-emoji">🍖</span><div class="stat-track"><div class="stat-fill hunger" id="bar-hunger"></div></div><span class="stat-num" id="val-hunger">100</span></div>
-                        <div class="stat-row"><span class="stat-emoji">💧</span><div class="stat-track"><div class="stat-fill thirst" id="bar-thirst"></div></div><span class="stat-num" id="val-thirst">100</span></div>
-                        <div class="stat-row"><span class="stat-emoji">💛</span><div class="stat-track"><div class="stat-fill happiness" id="bar-happiness"></div></div><span class="stat-num" id="val-happiness">100</span></div>
-                        <div class="stat-row"><span class="stat-emoji">⚡</span><div class="stat-track"><div class="stat-fill energy" id="bar-energy"></div></div><span class="stat-num" id="val-energy">100</span></div>
+            <!-- 宠物详情区（选中宠物后显示） -->
+            <div class="pet-detail" id="pet-detail" style="display:none;">
+                <div class="detail-layout">
+                    <!-- 左侧：动画舞台 + 状态切换 -->
+                    <div class="detail-left">
+                        <div class="sprite-stage" id="sprite-stage">
+                            <!-- CSS sprite 动画（和 Petdex 一样的方案） -->
+                            <div class="pet-sprite-frame" id="detail-sprite-frame" style="--pet-scale: 1.2">
+                                <div class="pet-sprite" id="detail-sprite"></div>
+                            </div>
+                        </div>
+                        <div class="state-switcher" id="state-switcher"></div>
+                    </div>
+                    <!-- 右侧：信息 + 状态 -->
+                    <div class="detail-right">
+                        <div class="pet-header">
+                            <h2 id="active-pet-name"></h2>
+                            <span class="pet-kind-badge" id="active-pet-kind"></span>
+                        </div>
+                        <p class="pet-desc" id="active-pet-desc"></p>
+                        <div class="status-bars">
+                            <div class="stat-row"><span class="stat-emoji">🍖</span><span class="stat-label">饥饿</span><div class="stat-track"><div class="stat-fill hunger" id="bar-hunger"></div></div><span class="stat-num" id="val-hunger">100</span></div>
+                            <div class="stat-row"><span class="stat-emoji">💧</span><span class="stat-label">口渴</span><div class="stat-track"><div class="stat-fill thirst" id="bar-thirst"></div></div><span class="stat-num" id="val-thirst">100</span></div>
+                            <div class="stat-row"><span class="stat-emoji">💛</span><span class="stat-label">心情</span><div class="stat-track"><div class="stat-fill happiness" id="bar-happiness"></div></div><span class="stat-num" id="val-happiness">100</span></div>
+                            <div class="stat-row"><span class="stat-emoji">⚡</span><span class="stat-label">精力</span><div class="stat-track"><div class="stat-fill energy" id="bar-energy"></div></div><span class="stat-num" id="val-energy">100</span></div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="my-pets-grid" id="my-pets-grid">
-                <div class="empty-hint"><p>还没有宠物</p><p class="sub">去商店领养一只吧 →</p></div>
+            <!-- 宠物网格（始终显示） -->
+            <div class="my-pets-section">
+                <h3 class="section-title">我的宠物</h3>
+                <div class="my-pets-grid" id="my-pets-grid">
+                    <div class="empty-hint"><p>还没有宠物</p><p class="sub">去商店领养一只吧 →</p></div>
+                </div>
             </div>
-        </section>
-
-        <!-- 互动页 -->
-        <section id="page-interact" class="page">
-            <div class="interact-stage">
-                <canvas id="interact-canvas" width="384" height="416"></canvas>
-            </div>
-            <div class="action-bar">
-                <button class="action-btn" data-action="feed"><span>🍖</span>喂食</button>
-                <button class="action-btn" data-action="water"><span>💧</span>喂水</button>
-                <button class="action-btn" data-action="pet"><span>🤚</span>抚摸</button>
-                <button class="action-btn" data-action="play"><span>🎾</span>玩耍</button>
-            </div>
-            <div class="interact-log" id="interact-log"></div>
         </section>
     </div>
 
-    <script src="/js/api.js?v=10"></script>
-    <script src="/js/renderer.js?v=10"></script>
-    <script src="/js/app.js?v=10"></script>
+    <script src="/js/api.js?v=13"></script>
+    <script src="/js/renderer.js?v=13"></script>
+    <script src="/js/app.js?v=13"></script>
 </body>
 </html>

@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "description": "岛主项目使用的 AI 技能索引。AI 编码助手根据任务类型自动加载对应 skill。",
+  "skills": {
+    "create-workspaces": {
+      "source": "self",
+      "sourceType": "local",
+      "skillPath": "skills/create-workspaces/SKILL.md",
+      "description": "创建新工作区。搜索开源项目 → 深入研究 → 复用代码 → 生成工作区文件。",
+      "triggerWords": ["建工作区", "新建", "创建", "建造", "搭建"]
+    },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-design/SKILL.md",
+      "description": "创建高质量前端界面。避免千篇一律的 AI 美学，每个工作区有独特风格。",
+      "triggerWords": ["前端", "UI", "页面", "样式", "美化", "设计"]
+    },
+    "create-skill": {
+      "source": "self",
+      "sourceType": "local",
+      "skillPath": "skills/create-skill/SKILL.md",
+      "description": "元技能：搜索/安装/创建新的 skill 文件。",
+      "triggerWords": ["技能", "skill", "安装skill", "创建技能"]
+    },
+    "weather": {
+      "source": "self",
+      "sourceType": "local",
+      "skillPath": "skills/weather/SKILL.md",
+      "description": "查询城市实时天气，调用 wttr.in 公共 API。",
+      "triggerWords": ["天气", "温度", "weather"]
+    }
+  },
+  "usage": {
+    "create-workspaces": "创建任何新工作区时必须加载，确保遵循开源复用流程",
+    "frontend-design": "涉及前端 UI 开发时加载，指导视觉设计方向",
+    "create-skill": "用户要求管理技能时加载",
+    "weather": "Agent 运行时自动可用，无需手动加载"
+  }
+}

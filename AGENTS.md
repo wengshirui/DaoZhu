@@ -1,6 +1,6 @@
 # Lead Developer Agent — 岛主 DaoZhu
 
-> 你是岛主项目的 Lead Developer Agent。负责将需求转化为生产级代码，遵循 TDD、模块化、文件精简原则。
+> 你是岛主项目的 Lead Developer Agent。负责将需求转化为生产级代码，遵循模块化、文件精简原则。
 
 ---
 
@@ -12,278 +12,88 @@
 | 前端 | 纯 HTML + CSS + JS（无 Node 依赖） |
 | 数据库 | SQLite（每工作区独立） |
 | AI 模型 | DeepSeek / OpenAI / 兼容接口 |
-| 工具协议 | MCP（Model Context Protocol） |
 | 包管理 | uv + pyproject.toml |
 
 ---
 
 ## 文件规模硬约束
 
-| 规则 | 限制 |
+| 类型 | 限制 |
 |------|------|
-| 单个 Python 文件 | ≤ 500 行 |
-| 单个 HTML 文件 | ≤ 500 行 |
-| 单个 JS 文件 | ≤ 500 行 |
-| 单个 CSS 文件 | ≤ 500 行 |
+| Python / HTML / JS / CSS | ≤ 500 行/文件 |
 
-**超限处理**：当文件接近 400 行时，必须按职责拆分为子模块/子文件。
-
-### 后端拆分策略
-
-```
-daozhu/
-├── app.py                  # 主入口，仅注册路由和中间件（≤100行）
-├── config.py               # 全局配置
-├── models/                 # 数据模型
-│   ├── __init__.py
-│   ├── workspace.py
-│   └── user.py
-├── routes/                 # 路由按领域拆分
-│   ├── __init__.py
-│   ├── workspace.py        # 工作区 CRUD
-│   ├── agent.py            # AI 对话
-│   └── market.py           # 市场安装
-├── services/               # 业务逻辑
-│   ├── __init__.py
-│   ├── workspace_manager.py
-│   ├── agent_service.py
-│   └── process_manager.py
-├── utils/                  # 工具函数
-│   ├── __init__.py
-│   ├── port.py
-│   └── db.py
-└── frontend/               # 书架 UI
-    ├── index.html
-    ├── css/
-    │   ├── base.css
-    │   └── components.css
-    └── js/
-        ├── app.js          # 主入口
-        ├── api.js          # API 调用封装
-        ├── shelf.js        # 书架渲染
-        └── chat.js         # AI 对话窗口
-```
-
-### 工作区拆分策略
-
-```
-workspaces/xxx/
-├── app.py                  # 入口，注册路由（≤100行）
-├── models.py               # 数据模型（或 models/ 目录）
-├── routes/                 # 路由拆分
-│   ├── __init__.py
-│   └── xxx.py
-├── services/               # 业务逻辑
-│   └── xxx.py
-├── frontend/
-│   ├── index.html
-│   ├── css/
-│   └── js/
-├── .venv/
-├── data.db
-├── schema.sql              # 数据库表设计（DDL）
-├── requirements.txt
-├── workspace.json
-└── README.md               # 工作区介绍、目标、注意事项
-```
+超限时按职责拆分。参考已有工作区的目录结构（如 `workspaces/desktop-pet/`）。
 
 ---
 
-## 核心职责
+## 核心原则
 
-### 1. 需求分诊（Triage）
+1. **数据本地化** — 所有数据存储在用户本地，零云端
+2. **工作区隔离** — 独立文件夹 + 独立 SQLite + 独立端口
+3. **平台不侵入** — 平台层不修改工作区内部代码
+4. **文件精简** — 宁可多文件，不可单文件臃肿
+5. **开源优先，不造轮子** — 创建工作区时必须先研究开源社区，复用成熟方案
 
-| T-shirt Size | 路由 | Stories | Subtasks |
-|--------------|------|---------|----------|
-| XS (1-2 pts) | 直接实现 | 1 story | 1-2 subtasks |
-| S (3 pts) 无依赖 | 直接实现 | 1 story | 1-2 subtasks |
-| S (3 pts) + 有依赖 | 生成 Spec | 1-2 stories | 1-2 subtasks/story |
-| M (5 pts) | 完整 Spec | 2-3 stories | 1-3 subtasks/story |
-| L/XL (8-13+ pts) | 完整 Spec | 3-5+ stories | 1-3 subtasks/story |
+---
 
-**原则**：拿不准是否需要 Spec 时，选更安全的路径（生成 Spec）。
+## 开源复用原则
 
-### 2. 外部依赖判定
+> 来源：桌面宠物工作区教训。前端动画反复调试失败，直接复用 Petdex 开源方案后一次成功。
 
-以下任一条件为真，标记为"有依赖"：
+| # | 原则 |
+|---|------|
+| 1 | **先研究再动手** — 读核心源码，不只看 README |
+| 2 | **复用代码不复用思路** — 直接搬常量/CSS/数据结构 |
+| 3 | **记录复用来源** — 写入工作区 AGENTS.md |
+| 4 | **不无端发散** — 数据源没有的功能不做 |
+| 5 | **能跑先跑** — 启动开源项目看效果比读代码快 |
 
-- 跨前端 AND 后端
-- 需要数据库 schema 变更
-- 集成第三方服务（AI API、Gitee 等）
-- 需要基础设施变更（端口、进程管理）
-- 依赖其他正在开发的模块
+**禁止：**
+- ❌ 凭记忆填参数（如尺寸 `1728` vs `1536`）
+- ❌ 开源项目用 CSS 方案，自己非要用 Canvas 重写
+- ❌ 前端改了很多次都不对，但不去看开源项目怎么做的
 
-### 3. Spec 生成流程
+---
 
-1. **分析需求** → 拆分为独立 User Story，识别技术栈边界
-2. **生成模块化 Spec** → 每个 Story：
-   - User Story 声明（As a... I want... so that...）
-   - Story 级别验收标准（AC）
-   - Story 级别设计（API / UI / Schema）
-   - 拆分为 2-3 个 Task（每个 ≤ 1-2 天）
-   - 强制 Story Points ≤ 5
-3. **按组件组织** → 前端 / 后端 / 集成 分开
-4. **提交评审** → 创建 PR 并附摘要
+## 需求分诊
 
-### 4. 实现规则（TDD）
+| T-shirt Size | 路由 |
+|--------------|------|
+| XS/S 无依赖 | 直接实现 |
+| S + 有依赖 | 生成 Spec |
+| M/L/XL | 完整 Spec |
 
-```
-1. 先写测试 → 基于验收标准
-2. 实现代码 → 让测试通过
-3. 重构 → 保持测试绿色
-4. 自审 → review → 响应反馈 → 迭代
-5. 每个 Story 产出：代码 + 测试 + PR
-```
+**有依赖 = 跨前后端 / schema 变更 / 第三方集成 / 基础设施变更**
 
 ---
 
 ## 编码规范
 
-### Python 后端
+### Python
 
-```python
-# 路由文件示例（routes/workspace.py）
-from fastapi import APIRouter, Depends, HTTPException
-from ..services.workspace_manager import WorkspaceManager
-from ..models.workspace import WorkspaceCreate, WorkspaceResponse
-
-router = APIRouter(prefix="/api/workspaces", tags=["workspaces"])
-
-@router.post("/", response_model=WorkspaceResponse)
-async def create_workspace(data: WorkspaceCreate):
-    """创建新工作区"""
-    ...
-```
-
-- 使用 Pydantic v2 做数据校验
-- 路由函数保持精简，业务逻辑放 services/
-- 数据库操作用 aiosqlite 或同步 sqlite3
+- Pydantic v2 数据校验，类型注解完整
+- 路由精简，业务逻辑放 services/
 - 异常统一用 HTTPException
-- 类型注解必须完整
 
-### 前端 HTML/JS
-
-```javascript
-// js/api.js — API 调用封装
-const API = {
-  baseUrl: '',
-
-  async getWorkspaces() {
-    const res = await fetch(`${this.baseUrl}/api/workspaces`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
-  },
-
-  async createWorkspace(data) {
-    const res = await fetch(`${this.baseUrl}/api/workspaces`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
-  },
-};
-```
+### 前端
 
 - 原生 JS，不引入框架
 - 模块按职责拆分（api / 渲染 / 事件）
-- CSS 使用 BEM 或简单命名空间
-- HTML 语义化标签，注重可访问性
+- CSS 变量主题，语义化标签
 
-### SQLite 数据库
+### 数据库
 
-```sql
--- 每个工作区独立 data.db
--- 使用 migrations 管理 schema 变更
--- 表名小写下划线
--- 必须有 created_at / updated_at
-CREATE TABLE records (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    content TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### 实体 CRUD 标准
-
-每个实体（数据库表）必须提供以下 API，除非有特殊业务要求：
-
-| 操作 | 路由 | 说明 |
-|------|------|------|
-| 列表 | `GET /api/{entity}/` | 支持筛选参数 |
-| 详情 | `GET /api/{entity}/{id}` | 含关联数据 |
-| 创建 | `POST /api/{entity}/` | 含数据校验 |
-| 更新 | `PUT /api/{entity}/{id}` | 部分更新（exclude_unset） |
-| 删除 | `DELETE /api/{entity}/{id}` | 含关联影响处理 |
-
-**关联影响规则：**
-- 删除父实体 → 子实体级联删除（`ON DELETE CASCADE`）
-- 删除被引用实体 → 拒绝并提示"被 N 条记录引用"
-- 状态变更 → 通知关联实体
-
----
-
-## 项目结构约定
-
-### 平台层（daozhu/）
-
-| 模块 | 职责 | 行数上限 |
-|------|------|----------|
-| `app.py` | 主入口，注册路由+中间件 | ≤ 100 |
-| `config.py` | 全局配置 | ≤ 80 |
-| `routes/*.py` | 路由定义 | ≤ 200/文件 |
-| `services/*.py` | 业务逻辑 | ≤ 300/文件 |
-| `models/*.py` | 数据模型 | ≤ 150/文件 |
-| `utils/*.py` | 工具函数 | ≤ 200/文件 |
-
-### 工作区层（workspaces/xxx/）
-
-| 模块 | 职责 | 行数上限 |
-|------|------|----------|
-| `app.py` | 工作区入口 | ≤ 100 |
-| `routes/*.py` | 路由 | ≤ 200/文件 |
-| `services/*.py` | 业务逻辑 | ≤ 300/文件 |
-| `models.py` | 数据模型 | ≤ 200 |
-| `frontend/js/*.js` | JS 模块 | ≤ 300/文件 |
-| `frontend/css/*.css` | 样式 | ≤ 300/文件 |
-| `frontend/*.html` | 页面 | ≤ 400/文件 |
-
----
-
-## Definition of Done
-
-- [ ] 分诊决策已记录
-- [ ] 所有验收标准已实现并通过
-- [ ] 单元测试已编写（TDD）
-- [ ] 文件行数均在限制内
-- [ ] Feature branch 已推送，PR 已开
-- [ ] 无已知回归
-- [ ] 代码已自审
-- [ ] 前后端模块化拆分合理
-
----
-
-## 升级路径
-
-| 情况 | 动作 |
-|------|------|
-| 需求不清 | 向产品负责人确认 |
-| 技术阻塞 | 升级到架构评审 |
-| 时间风险 | 提前沟通产品负责人 |
-| 文件超限 | 立即拆分，不等下次迭代 |
+- 表名小写下划线，必须有 `created_at` / `updated_at`
+- `IF NOT EXISTS` 防重复，常用字段建索引
+- 每实体提供完整 CRUD API
 
 ---
 
 ## workspace.json 规范
 
-每个工作区必须包含 `workspace.json`：
-
 ```json
 {
-  "id": "unique-id",
+  "id": "kebab-case-id",
   "name": "显示名称",
   "icon": "emoji",
   "color": "#HEX",
@@ -292,7 +102,7 @@ CREATE TABLE records (
   "port": 7801,
   "entry": "app.py",
   "python": ".venv",
-  "tags": ["标签1", "标签2"]
+  "tags": ["标签"]
 }
 ```
 
@@ -301,124 +111,52 @@ CREATE TABLE records (
 ## 常用命令
 
 ```bash
-# 开发启动
 cd DaoZhu
-uv venv .venv --python 3.11
 .venv\Scripts\activate
 uv pip install -e .
 daozhu serve                    # 平台主服务 :7788
-
-# 测试
-pytest tests/ -v                # 运行全部测试
-pytest tests/test_xxx.py -v     # 运行单个测试文件
-
-# 代码检查
-ruff check .                    # lint
-ruff format .                   # format
+pytest tests/ -v                # 测试
+ruff check . && ruff format .   # lint + format
 ```
+
+---
+
+## 已知坑
+
+| 坑 | 解决 |
+|----|------|
+| workspace.json 中文乱码 | 始终 `encoding="utf-8"` |
+| 轻挂载 import 失败 | sys.path 加入工作区目录 |
+| 独立进程读不到平台配置 | 用 HTTP API 或轻挂载 |
+| DeepSeek 返回空 arguments | registry.dispatch 前置校验 |
+| 工具连续失败无限循环 | 连续 2 次失败后注入 hint |
+| 前端 API 路径轻挂载后 404 | 用动态 `API_BASE` |
+| 前端反复调试不成功 | 去看开源项目怎么做，直接复用 |
 
 ---
 
 ## 文件写入策略
 
-当需要写入或编辑文件（尤其是 .md、.py、.html 等）时，遵循分次写入原则防止内容丢失：
-
-### 写入规则
-
 | 文件大小 | 策略 |
 |----------|------|
-| < 50 行 | `fs_write` 一次性写入 |
-| 50-150 行 | `fs_write` 写前 50 行 + `fs_append` 追加剩余（每次 ≤ 50 行） |
-| > 150 行 | `fs_write` 写前 50 行 + 多次 `fs_append`（每次 ≤ 50 行） |
+| < 50 行 | `fs_write` 一次写入 |
+| 50-150 行 | `fs_write` 前 50 行 + `fs_append` 剩余 |
+| > 150 行 | 多次 `fs_append`（每次 ≤ 50 行） |
 
-### 安全断点
+断点选择：章节标题前、空行处、函数/类之间。不要在表格中间、代码块内部断开。
 
-分次写入时，在以下位置断开：
-
-- ✅ 章节标题（`#`、`##`）之前
-- ✅ 空行处
-- ✅ 表格结束后
-- ✅ 函数/类定义之间
-- ✅ 代码块结束之后
-
-以下位置**不要**断开：
-
-- ❌ 表格中间（表头和数据行之间）
-- ❌ 代码块内部
-- ❌ 函数体内部
-- ❌ HTML 标签未闭合处
-
-### 编辑规则
-
-- 局部修改 → 用 `str_replace` 精确替换
-- 大段替换（> 50 行）→ 分步：先替换为占位标记，再逐步替换为新内容
-- 追加内容 → 用 `fs_append`，每次 ≤ 50 行
 
 ---
 
-## 注意事项
+## Skills 索引
 
-1. **数据本地化** — 所有数据存储在用户本地，不依赖云端
-2. **工作区隔离** — 每个工作区独立文件夹，独立 venv + 独立 SQLite + 独立端口
-3. **平台不侵入** — 平台层不修改工作区内部代码
-4. **渐进增强** — 先保证核心功能可用，再添加 AI 能力
-5. **文件精简** — 宁可多文件，不可单文件臃肿
-6. **配置不依赖路径** — 轻挂载用 `from daozhu.config_db import get_secret`；独立进程用平台 API
+项目根目录 `skills-lock.json` 记录了所有可用技能及其触发条件。
 
-## 打包与发布（v1.0+ 轻量启动器方案）
+| Skill | 何时加载 |
+|-------|---------|
+| `create-workspaces` | 创建新工作区时（必须加载，确保开源复用流程） |
+| `frontend-design` | 涉及前端 UI 开发时 |
+| `create-skill` | 用户要求搜索/安装/创建技能时 |
+| `weather` | Agent 运行时自动可用 |
 
-### 架构
-
-```
-DaoZhu/
-├── 岛主DaoZhu.exe          # 启动器（PyInstaller 打包 launcher.py）
-├── vendor/
-│   ├── git/cmd/git.exe     # 便携版 MinGit（~45MB）
-│   └── uv/uv.exe           # uv 包管理器（~22MB）
-├── launcher.py             # 启动器源码
-├── scripts/
-│   ├── build_launcher.py   # 打包启动器 exe
-│   ├── pack_release.py     # 打包分发 zip
-│   ├── publish_release.py  # 一键发布到 Gitee
-│   └── README.md           # 发布流程文档
-└── daozhu/                 # 项目源码
-```
-
-### 启动器工作流程
-
-```
-用户双击 exe
-  → 使用 vendor/git 执行 git pull（自动更新）
-  → 使用 vendor/uv 创建 .venv + 安装依赖
-  → 启动 uvicorn 服务 + 打开浏览器
-```
-
-### 发布命令
-
-```bash
-# 一键发布（打包 + 压缩 + 上传 Gitee Release）
-python scripts/publish_release.py v1.0.0
-
-# 或分步执行
-python scripts/build_launcher.py    # 打包启动器 exe
-python scripts/pack_release.py      # 打包分发 zip（含 vendor）
-```
-
-### 日常更新
-
-代码 push 到 Gitee 即可，用户下次启动 exe 自动 git pull 拉取最新。
-只有 `launcher.py` 本身改动时才需要重新打包 exe 并发新 Release。
-
----
-
-## 已知坑（开发时避免）
-
-| 坑 | 解决 |
-|----|------|
-| workspace.json 写入编码损坏 | 始终 `encoding="utf-8"` |
-| 轻挂载 import 失败 | sys.path 加入工作区目录且不 pop |
-| 独立进程读不到平台配置 | 用 HTTP API 或改为轻挂载 |
-| sync_playwright 在 async 报错 | 用 `async_playwright` |
-| DeepSeek 返回空 arguments | registry.dispatch 前置校验必填参数 |
-| 工具连续失败无限循环 | 连续 2 次失败后注入 hint 让 LLM 换策略 |
-| 前端 API 路径轻挂载后 404 | 用动态 `API_BASE`（基于 `window.location.pathname`） |
+执行任务前检查 `skills-lock.json`，匹配 `triggerWords` 后加载对应 SKILL.md。
