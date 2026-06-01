@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>需求池管理 📋</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- 侧边栏: 系统列表 -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2>📋 需求池</h2>
+        <div class="sub">需求管理系统</div>
+      </div>
+      <div class="sidebar-actions">
+        <button class="btn-add-system" onclick="App.showAddSystemModal()">➕ 添加系统</button>
+      </div>
+      <div class="system-list">
+        <div class="system-all active" data-id="all" onclick="App.selectSystem('all')">
+          <span>📊 全部需求</span>
+          <span class="sys-count" id="totalCount">0</span>
+        </div>
+        <div id="systemList"></div>
+      </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+      <!-- 头部 -->
+      <div class="main-header">
+        <div class="header-title">
+          <h3 id="pageTitle">全部需求</h3>
+          <p id="systemDescription" class="system-description" style="display: none;"></p>
+        </div>
+        <span class="current-system" id="currentSystem">共 <strong id="totalReqs">0</strong> 条需求</span>
+      </div>
+
+      <!-- 统计卡片 -->
+      <div class="stats-row" id="statsRow">
+        <div class="stat-card">
+          <div class="stat-icon blue">📋</div>
+          <div class="stat-info">
+            <div class="num" id="statTotal">0</div>
+            <div class="label">总需求数</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">🏗️</div>
+          <div class="stat-info">
+            <div class="num" id="statSystems">0</div>
+            <div class="label">系统数量</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon orange">⏳</div>
+          <div class="stat-info">
+            <div class="num" id="statPending">0</div>
+            <div class="label">待处理</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon purple">✅</div>
+          <div class="stat-info">
+            <div class="num" id="statOnline">0</div>
+            <div class="label">已上线</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 筛选栏 -->
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label>状态:</label>
+          <select id="filterStatus">
+            <option value="">全部</option>
+            <option value="进入需求池">进入需求池</option>
+            <option value="待论证">待论证</option>
+            <option value="待设计">待设计</option>
+            <option value="设计中">设计中</option>
+            <option value="交付UI">交付UI</option>
+            <option value="开发中">开发中</option>
+            <option value="已上线">已上线</option>
+            <option value="已关闭">已关闭</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>来源:</label>
+          <select id="filterSource">
+            <option value="">全部</option>
+            <option value="领导">领导</option>
+            <option value="业务">业务</option>
+            <option value="产品">产品</option>
+            <option value="测试">测试</option>
+            <option value="实施">实施</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>优先级:</label>
+          <select id="filterPriority">
+            <option value="">全部</option>
+            <option value="1">P0-紧急</option>
+            <option value="2">P1-重要</option>
+            <option value="3">P2-一般</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>端口:</label>
+          <select id="filterPort">
+            <option value="">全部</option>
+            <option value="web">Web</option>
+            <option value="移动端">移动端</option>
+            <option value="web+移动端">Web+移动端</option>
+            <option value="android">Android</option>
+            <option value="ios">iOS</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>🔍</label>
+          <input type="text" id="filterKeyword" placeholder="搜索名称/描述..." style="width: 160px;">
+        </div>
+        <button class="btn-filter" onclick="App.search()">筛选</button>
+        <button class="btn-reset" onclick="App.resetFilters()">重置</button>
+      </div>
+
+      <!-- 表格区 -->
+      <div class="table-wrapper">
+        <div class="table-toolbar">
+          <button class="btn-add" onclick="App.showAddRequirementModal()">➕ 添加需求</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 50px;">序号</th>
+              <th style="width: 60px;">
+                <button class="sort-btn" onclick="App.sortByPriority()">
+                  优先级
+                  <span id="prioritySortIcon">↕</span>
+                </button>
+              </th>
+              <th style="width: 120px;">系统</th>
+              <th style="width: 100px;">模块</th>
+              <th style="width: 150px;">需求名称</th>
+              <th style="width: 80px;">端口</th>
+              <th style="width: 70px;">来源</th>
+              <th style="width: 100px;">状态</th>
+              <th style="width: 80px;">提出人</th>
+              <th style="width: 100px;">提出时间</th>
+              <th style="width: 110px;">
+                <button class="sort-btn" onclick="App.sortByPlanDate()">
+                  计划完成时间
+                  <span id="planDateSortIcon">↕</span>
+                </button>
+              </th>
+              <th style="width: 90px;">计划版本</th>
+              <th style="width: 90px;">实际版本</th>
+              <th style="width: 90px;">上线日期</th>
+              <th style="width: 130px;">操作</th>
+            </tr>
+          </thead>
+          <tbody id="requirementTable">
+            <tr>
+              <td colspan="15">
+                <div class="empty-state">
+                  <div class="icon">📋</div>
+                  <p>暂无需求数据</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 添加/编辑需求弹窗 -->
+  <div class="modal-overlay" id="requirementModal" style="display: none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="reqModalTitle">添加需求</h3>
+        <button class="modal-close" onclick="App.closeRequirementModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="requirementForm">
+          <input type="hidden" id="reqId">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>所属系统 *</label>
+              <select id="reqSystemId" required>
+                <option value="">请选择系统</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>需求名称 *</label>
+              <input type="text" id="reqName" required placeholder="请输入需求名称">
+            </div>
+            <div class="form-group">
+              <label>模块</label>
+              <input type="text" id="reqModule" placeholder="请输入模块名称">
+            </div>
+            <div class="form-group">
+              <label>端口</label>
+              <select id="reqPort">
+                <option value="web">Web</option>
+                <option value="移动端">移动端</option>
+                <option value="web+移动端">Web+移动端</option>
+                <option value="android">Android</option>
+                <option value="ios">iOS</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>来源</label>
+              <select id="reqSource">
+                <option value="产品">产品</option>
+                <option value="领导">领导</option>
+                <option value="业务">业务</option>
+                <option value="测试">测试</option>
+                <option value="实施">实施</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>优先级</label>
+              <select id="reqPriority">
+                <option value="2">P1-重要</option>
+                <option value="1">P0-紧急</option>
+                <option value="3">P2-一般</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>提出人</label>
+              <input type="text" id="reqProposer" placeholder="请输入提出人">
+            </div>
+            <div class="form-group">
+              <label>提出日期</label>
+              <input type="date" id="reqProposeDate">
+            </div>
+            <div class="form-group">
+              <label>计划日期</label>
+              <input type="date" id="reqPlanDate">
+            </div>
+            <div class="form-group">
+              <label>计划版本</label>
+              <input type="text" id="reqPlanVersion" placeholder="如: v2.1.0">
+            </div>
+            <div class="form-group">
+              <label>实际版本</label>
+              <input type="text" id="reqActualVersion" placeholder="如: v2.1.0">
+            </div>
+            <div class="form-group">
+              <label>上线日期</label>
+              <input type="date" id="reqOnlineDate">
+            </div>
+            <div class="form-group">
+              <label>状态</label>
+              <select id="reqStatus">
+                <option value="进入需求池">进入需求池</option>
+                <option value="待论证">待论证</option>
+                <option value="待设计">待设计</option>
+                <option value="设计中">设计中</option>
+                <option value="交付UI">交付UI</option>
+                <option value="开发中">开发中</option>
+                <option value="已上线">已上线</option>
+                <option value="已关闭">已关闭</option>
+              </select>
+            </div>
+            <div class="form-group full">
+              <label>需求描述</label>
+              <textarea id="reqDescription" placeholder="请详细描述需求内容"></textarea>
+            </div>
+            <div class="form-group full">
+              <label>备注</label>
+              <textarea id="reqRemark" placeholder="备注信息"></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="form-btn secondary" onclick="App.closeRequirementModal()">取消</button>
+        <button class="form-btn primary" onclick="App.saveRequirement()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 添加/编辑系统弹窗 -->
+  <div class="modal-overlay" id="systemModal" style="display: none;">
+    <div class="modal" style="width: 480px;">
+      <div class="modal-header">
+        <h3 id="sysModalTitle">添加系统</h3>
+        <button class="modal-close" onclick="App.closeSystemModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="systemForm">
+          <input type="hidden" id="sysId">
+          <div class="form-group">
+            <label>系统名称 *</label>
+            <input type="text" id="sysName" required placeholder="请输入系统名称">
+          </div>
+          <div class="form-group">
+            <label>系统描述</label>
+            <textarea id="sysDescription" placeholder="请输入系统描述"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="form-btn secondary" onclick="App.closeSystemModal()">取消</button>
+        <button class="form-btn primary" onclick="App.saveSystem()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

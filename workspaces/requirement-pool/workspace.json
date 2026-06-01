@@ -1,0 +1,20 @@
+{
+  "id": "requirement-pool",
+  "name": "需求池管理",
+  "icon": "📋",
+  "color": "#3B82F6",
+  "version": "1.0.0",
+  "description": "产品经理需求池管理系统，支持系统/需求两级管理、多维度筛选与分页展示",
+  "port": 7806,
+  "entry": "app.py",
+  "python": ".venv",
+  "tags": [
+    "产品管理",
+    "需求池",
+    "看板"
+  ],
+  "start_mode": "manual",
+  "hidden": false,
+  "source": "self-built",
+  "sort_order": 2
+}

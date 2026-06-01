@@ -1,0 +1,22 @@
+{
+  "id": "prd-helper",
+  "name": "PRD编写助手",
+  "icon": "📄",
+  "color": "#6366F1",
+  "description": "产品需求文档(PRD)编写助手，由 AI 助力快速生成专业文档",
+  "version": "1.0.0",
+  "port": 0,
+  "entry": "app.py",
+  "python": ".venv",
+  "tags": [
+    "产品",
+    "文档",
+    "PRD",
+    "AI",
+    "需求管理"
+  ],
+  "start_mode": "manual",
+  "source": "self-built",
+  "mode": "standard",
+  "sort_order": 1
+}
