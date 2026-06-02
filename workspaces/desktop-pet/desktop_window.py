@@ -369,7 +369,12 @@ class PetTrayApp:
         icon = self._create_tray_icon()
         self.tray = QSystemTrayIcon(icon, self.app)
         self.tray.setToolTip("桌面宠物 — 岛主 DaoZhu")
+        self._rebuild_tray_menu()
+        self.tray.activated.connect(self._on_tray_click)
+        self.tray.show()
 
+    def _rebuild_tray_menu(self):
+        """重建托盘右键菜单（切换宠物后调用，不重建托盘图标）"""
         menu = QMenu()
 
         self.toggle_action = QAction("隐藏宠物", menu)
@@ -396,8 +401,6 @@ class PetTrayApp:
         menu.addAction(quit_action)
 
         self.tray.setContextMenu(menu)
-        self.tray.activated.connect(self._on_tray_click)
-        self.tray.show()
 
     def _create_tray_icon(self) -> QIcon:
         img = QImage(16, 16, QImage.Format_ARGB32)
@@ -426,7 +429,8 @@ class PetTrayApp:
             self.pet_window.close()
             self.pet_window = None
         self._init_pet()
-        self._init_tray()
+        # 只更新菜单，不重建托盘图标
+        self._rebuild_tray_menu()
 
     def _on_tray_click(self, reason):
         if reason == QSystemTrayIcon.DoubleClick:

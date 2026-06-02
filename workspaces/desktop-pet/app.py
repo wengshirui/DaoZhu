@@ -81,14 +81,17 @@ async def launch_desktop_pet():
         exe = Path(sys.executable)
 
     try:
-        # 以独立进程启动，不阻塞 Web 服务
-        subprocess.Popen(
-            [str(exe), str(script)],
-            cwd=str(script.parent),
-            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW
-            if sys.platform == "win32" else 0,
-            start_new_session=True,
-        )
+        # 以独立进程启动
+        # pythonw.exe 本身不创建控制台窗口，无需额外 creationflags
+        popen_kwargs = {
+            "cwd": str(script.parent),
+            "start_new_session": True,
+        }
+        if sys.platform == "win32":
+            # CREATE_NO_WINDOW (0x08000000) 确保不闪 cmd
+            popen_kwargs["creationflags"] = 0x08000000
+
+        subprocess.Popen([str(exe), str(script)], **popen_kwargs)
         return {"success": True, "message": "桌面宠物已启动，查看系统托盘 🐾"}
     except Exception as e:
         raise HTTPException(500, f"启动失败: {e}")
