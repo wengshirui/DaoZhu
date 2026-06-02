@@ -252,6 +252,29 @@
 
             // 渲染状态切换器
             renderStateSwitcher();
+
+            // 绑定"放到桌面"按钮
+            const launchBtn = $('#btn-desktop-launch');
+            if (launchBtn) {
+                launchBtn.onclick = async () => {
+                    launchBtn.textContent = '启动中...';
+                    launchBtn.disabled = true;
+                    try {
+                        const res = await fetch('/api/desktop/launch', { method: 'POST' });
+                        const data = await res.json();
+                        if (data.success) {
+                            launchBtn.textContent = '✓ 已在桌面';
+                            setTimeout(() => { launchBtn.textContent = '🖥️ 放到桌面'; launchBtn.disabled = false; }, 3000);
+                        } else {
+                            launchBtn.textContent = '失败';
+                            setTimeout(() => { launchBtn.textContent = '🖥️ 放到桌面'; launchBtn.disabled = false; }, 2000);
+                        }
+                    } catch (e) {
+                        launchBtn.textContent = '启动失败';
+                        setTimeout(() => { launchBtn.textContent = '🖥️ 放到桌面'; launchBtn.disabled = false; }, 2000);
+                    }
+                };
+            }
         } catch (e) { console.error(e); }
     }
 

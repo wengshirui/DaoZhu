@@ -56,6 +56,31 @@ async def index():
     return FileResponse(FRONTEND_DIR / "index.html")
 
 
+@app.post("/api/desktop/launch")
+async def launch_desktop_pet():
+    """启动桌面宠物窗口（独立进程）"""
+    import subprocess
+    import sys
+    from fastapi import HTTPException
+
+    script = Path(__file__).parent / "desktop_window.py"
+    if not script.exists():
+        raise HTTPException(500, "desktop_window.py 不存在")
+
+    try:
+        # 以独立进程启动，不阻塞 Web 服务
+        subprocess.Popen(
+            [sys.executable, str(script)],
+            cwd=str(script.parent),
+            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW
+            if sys.platform == "win32" else 0,
+            start_new_session=True,
+        )
+        return {"success": True, "message": "桌面宠物已启动，查看系统托盘 🐾"}
+    except Exception as e:
+        raise HTTPException(500, f"启动失败: {e}")
+
+
 @app.get("/api/proxy/spritesheet")
 async def proxy_spritesheet(url: str):
     """代理远程 spritesheet 图片（绕过 CORS）"""
