@@ -80,6 +80,17 @@ SYSTEM_PROMPT = """你是岛主平台的岛管理员。你帮助用户管理他�
 2. 重复性需求（每天记账、管理待办）→ 建议或创建工作区
 3. 用户明确说"帮我建一个 XX" → 创建工作区
 
+你的分层解决策略（#053）：
+- Level 1（默认）：使用本地工具（工作区操作、文件读写、技能调用）
+- Level 2（联网）：本地搞不定时，使用 web_search 联网搜索，限制 5 次
+- Level 3（死磕）：联网也搞不定时，告诉用户："常规方式无法解决，是否要我深入研究？（可能消耗更多资源）"。用户同意后不限次数。
+
+升级规则：
+- 默认用 Level 1 尝试解决
+- 需要联网时直接用 web_search（不用问用户，这是基本能力）
+- 如果连续 3 次工具调用失败或明确超出能力，告知用户当前困难并建议换思路
+- 不要在没必要时升级 — 能本地解决的就本地解决
+
 你的风格：
 - 简洁友好，用中文回复
 - 高效执行，不做多余的工具调用
@@ -339,6 +350,24 @@ async def agent_chat_stream(
                         except json.JSONDecodeError:
                             tool_args = {}
 
+                        # === Permission Gate（#060）===
+                        from .permission import check_permission
+                        permission = check_permission(tool_name, tool_args)
+                        if permission == "deny":
+                            result = json.dumps({
+                                "error": f"权限拒绝: 工具 {tool_name} 的此调用被安全规则禁止。",
+                                "permission": "denied",
+                            }, ensure_ascii=False)
+                            yield f"[TOOL:{tool_name}]"
+                            yield f"[TOOL_ERR:{tool_name}:权限拒绝]"
+                            if protocol == "anthropic":
+                                full_messages.append({
+                                    "role": "user",
+                                    "content": [{"type": "tool_result", "tool_use_id": tool_call["id"], "content": result}],
+                                })
+                            else:
+                                full_messages.append({"role": "tool", "tool_call_id": tool_call["id"], "content": result})
+                            continue
 
                         # 通知前端（通过 yield 特殊标记）
                         yield f"[TOOL:{tool_name}]"
@@ -425,6 +454,12 @@ async def agent_chat_stream(
                             })
 
                     # 继续循环，让 LLM 处理工具结果
+                    # === 会话压缩检测（#059）===
+                    from .compaction import should_compact, compact_messages
+                    if should_compact(full_messages):
+                        yield "[COMPACT]"
+                        full_messages = await compact_messages(full_messages)
+
                     continue
 
                 else:
