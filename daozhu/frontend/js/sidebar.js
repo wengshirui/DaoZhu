@@ -118,6 +118,16 @@ const Sidebar = {
         return;
       }
       container.innerHTML = workspaces.map(w => this._renderWorkspaceCard(w)).join('');
+      // 添加"绑定文件夹"按钮
+      container.insertAdjacentHTML('beforeend', `
+        <div class="card card--add" id="btn-bind-folder">
+          <div class="card__icon" style="background:var(--bg-tertiary)">📁</div>
+          <div class="card__body">
+            <div class="card__name" style="color:var(--text-muted)">+ 绑定本地文件夹</div>
+          </div>
+        </div>
+      `);
+      document.getElementById('btn-bind-folder').addEventListener('click', () => this._showBindDialog());
       this._bindWorkspaceClicks(container);
     } catch (err) {
       container.innerHTML = this._renderEmpty('⚠️', '加载失败', err.message);
@@ -196,7 +206,12 @@ const Sidebar = {
       card.addEventListener('click', async () => {
         const id = card.dataset.id;
         const mode = card.dataset.mode;
-        if (mode === 'lightweight') {
+        if (mode === 'bound') {
+          // 绑定型工作区：打开文件夹
+          try {
+            await fetch(`/api/workspaces/${id}/open-folder`, { method: 'POST' });
+          } catch(e) { App.showToast('打开失败'); }
+        } else if (mode === 'lightweight') {
           window.open(`/ws/${id}`, '_blank');
         } else {
           const status = card.dataset.status;
@@ -341,6 +356,67 @@ const Sidebar = {
         </div>
       </div>
     `;
+  },
+
+  // === 绑定文件夹对话框 ===
+  _showBindDialog() {
+    const existing = document.getElementById('bind-dialog-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'bind-dialog-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center';
+    overlay.innerHTML = `
+      <div style="background:var(--bg-secondary);border-radius:16px;padding:24px;width:380px;box-shadow:0 20px 40px rgba(0,0,0,0.3)">
+        <h3 style="margin:0 0 16px;color:var(--text-primary)">📁 绑定本地文件夹</h3>
+        <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:6px">文件夹路径</label>
+        <input type="text" id="bind-path" placeholder="D:\\Projects\\my-app" style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;background:var(--bg-primary);margin-bottom:12px;font-size:0.9rem">
+        <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:6px">显示名称（可选）</label>
+        <input type="text" id="bind-name" placeholder="留空则用文件夹名" style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;background:var(--bg-primary);margin-bottom:16px;font-size:0.9rem">
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button id="bind-cancel" style="padding:8px 16px;border:1px solid var(--border-color);border-radius:8px;background:transparent;color:var(--text-secondary);cursor:pointer">取消</button>
+          <button id="bind-confirm" style="padding:8px 16px;border:none;border-radius:8px;background:var(--accent);color:#fff;cursor:pointer;font-weight:500">绑定</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    document.getElementById('bind-cancel').onclick = () => overlay.remove();
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+    document.getElementById('bind-confirm').onclick = async () => {
+      const path = document.getElementById('bind-path').value.trim();
+      const name = document.getElementById('bind-name').value.trim();
+      if (!path) { App.showToast('请输入路径'); return; }
+
+      try {
+        const res = await fetch('/api/workspaces/bind', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path, name }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          overlay.remove();
+          await Sidebar.loadWorkspaces();
+          Panel.addLog('info', `📁 已绑定: ${data.workspace.name}`);
+          App.showToast('绑定成功 ✓');
+        } else {
+          App.showToast(data.detail || '绑定失败');
+        }
+      } catch (e) {
+        App.showToast('请求失败: ' + e.message);
+      }
+    };
+
+    // 回车确认
+    document.getElementById('bind-path').focus();
+    document.getElementById('bind-name').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('bind-confirm').click();
+    });
+    document.getElementById('bind-path').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('bind-name').focus();
+    });
   },
 
   // === 空状态 ===

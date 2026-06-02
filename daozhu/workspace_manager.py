@@ -49,7 +49,8 @@ class WorkspaceInfo:
     hidden: bool = False
     source: str = "self-built"
     sort_order: int = 99
-    mode: str = "standard"  # "lightweight" | "standard" | "heavy"
+    mode: str = "standard"  # "lightweight" | "standard" | "heavy" | "bound"
+    bound_path: str = ""  # mode=bound 时指向的外部文件夹路径
 
     # 运行时状态（不持久化）
     status: WorkspaceStatus = WorkspaceStatus.STOPPED
@@ -63,7 +64,7 @@ class WorkspaceInfo:
 
     def to_dict(self) -> dict:
         """转为前端 API 响应格式"""
-        return {
+        d = {
             "id": self.id,
             "name": self.name,
             "icon": self.icon,
@@ -78,6 +79,9 @@ class WorkspaceInfo:
             "sort_order": self.sort_order,
             "mode": self.mode,
         }
+        if self.bound_path:
+            d["bound_path"] = self.bound_path
+        return d
 
 
 class WorkspaceManager:
@@ -140,6 +144,7 @@ class WorkspaceManager:
             source=data.get("source", "self-built"),
             sort_order=data.get("sort_order", 99),
             mode=data.get("mode", "standard"),
+            bound_path=data.get("bound_path", ""),
         )
 
     # === 端口分配 ===
