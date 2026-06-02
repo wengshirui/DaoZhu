@@ -67,10 +67,18 @@ async def launch_desktop_pet():
     if not script.exists():
         raise HTTPException(500, "desktop_window.py 不存在")
 
+    # 找到带 PySide6 的 python
+    # 优先用项目根目录的 .venv（PySide6 装在那里）
+    project_root = Path(__file__).parent.parent.parent
+    venv_python = project_root / ".venv" / "Scripts" / "python.exe"
+    if not venv_python.exists():
+        # 回退到当前解释器
+        venv_python = Path(sys.executable)
+
     try:
         # 以独立进程启动，不阻塞 Web 服务
         subprocess.Popen(
-            [sys.executable, str(script)],
+            [str(venv_python), str(script)],
             cwd=str(script.parent),
             creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW
             if sys.platform == "win32" else 0,
