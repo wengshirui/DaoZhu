@@ -462,3 +462,68 @@
 .message--assistant:hover .librarian-avatar {
   transform: scale(1.1) rotate(-3deg);
 }
+
+
+/* === 消息内容容器（含撤回按钮） === */
+.message__content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.message--assistant .message__content {
+  align-items: flex-start;
+}
+
+/* === 撤回按钮 === */
+.message__undo {
+  opacity: 0;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: opacity 0.2s, color 0.2s, background 0.2s;
+}
+
+.message:hover .message__undo {
+  opacity: 1;
+}
+
+.message__undo:hover {
+  color: var(--error);
+  background: rgba(199, 84, 80, 0.1);
+}
+
+
+/* === 防抖等待提示 === */
+.batch-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: var(--bg-tertiary);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  animation: slideUp 0.2s ease;
+}
+
+.batch-hint__send {
+  padding: 4px 10px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.batch-hint__send:hover {
+  background: var(--accent-hover);
+}

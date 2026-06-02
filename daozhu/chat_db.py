@@ -24,8 +24,9 @@ CREATE TABLE IF NOT EXISTS conversations (
 CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     conversation_id TEXT NOT NULL,
-    role TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system', 'tool_call')),
+    role TEXT NOT NULL,
     content TEXT NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
 );
@@ -46,7 +47,23 @@ def init_chat_db():
     """初始化对话数据库"""
     conn = _get_db()
     conn.executescript(SCHEMA)
-    # 迁移：允许 tool_call 角色（旧数据库可能有 CHECK 约束）
+    # 迁移：确保 active 字段存在（旧数据库升级）
+    _migrate_active_column(conn)
+    conn.close()
+
+
+def _migrate_active_column(conn: sqlite3.Connection):
+    """迁移：为旧数据库添加 active 字段"""
+    cursor = conn.execute("PRAGMA table_info(messages)")
+    columns = [row[1] for row in cursor.fetchall()]
+    if "active" not in columns:
+        conn.execute("ALTER TABLE messages ADD COLUMN active INTEGER NOT NULL DEFAULT 1")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_messages_active ON messages(conversation_id, active)"
+        )
+        conn.commit()
+    # 同时移除旧的 CHECK 约束（如果存在）— 通过重建表
+    # 检测方法：尝试插入 tool_call 角色
     try:
         conn.execute(
             "INSERT INTO messages (conversation_id, role, content) VALUES ('_test', 'tool_call', '_')"
@@ -54,7 +71,6 @@ def init_chat_db():
         conn.execute("DELETE FROM messages WHERE conversation_id = '_test'")
         conn.commit()
     except Exception:
-        # CHECK 约束不允许 tool_call，重建表
         try:
             conn.executescript("""
                 ALTER TABLE messages RENAME TO messages_old;
@@ -63,16 +79,18 @@ def init_chat_db():
                     conversation_id TEXT NOT NULL,
                     role TEXT NOT NULL,
                     content TEXT NOT NULL,
+                    active INTEGER NOT NULL DEFAULT 1,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
                 );
-                INSERT INTO messages SELECT * FROM messages_old;
+                INSERT INTO messages (id, conversation_id, role, content, active, created_at)
+                    SELECT id, conversation_id, role, content, 1, created_at FROM messages_old;
                 DROP TABLE messages_old;
                 CREATE INDEX IF NOT EXISTS idx_messages_conv ON messages(conversation_id);
+                CREATE INDEX IF NOT EXISTS idx_messages_active ON messages(conversation_id, active);
             """)
         except Exception:
             pass
-    conn.close()
 
 
 def create_conversation(title: str = "新对话") -> dict:
@@ -100,7 +118,7 @@ def list_conversations(limit: int = 50) -> list[dict]:
 
 
 def get_conversation(conv_id: str) -> Optional[dict]:
-    """获取单个会话详情（含消息）"""
+    """获取单个会话详情（仅含活跃消息）"""
     db = _get_db()
     conv = db.execute("SELECT * FROM conversations WHERE id = ?", (conv_id,)).fetchone()
     if not conv:
@@ -108,7 +126,7 @@ def get_conversation(conv_id: str) -> Optional[dict]:
         return None
 
     messages = db.execute(
-        "SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at",
+        "SELECT * FROM messages WHERE conversation_id = ? AND active = 1 ORDER BY created_at",
         (conv_id,),
     ).fetchall()
     db.close()
@@ -151,3 +169,39 @@ def update_conversation_title(conv_id: str, title: str):
     db.execute("UPDATE conversations SET title = ? WHERE id = ?", (title, conv_id))
     db.commit()
     db.close()
+
+
+def undo_messages(conv_id: str, n: int = 1) -> dict:
+    """
+    撤回最近 N 轮对话（一轮 = 一条 user + 对应的 assistant/tool_call 消息）
+    返回: {"undone": int, "prefill": str} — 撤回的轮数 + 最后一条被撤回的用户消息文本
+    """
+    db = _get_db()
+
+    # 获取活跃的 user 消息（从新到旧）
+    user_msgs = db.execute(
+        """SELECT id, content FROM messages
+           WHERE conversation_id = ? AND active = 1 AND role = 'user'
+           ORDER BY id DESC LIMIT ?""",
+        (conv_id, n),
+    ).fetchall()
+
+    if not user_msgs:
+        db.close()
+        return {"undone": 0, "prefill": ""}
+
+    # 最早要撤回的 user 消息 id（从这条开始往后全部软删除）
+    oldest_user_id = user_msgs[-1]["id"]
+    prefill_text = user_msgs[0]["content"]  # 最近一条用户消息（回填到输入框）
+
+    # 软删除：从 oldest_user_id 开始的所有消息
+    cursor = db.execute(
+        """UPDATE messages SET active = 0
+           WHERE conversation_id = ? AND active = 1 AND id >= ?""",
+        (conv_id, oldest_user_id),
+    )
+    undone_count = cursor.rowcount
+    db.commit()
+    db.close()
+
+    return {"undone": undone_count, "prefill": prefill_text}

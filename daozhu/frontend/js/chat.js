@@ -7,6 +7,9 @@ const Chat = {
   isTyping: false,
   conversationId: null,
   showingReadme: false,
+  _debounceTimer: null,
+  _pendingMessages: [],
+  _debounceMs: 2000, // 防抖等待时间（毫秒）
 
   init() {
     this._bindForm();
@@ -57,7 +60,46 @@ const Chat = {
     textarea.value = '';
     textarea.style.height = 'auto';
     this._removeWelcome();
+
+    // 防抖：收集消息，等待静默后一起发送
+    this._pendingMessages.push(text);
     this._addMessage('user', text);
+
+    // 显示等待提示（第二条开始显示）
+    if (this._pendingMessages.length > 1) {
+      this._showBatchHint();
+    }
+
+    // 重置防抖计时器
+    if (this._debounceTimer) {
+      clearTimeout(this._debounceTimer);
+    }
+    this._debounceTimer = setTimeout(() => {
+      this._flushPendingMessages();
+    }, this._debounceMs);
+  },
+
+  // === 立即发送（跳过防抖等待） ===
+  _flushNow() {
+    if (this._debounceTimer) {
+      clearTimeout(this._debounceTimer);
+      this._debounceTimer = null;
+    }
+    this._flushPendingMessages();
+  },
+
+  // === 合并发送 ===
+  async _flushPendingMessages() {
+    this._debounceTimer = null;
+    this._removeBatchHint();
+
+    if (this._pendingMessages.length === 0) return;
+
+    // 合并所有待发消息为一条（换行分隔）
+    const combinedText = this._pendingMessages.join('\n');
+    this._pendingMessages = [];
+
+    const sendBtn = document.querySelector('.chat__send');
 
     // 切换为停止按钮
     sendBtn.textContent = '⏹ 停止';
@@ -70,7 +112,7 @@ const Chat = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: text,
+          message: combinedText,
           conversation_id: this.conversationId || null,
         }),
         signal: this._abortController.signal,
@@ -224,9 +266,18 @@ const Chat = {
 
     const msgEl = document.createElement('div');
     msgEl.className = `message message--${role}`;
+
+    // 用户消息显示撤回按钮
+    const undoBtn = role === 'user'
+      ? '<button class="message__undo" onclick="Chat._handleUndo(this)" title="撤回">↩</button>'
+      : '';
+
     msgEl.innerHTML = `
       <div class="message__avatar">${avatar}</div>
-      <div class="message__bubble">${this._escapeHtml(content)}</div>
+      <div class="message__content">
+        <div class="message__bubble">${this._escapeHtml(content)}</div>
+        ${undoBtn}
+      </div>
     `;
 
     container.appendChild(msgEl);
@@ -302,6 +353,77 @@ const Chat = {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  },
+
+  // === 防抖提示 ===
+  _showBatchHint() {
+    this._removeBatchHint();
+    const container = document.getElementById('chat-messages');
+    const hint = document.createElement('div');
+    hint.id = 'batch-hint';
+    hint.className = 'batch-hint';
+    hint.innerHTML = `
+      <span>⏳ 等待更多输入...</span>
+      <button class="batch-hint__send" onclick="Chat._flushNow()">立即发送</button>
+    `;
+    container.appendChild(hint);
+    this._scrollToBottom();
+  },
+
+  _removeBatchHint() {
+    const hint = document.getElementById('batch-hint');
+    if (hint) hint.remove();
+  },
+
+  // === 撤回消息 ===
+  async _handleUndo(btnEl) {
+    if (!this.conversationId) return;
+    if (this.isTyping) return; // 正在生成时不允许撤回
+
+    try {
+      const res = await fetch(`/api/conversations/${this.conversationId}/undo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ n: 1 }),
+      });
+      if (!res.ok) return;
+
+      const data = await res.json();
+
+      // 从 DOM 中移除最后一轮消息（从按钮所在的 user 消息开始，往后全部移除）
+      const msgEl = btnEl.closest('.message');
+      const container = document.getElementById('chat-messages');
+      let node = msgEl;
+      while (node) {
+        const next = node.nextElementSibling;
+        container.removeChild(node);
+        node = next;
+      }
+
+      // 从内存消息数组中也移除（找到最后一个 user 并删到末尾）
+      const lastUserIdx = this.messages.findLastIndex(m => m.role === 'user');
+      if (lastUserIdx >= 0) {
+        this.messages.splice(lastUserIdx);
+      }
+
+      // 回填到输入框
+      if (data.prefill) {
+        const textarea = document.getElementById('chat-input');
+        textarea.value = data.prefill;
+        textarea.focus();
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+      }
+
+      // 如果没有消息了，显示欢迎
+      if (container.children.length === 0) {
+        this._showWelcome();
+      }
+
+      Panel.addLog('info', `↩ 已撤回 ${data.undone} 条消息`);
+    } catch (e) {
+      Panel.addLog('error', `撤回失败: ${e.message}`);
+    }
   },
 
   _cleanDSML(text) {

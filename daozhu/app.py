@@ -17,7 +17,7 @@ from .workspace_manager import manager
 from .chat_db import (
     init_chat_db, create_conversation, list_conversations,
     get_conversation, delete_conversation, add_message,
-    update_conversation_title,
+    update_conversation_title, undo_messages,
 )
 from .chat_service import chat_stream
 from .memory_db import init_memory_db, get_skill_stats, get_stale_skills
@@ -439,6 +439,18 @@ async def delete_conversation_api(conv_id: str):
     if not delete_conversation(conv_id):
         raise HTTPException(status_code=404, detail="会话不存在")
     return {"success": True}
+
+
+@app.post("/api/conversations/{conv_id}/undo")
+async def undo_conversation_api(conv_id: str, body: dict = None):
+    """撤回最近 N 轮对话"""
+    n = 1
+    if body and "n" in body:
+        n = max(1, min(int(body["n"]), 10))  # 限制 1-10 轮
+    result = undo_messages(conv_id, n)
+    if result["undone"] == 0:
+        raise HTTPException(status_code=400, detail="没有可撤回的消息")
+    return {"success": True, **result}
 
 
 @app.post("/api/chat")
