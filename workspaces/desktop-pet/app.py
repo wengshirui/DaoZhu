@@ -69,16 +69,21 @@ async def launch_desktop_pet():
 
     # 找到带 PySide6 的 python
     # 优先用项目根目录的 .venv（PySide6 装在那里）
+    # 用 pythonw.exe 启动以隐藏 cmd 窗口
     project_root = Path(__file__).parent.parent.parent
+    venv_pythonw = project_root / ".venv" / "Scripts" / "pythonw.exe"
     venv_python = project_root / ".venv" / "Scripts" / "python.exe"
-    if not venv_python.exists():
-        # 回退到当前解释器
-        venv_python = Path(sys.executable)
+    if venv_pythonw.exists():
+        exe = venv_pythonw  # 无 cmd 窗口
+    elif venv_python.exists():
+        exe = venv_python
+    else:
+        exe = Path(sys.executable)
 
     try:
         # 以独立进程启动，不阻塞 Web 服务
         subprocess.Popen(
-            [str(venv_python), str(script)],
+            [str(exe), str(script)],
             cwd=str(script.parent),
             creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW
             if sys.platform == "win32" else 0,

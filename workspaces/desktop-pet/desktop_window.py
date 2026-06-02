@@ -1,46 +1,59 @@
 """
 桌面宠物 — PySide6 透明窗口
 独立运行，不依赖 FastAPI 服务。
-用法: python desktop_window.py
+用法: pythonw desktop_window.py  (无 cmd 窗口)
+      python desktop_window.py   (有 cmd 窗口，调试用)
 """
 
 import sys
 import sqlite3
 import random
+import time
 from pathlib import Path
+from collections import deque
 
-from PySide6.QtCore import Qt, QTimer, QPoint, QSize, QRect
-from PySide6.QtGui import QPixmap, QPainter, QIcon, QAction, QImage
+from PySide6.QtCore import Qt, QTimer, QPoint, QPointF
+from PySide6.QtGui import QPixmap, QPainter, QIcon, QAction, QImage, QCursor
 from PySide6.QtWidgets import (
-    QApplication, QWidget, QSystemTrayIcon, QMenu, QLabel,
+    QApplication, QWidget, QSystemTrayIcon, QMenu,
 )
 
-# Petdex 标准状态定义
+# === Petdex 标准状态 ===
 PET_STATES = [
-    {"id": "idle", "row": 0, "frames": 6, "duration_ms": 1100},
+    {"id": "idle",          "row": 0, "frames": 6, "duration_ms": 1100},
     {"id": "running-right", "row": 1, "frames": 8, "duration_ms": 1060},
-    {"id": "running-left", "row": 2, "frames": 8, "duration_ms": 1060},
-    {"id": "waving", "row": 3, "frames": 4, "duration_ms": 700},
-    {"id": "jumping", "row": 4, "frames": 5, "duration_ms": 840},
-    {"id": "failed", "row": 5, "frames": 8, "duration_ms": 1220},
-    {"id": "waiting", "row": 6, "frames": 6, "duration_ms": 1010},
-    {"id": "running", "row": 7, "frames": 6, "duration_ms": 820},
-    {"id": "review", "row": 8, "frames": 6, "duration_ms": 1030},
+    {"id": "running-left",  "row": 2, "frames": 8, "duration_ms": 1060},
+    {"id": "waving",        "row": 3, "frames": 4, "duration_ms": 700},
+    {"id": "jumping",       "row": 4, "frames": 5, "duration_ms": 840},
+    {"id": "failed",        "row": 5, "frames": 8, "duration_ms": 1220},
+    {"id": "waiting",       "row": 6, "frames": 6, "duration_ms": 1010},
+    {"id": "running",       "row": 7, "frames": 6, "duration_ms": 820},
+    {"id": "review",        "row": 8, "frames": 6, "duration_ms": 1030},
 ]
 
-IDLE_CYCLE = ["idle", "idle", "idle", "waiting", "waving", "jumping", "review", "idle"]
-IDLE_TICK_MIN_MS = 2500
-IDLE_TICK_MAX_MS = 5000
-REACTION_MS = 1200
-SPRITE_DISPLAY_SIZE = 140  # 显示尺寸（像素）
+# === 物理常量（对齐网页版 pet-floater.js）===
+IDLE_CYCLE = ["idle", "idle", "waiting", "idle", "waving", "jumping", "review", "idle", "idle"]
+IDLE_TICK_MIN_MS = 1700
+IDLE_TICK_MAX_MS = 3000
+REACTION_MS = 1100
+RUN_TAIL_MS = 600
+DRAG_THRESHOLD_PX = 4
+SPRITE_DISPLAY_SIZE = 120
+
+# 甩出物理
+THROW_MIN_VELOCITY = 0.05
+THROW_FRICTION = 0.92
+THROW_BOUNCE = -0.5
+THROW_SAMPLE_WINDOW_MS = 80
+THROW_TICK_MS = 16  # ~60fps
 
 WORKSPACE_DIR = Path(__file__).parent
 DATA_DB = WORKSPACE_DIR / "data.db"
 PETS_DIR = WORKSPACE_DIR / "pets"
 
 
+# === 数据库操作 ===
 def get_active_pet() -> dict | None:
-    """从数据库获取活跃宠物信息"""
     if not DATA_DB.exists():
         return None
     conn = sqlite3.connect(str(DATA_DB))
@@ -55,7 +68,6 @@ def get_active_pet() -> dict | None:
 
 
 def get_all_pets() -> list[dict]:
-    """获取所有已下载宠物"""
     if not DATA_DB.exists():
         return []
     conn = sqlite3.connect(str(DATA_DB))
@@ -66,7 +78,6 @@ def get_all_pets() -> list[dict]:
 
 
 def set_active_pet(pet_id: int):
-    """设置活跃宠物"""
     conn = sqlite3.connect(str(DATA_DB))
     conn.execute("UPDATE pets SET is_active = 0")
     conn.execute("UPDATE pets SET is_active = 1 WHERE id = ?", (pet_id,))
@@ -74,8 +85,9 @@ def set_active_pet(pet_id: int):
     conn.close()
 
 
+# === 桌面宠物窗口 ===
 class PetWindow(QWidget):
-    """透明无边框桌面宠物窗口"""
+    """透明无边框桌面宠物窗口（含甩出物理）"""
 
     def __init__(self, pet_name: str, spritesheet_path: Path):
         super().__init__()
@@ -83,45 +95,74 @@ class PetWindow(QWidget):
         self.current_state_idx = 0
         self.current_frame = 0
         self.idle_cycle_idx = 0
+
+        # 拖拽状态
         self.dragging = False
+        self.drag_start_pos = QPoint()
+        self.drag_moved = False
         self.drag_offset = QPoint()
+
+        # 甩出物理
+        self.throwing = False
+        self.vx = 0.0
+        self.vy = 0.0
+        self.pos_x = 0.0
+        self.pos_y = 0.0
+        self._velocity_samples = deque(maxlen=6)
 
         # 加载 spritesheet
         self.spritesheet = QPixmap(str(spritesheet_path))
         if self.spritesheet.isNull():
             raise RuntimeError(f"无法加载: {spritesheet_path}")
 
-        # 计算帧尺寸（8列 x 9行）
         self.frame_w = self.spritesheet.width() // 8
         self.frame_h = self.spritesheet.height() // 9
 
-        # 窗口设置：透明 + 无边框 + 置顶
+        # 窗口：透明 + 无边框 + 置顶 + 不在任务栏
         self.setWindowFlags(
             Qt.FramelessWindowHint
             | Qt.WindowStaysOnTopHint
-            | Qt.Tool  # 不在任务栏显示
+            | Qt.Tool
         )
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setFixedSize(SPRITE_DISPLAY_SIZE, SPRITE_DISPLAY_SIZE)
 
         # 初始位置：屏幕右下角
         screen = QApplication.primaryScreen().geometry()
-        self.move(screen.width() - SPRITE_DISPLAY_SIZE - 80, screen.height() - SPRITE_DISPLAY_SIZE - 80)
+        self.pos_x = float(screen.width() - SPRITE_DISPLAY_SIZE - 100)
+        self.pos_y = float(screen.height() - SPRITE_DISPLAY_SIZE - 100)
+        self.move(int(self.pos_x), int(self.pos_y))
 
-        # 动画定时器
+        # 动画帧定时器
         self._anim_timer = QTimer(self)
         self._anim_timer.timeout.connect(self._advance_frame)
         self._start_animation()
 
-        # 自动状态循环定时器
+        # 空闲状态循环
         self._idle_timer = QTimer(self)
         self._idle_timer.setSingleShot(True)
         self._idle_timer.timeout.connect(self._next_idle_state)
         self._schedule_idle()
 
+        # 甩出物理定时器
+        self._throw_timer = QTimer(self)
+        self._throw_timer.setInterval(THROW_TICK_MS)
+        self._throw_timer.timeout.connect(self._throw_tick)
+
+        # 跑步拖尾定时器（松手后延续 running 一小段）
+        self._tail_timer = QTimer(self)
+        self._tail_timer.setSingleShot(True)
+        self._tail_timer.timeout.connect(self._end_run_tail)
+
+        # 反应定时器
+        self._reaction_timer = QTimer(self)
+        self._reaction_timer.setSingleShot(True)
+        self._reaction_timer.timeout.connect(self._end_reaction)
+
+    # === 动画 ===
     def _start_animation(self):
         state = PET_STATES[self.current_state_idx]
-        interval = state["duration_ms"] // state["frames"]
+        interval = max(16, state["duration_ms"] // state["frames"])
         self._anim_timer.start(interval)
 
     def _advance_frame(self):
@@ -136,12 +177,13 @@ class PetWindow(QWidget):
             self.current_frame = 0
             self._start_animation()
 
+    # === 空闲循环 ===
     def _schedule_idle(self):
         wait = random.randint(IDLE_TICK_MIN_MS, IDLE_TICK_MAX_MS)
         self._idle_timer.start(wait)
 
     def _next_idle_state(self):
-        if self.dragging:
+        if self.dragging or self.throwing:
             self._schedule_idle()
             return
         self.idle_cycle_idx = (self.idle_cycle_idx + 1) % len(IDLE_CYCLE)
@@ -151,58 +193,164 @@ class PetWindow(QWidget):
     # === 绘制 ===
     def paintEvent(self, event):
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.SmoothPixmapTransform, False)  # 像素锐利
-
+        painter.setRenderHint(QPainter.SmoothPixmapTransform, False)
         state = PET_STATES[self.current_state_idx]
-        src_rect = QRect(
+        from PySide6.QtCore import QRect
+        src = QRect(
             self.current_frame * self.frame_w,
             state["row"] * self.frame_h,
-            self.frame_w,
-            self.frame_h,
+            self.frame_w, self.frame_h,
         )
-        dst_rect = QRect(0, 0, SPRITE_DISPLAY_SIZE, SPRITE_DISPLAY_SIZE)
-        painter.drawPixmap(dst_rect, self.spritesheet, src_rect)
+        dst = QRect(0, 0, SPRITE_DISPLAY_SIZE, SPRITE_DISPLAY_SIZE)
+        painter.drawPixmap(dst, self.spritesheet, src)
         painter.end()
 
-    # === 拖拽 ===
+    # === 屏幕边界 ===
+    def _screen_bounds(self):
+        screen = QApplication.primaryScreen().geometry()
+        return (0.0, 0.0,
+                float(screen.width() - SPRITE_DISPLAY_SIZE),
+                float(screen.height() - SPRITE_DISPLAY_SIZE))
+
+    # === 鼠标交互 ===
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.dragging = True
-            self.drag_offset = event.globalPosition().toPoint() - self.pos()
+            self.drag_moved = False
+            self.drag_start_pos = event.globalPosition().toPoint()
+            self.drag_offset = self.drag_start_pos - self.pos()
+            self._velocity_samples.clear()
+            self._velocity_samples.append((time.time() * 1000, self.pos_x, self.pos_y))
+            # 停止甩出和空闲
+            self._cancel_throw()
             self._idle_timer.stop()
+            self._tail_timer.stop()
+            self._reaction_timer.stop()
 
     def mouseMoveEvent(self, event):
-        if self.dragging:
-            new_pos = event.globalPosition().toPoint() - self.drag_offset
+        if not self.dragging:
+            return
+        global_pos = event.globalPosition().toPoint()
+        dx = global_pos.x() - self.drag_start_pos.x()
+        dy = global_pos.y() - self.drag_start_pos.y()
+
+        if not self.drag_moved and (abs(dx) + abs(dy)) > DRAG_THRESHOLD_PX:
+            self.drag_moved = True
+
+        if self.drag_moved:
+            new_pos = global_pos - self.drag_offset
+            self.pos_x = float(new_pos.x())
+            self.pos_y = float(new_pos.y())
             self.move(new_pos)
-            # 方向动画
-            dx = event.globalPosition().x() - (self.pos().x() + self.drag_offset.x())
-            if dx > 2:
-                self._set_state("running-right")
-            elif dx < -2:
-                self._set_state("running-left")
+
+            # 速度采样
+            now = time.time() * 1000
+            self._velocity_samples.append((now, self.pos_x, self.pos_y))
+
+            # 实时方向动画
+            if len(self._velocity_samples) >= 2:
+                prev = self._velocity_samples[-2]
+                horizontal = self.pos_x - prev[1]
+                if horizontal > 1:
+                    self._set_state("running-right")
+                elif horizontal < -1:
+                    self._set_state("running-left")
 
     def mouseReleaseEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.dragging = False
-            self._set_state("idle")
-            self._schedule_idle()
+        if event.button() != Qt.LeftButton:
+            return
+        self.dragging = False
 
-    # === 双击反应 ===
-    def mouseDoubleClickEvent(self, event):
+        if not self.drag_moved:
+            # 没移动 = 点击反应
+            self._trigger_reaction()
+            return
+
+        # 计算释放速度（从最近采样）
+        now = time.time() * 1000
+        recent = [(t, x, y) for t, x, y in self._velocity_samples
+                  if now - t <= THROW_SAMPLE_WINDOW_MS]
+        samples = recent if len(recent) > 1 else list(self._velocity_samples)
+
+        if len(samples) >= 2:
+            first, last = samples[0], samples[-1]
+            dt = last[0] - first[0]
+            if dt > 0:
+                self.vx = (last[1] - first[1]) / dt
+                self.vy = (last[2] - first[2]) / dt
+
+        if abs(self.vx) > THROW_MIN_VELOCITY or abs(self.vy) > THROW_MIN_VELOCITY:
+            # 甩出！
+            self.throwing = True
+            self._throw_timer.start()
+        else:
+            self._start_run_tail()
+
+    # === 甩出物理 ===
+    def _throw_tick(self):
+        min_x, min_y, max_x, max_y = self._screen_bounds()
+
+        self.pos_x += self.vx * THROW_TICK_MS
+        self.pos_y += self.vy * THROW_TICK_MS
+
+        # 边界弹跳
+        if self.pos_x < min_x or self.pos_x > max_x:
+            self.vx *= THROW_BOUNCE
+            self.pos_x = max(min_x, min(self.pos_x, max_x))
+        if self.pos_y < min_y or self.pos_y > max_y:
+            self.vy *= THROW_BOUNCE
+            self.pos_y = max(min_y, min(self.pos_y, max_y))
+
+        self.move(int(self.pos_x), int(self.pos_y))
+
+        # 方向动画
+        if self.vx > 0.02:
+            self._set_state("running-right")
+        elif self.vx < -0.02:
+            self._set_state("running-left")
+
+        # 摩擦
+        self.vx *= THROW_FRICTION
+        self.vy *= THROW_FRICTION
+
+        # 停止
+        if abs(self.vx) < THROW_MIN_VELOCITY and abs(self.vy) < THROW_MIN_VELOCITY:
+            self._cancel_throw()
+            self._start_run_tail()
+
+    def _cancel_throw(self):
+        self._throw_timer.stop()
+        self.throwing = False
+        self.vx = 0.0
+        self.vy = 0.0
+
+    # === 跑步拖尾（松手后跑一小段再回 idle）===
+    def _start_run_tail(self):
+        self._tail_timer.start(RUN_TAIL_MS)
+
+    def _end_run_tail(self):
+        self._set_state("idle")
+        self._schedule_idle()
+
+    # === 点击反应 ===
+    def _trigger_reaction(self):
         current = PET_STATES[self.current_state_idx]["id"]
         reaction = "jumping" if current == "waving" else "waving"
         self._set_state(reaction)
-        QTimer.singleShot(REACTION_MS, lambda: self._set_state("idle"))
+        self._reaction_timer.start(REACTION_MS)
+
+    def _end_reaction(self):
+        self._set_state("idle")
+        self._schedule_idle()
 
 
+# === 系统托盘 ===
 class PetTrayApp:
-    """系统托盘应用：管理桌面宠物窗口"""
+    """系统托盘应用"""
 
     def __init__(self):
         self.app = QApplication(sys.argv)
         self.app.setQuitOnLastWindowClosed(False)
-
         self.pet_window = None
         self._init_pet()
         self._init_tray()
@@ -218,27 +366,24 @@ class PetTrayApp:
         self.pet_window.show()
 
     def _init_tray(self):
-        # 托盘图标（用 emoji 风格的简单图标）
         icon = self._create_tray_icon()
         self.tray = QSystemTrayIcon(icon, self.app)
         self.tray.setToolTip("桌面宠物 — 岛主 DaoZhu")
 
         menu = QMenu()
 
-        # 显示/隐藏
         self.toggle_action = QAction("隐藏宠物", menu)
         self.toggle_action.triggered.connect(self._toggle_visibility)
         menu.addAction(self.toggle_action)
 
         menu.addSeparator()
 
-        # 切换宠物子菜单
+        # 切换宠物
         pet_menu = QMenu("切换宠物", menu)
         pets = get_all_pets()
         for p in pets:
             label = f"{'● ' if p['is_active'] else '  '}{p['display_name'] or p['name']}"
             action = QAction(label, pet_menu)
-            action.setData(p["id"])
             action.triggered.connect(lambda checked, pid=p["id"]: self._switch_pet(pid))
             pet_menu.addAction(action)
         if pets:
@@ -246,7 +391,6 @@ class PetTrayApp:
 
         menu.addSeparator()
 
-        # 退出
         quit_action = QAction("退出", menu)
         quit_action.triggered.connect(self._quit)
         menu.addAction(quit_action)
@@ -256,17 +400,15 @@ class PetTrayApp:
         self.tray.show()
 
     def _create_tray_icon(self) -> QIcon:
-        """创建一个简单的托盘图标（16x16 像素）"""
         img = QImage(16, 16, QImage.Format_ARGB32)
         img.fill(Qt.transparent)
         painter = QPainter(img)
-        # 画一个简单的爪印
         painter.setBrush(Qt.darkGreen)
         painter.setPen(Qt.NoPen)
-        painter.drawEllipse(3, 6, 10, 8)  # 掌心
-        painter.drawEllipse(2, 2, 4, 4)   # 左趾
-        painter.drawEllipse(6, 1, 4, 4)   # 中趾
-        painter.drawEllipse(10, 2, 4, 4)  # 右趾
+        painter.drawEllipse(3, 6, 10, 8)
+        painter.drawEllipse(2, 2, 4, 4)
+        painter.drawEllipse(6, 1, 4, 4)
+        painter.drawEllipse(10, 2, 4, 4)
         painter.end()
         return QIcon(QPixmap.fromImage(img))
 
@@ -280,12 +422,10 @@ class PetTrayApp:
 
     def _switch_pet(self, pet_id: int):
         set_active_pet(pet_id)
-        # 销毁旧窗口，创建新的
         if self.pet_window:
             self.pet_window.close()
             self.pet_window = None
         self._init_pet()
-        # 重建托盘菜单（更新选中标记）
         self._init_tray()
 
     def _on_tray_click(self, reason):
@@ -300,8 +440,12 @@ class PetTrayApp:
 
     def run(self):
         if not self.pet_window:
-            print("⚠️ 没有活跃宠物。请先在桌面宠物工作区中选择一只宠物。")
-            print("   打开 http://localhost:7805 → 我的宠物 → 选择")
+            # 无 cmd 时用 MessageBox 提示
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.warning(
+                None, "桌面宠物",
+                "没有活跃宠物。\n请先在桌面宠物工作区中选择一只宠物。\n(http://localhost:7805 → 我的宠物 → 选择)"
+            )
             sys.exit(1)
         sys.exit(self.app.exec())
 
