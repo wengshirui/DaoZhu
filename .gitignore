@@ -13,6 +13,7 @@ build/
 .idea/
 .vscode/
 *.swp
+*.code-workspace
 
 # OS
 .DS_Store
