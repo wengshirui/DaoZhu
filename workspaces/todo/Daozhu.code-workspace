@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "../../../petdex"
+		},
+		{
+			"path": "../../../DeepSeek-Reasonix"
 		}
 	],
 	"settings": {
