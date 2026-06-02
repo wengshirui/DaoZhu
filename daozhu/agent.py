@@ -217,13 +217,20 @@ async def agent_chat_stream(
         yield "⚠️ 未配置 AI API Key。请在 .env 文件中设置 DEEPSEEK_API_KEY 或 OPENAI_API_KEY。"
         return
 
-    # 构建 system prompt（含记忆 + 技能 + 使用统计）
-    system_content = SYSTEM_PROMPT
+    # === 前缀缓存优化（参考 Reasonix）===
+    # DeepSeek 自动缓存请求前缀（system prompt + tools schema）
+    # 只要每轮的前 N 个 token 完全一致，就命中缓存（输入费用降 90%）
+    # 因此 system prompt 只放固定内容，动态内容移到 messages 中
+    system_content = SYSTEM_PROMPT  # 固定不变的核心指令
+
+    # 动态上下文作为独立 context message 注入（不污染 system prompt 前缀）
+    context_parts = []
+
     skills_summary = get_skills_summary()
     if skills_summary:
-        system_content += "\n\n" + skills_summary
+        context_parts.append(skills_summary)
 
-    # 动态注入工作区列表（让 Agent 知道可以操作哪些工作区）
+    # 动态注入工作区列表
     from .workspace_manager import manager
     ws_lines = []
     for ws in manager.workspaces.values():
@@ -231,18 +238,25 @@ async def agent_chat_stream(
             continue
         ws_lines.append(f"  - {ws.id}: {ws.name}（端口 {ws.port}）")
     if ws_lines:
-        system_content += "\n\n[当前可用工作区（用 call_workspace_api 操作）：]\n" + "\n".join(ws_lines)
+        context_parts.append("[当前可用工作区（用 call_workspace_api 操作）：]\n" + "\n".join(ws_lines))
 
     # 注入使用统计（触发优化建议）
     stats_context = _build_stats_context()
     if stats_context:
-        system_content += "\n\n" + stats_context
+        context_parts.append(stats_context)
 
     if memory_context:
-        system_content += "\n\n" + memory_context
+        context_parts.append(memory_context)
 
-    # 构建完整消息列表
-    full_messages = [{"role": "system", "content": system_content}] + messages
+    # 构建完整消息列表：
+    # [system(固定)] + [context(动态环境信息)] + [对话历史]
+    full_messages = [{"role": "system", "content": system_content}]
+    if context_parts:
+        full_messages.append({
+            "role": "system",
+            "content": "\n\n".join(context_parts),
+        })
+    full_messages.extend(messages)
 
     # 获取工具 schema（排除禁用的）
     tool_schemas = registry.get_schemas()
