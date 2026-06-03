@@ -45,7 +45,7 @@ SELECT id, title FROM requirements WHERE status = 'done' ORDER BY id;
 | P0 | 046 | 火柴人剧场 BGM + 配音 | M | |
 | P1 | 068 | ~~工作区分类（system/public/user）~~ ✅ | S | 完成 6/3 |
 | P1 | 067 | ~~定时任务系统工作区~~ ✅ | M | AC 全部完成 |
-| P1 | 069 | ~~Agent 复盘系统工作区~~ ✅ | M | AC 全部完成 |
+| P1 | 069 | ~~Agent 成长系统工作区~~ ✅(基础) | M | 工具分析完成，成长维度 AC8-10 待做 |
 | P1 | 059 | ~~会话自动压缩~~ ✅ | M | AC6 补完 |
 | P1 | 061 | ~~对话 Token 消耗 + 速度显示~~ ✅ | S | 完成 6/3 |
 | P1 | 063 | 智能模型路由（大模型带小模型） | M | |
