@@ -232,7 +232,10 @@ const Sidebar = {
       });
 
       // 单击：直接打开工作区
-      card.addEventListener('click', async () => {
+      card.addEventListener('click', async (e) => {
+        // 如果点的是操作按钮，不触发打开
+        if (e.target.closest('.card-btn') || e.target.closest('.card__actions')) return;
+
         const id = card.dataset.id;
         const mode = card.dataset.mode;
         if (mode === 'bound') {
