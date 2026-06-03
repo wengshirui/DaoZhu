@@ -1,0 +1,15 @@
+{
+  "id": "scheduler",
+  "name": "定时任务",
+  "icon": "⏰",
+  "color": "#6366F1",
+  "version": "1.0.0",
+  "description": "定时任务管理，查看执行历史",
+  "port": 7788,
+  "entry": "app.py",
+  "tags": ["系统", "自动化"],
+  "start_mode": "manual",
+  "mode": "lightweight",
+  "category": "system",
+  "sort_order": 90
+}

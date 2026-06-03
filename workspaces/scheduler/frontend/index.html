@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⏰ 定时任务</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1>⏰ 定时任务</h1>
+            <button class="btn-primary" id="btn-create">+ 新建任务</button>
+        </header>
+
+        <main class="main">
+            <div class="task-list" id="task-list">
+                <div class="empty">加载中...</div>
+            </div>
+        </main>
+
+        <!-- 新建任务弹窗 -->
+        <div class="modal" id="modal-create" style="display:none">
+            <div class="modal__content">
+                <h3>新建定时任务</h3>
+                <label>名称</label>
+                <input type="text" id="inp-name" placeholder="每日复盘">
+                <label>执行内容（AI 指令）</label>
+                <textarea id="inp-payload" rows="3" placeholder="帮我总结今天的工具调用日志，找出失败模式"></textarea>
+                <label>执行间隔</label>
+                <input type="text" id="inp-schedule" placeholder="24h / 6h / 30m" value="24h">
+                <div class="modal__actions">
+                    <button class="btn-ghost" id="btn-cancel">取消</button>
+                    <button class="btn-primary" id="btn-confirm">创建</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="js/app.js"></script>
+</body>
+</html>

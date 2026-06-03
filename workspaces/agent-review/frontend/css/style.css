@@ -1,0 +1,45 @@
+:root {
+  --bg: #1a1b2e;
+  --surface: #252640;
+  --border: #3a3b5c;
+  --text: #e8e8f0;
+  --text-muted: #8888aa;
+  --accent: #f59e0b;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --radius: 12px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, 'Noto Sans SC', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+.app { max-width: 800px; margin: 0 auto; padding: 24px; }
+
+.header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.header h1 { font-size: 1.4rem; }
+
+.btn-primary { padding: 8px 16px; background: var(--accent); color: #000; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+.btn-primary:hover { opacity: 0.9; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+section { margin-bottom: 32px; }
+section h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--text-muted); }
+
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; text-align: center; }
+.stat-card__name { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; }
+.stat-card__rate { font-size: 1.3rem; font-weight: 700; }
+.stat-card__meta { font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; }
+
+.review-list { display: flex; flex-direction: column; gap: 12px; }
+.review-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.review-card__header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.review-card__date { font-size: 0.8rem; color: var(--accent); font-weight: 600; }
+.review-card__summary { font-size: 0.85rem; color: var(--text-muted); }
+.review-card__suggestions { display: flex; flex-direction: column; gap: 6px; }
+.suggestion { font-size: 0.8rem; padding: 6px 10px; background: rgba(255,255,255,0.03); border-radius: 6px; }
+
+.empty { text-align: center; padding: 40px; color: var(--text-muted); }
+.empty .sub { font-size: 0.85rem; margin-top: 8px; opacity: 0.6; }
+.muted { color: var(--text-muted); font-size: 0.85rem; }

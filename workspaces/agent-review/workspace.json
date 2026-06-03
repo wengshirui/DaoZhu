@@ -1,0 +1,15 @@
+{
+  "id": "agent-review",
+  "name": "Agent 复盘",
+  "icon": "🔍",
+  "color": "#F59E0B",
+  "version": "1.0.0",
+  "description": "AI 自我诊断与优化建议",
+  "port": 7788,
+  "entry": "app.py",
+  "tags": ["系统", "优化"],
+  "start_mode": "manual",
+  "mode": "lightweight",
+  "category": "system",
+  "sort_order": 91
+}
