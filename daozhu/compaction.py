@@ -79,9 +79,10 @@ def _count_compactable(messages: list[dict]) -> int:
     return max(0, len(non_system) - RECENT_KEEP)
 
 
-async def compact_messages(messages: list[dict]) -> list[dict]:
+async def compact_messages(messages: list[dict], conversation_id: str = "") -> list[dict]:
     """
     压缩消息列表：保留 system + 摘要 + 最近 RECENT_KEEP 条
+    如果提供 conversation_id，将被压缩的旧消息在 DB 中标记为 active=0（归档）
     返回压缩后的新消息列表
     """
     # 分离 system 消息和对话消息
@@ -100,6 +101,13 @@ async def compact_messages(messages: list[dict]) -> list[dict]:
     if not summary:
         return messages  # 压缩失败，保持原样
 
+    # === AC6: 归档被压缩的消息到 DB（标记 active=0）===
+    if conversation_id:
+        try:
+            _archive_compressed_messages(conversation_id, len(to_compress))
+        except Exception as e:
+            logger.warning(f"归档压缩消息失败: {e}")
+
     # 构建压缩后的消息列表
     summary_msg = {
         "role": "assistant",
@@ -112,6 +120,28 @@ async def compact_messages(messages: list[dict]) -> list[dict]:
         f"压缩了 {len(to_compress)} 条旧消息"
     )
     return result
+
+
+def _archive_compressed_messages(conversation_id: str, count: int):
+    """将最早的 N 条消息标记为 active=0（归档，不删除）"""
+    import sqlite3
+    from .config import PLATFORM_ROOT
+
+    db_path = PLATFORM_ROOT / "chat.db"
+    conn = sqlite3.connect(str(db_path))
+    # 找到该对话最早的 count 条活跃非 system 消息，标记为 active=0
+    conn.execute(
+        """UPDATE messages SET active = 0
+           WHERE id IN (
+               SELECT id FROM messages
+               WHERE conversation_id = ? AND active = 1 AND role != 'system'
+               ORDER BY id ASC LIMIT ?
+           )""",
+        (conversation_id, count),
+    )
+    conn.commit()
+    conn.close()
+    logger.info(f"已归档 {count} 条消息 (conv={conversation_id})")
 
 
 async def _generate_summary(messages_to_compress: list[dict]) -> Optional[str]:

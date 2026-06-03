@@ -24,6 +24,7 @@
             <span class="task-card__status">${t.enabled ? '🟢' : '⏸️'}</span>
             <strong class="task-card__name">${t.name}</strong>
             <span class="task-card__schedule">${t.schedule}</span>
+            <button class="btn-toggle" data-id="${t.id}" data-enabled="${t.enabled}">${t.enabled ? '暂停' : '恢复'}</button>
           </div>
           <div class="task-card__body">
             <p class="task-card__payload">${t.payload || t.description || ''}</p>
@@ -34,6 +35,20 @@
           </div>
         </div>
       `).join('');
+
+      // 绑定暂停/恢复按钮
+      container.querySelectorAll('.btn-toggle').forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id;
+          const newEnabled = btn.dataset.enabled === '1' ? 0 : 1;
+          await fetch(`/api/scheduler/tasks/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: newEnabled }),
+          });
+          loadTasks();
+        };
+      });
     } catch (e) {
       container.innerHTML = `<div class="empty"><p>加载失败: ${e.message}</p></div>`;
     }

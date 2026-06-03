@@ -49,9 +49,12 @@
       list.innerHTML = reviews.map(r => {
         const suggestions = r.suggestions || [];
         const sugHtml = suggestions.length > 0
-          ? suggestions.map(s => {
+          ? suggestions.map((s, idx) => {
               const icon = s.level === 'green' ? '🟢' : s.level === 'yellow' ? '🟡' : '🔴';
-              return `<div class="suggestion">${icon} ${s.text}</div>`;
+              const execBtn = (s.level === 'yellow' && !s.executed)
+                ? `<button class="btn-confirm" data-review="${r.id}" data-idx="${idx}">确认执行</button>`
+                : (s.executed ? `<span class="executed-tag">✅ ${s.result || '已执行'}</span>` : '');
+              return `<div class="suggestion">${icon} ${s.text} ${execBtn}</div>`;
             }).join('')
           : '<div class="suggestion">✅ 无需优化</div>';
 
@@ -65,6 +68,27 @@
           </div>
         `;
       }).join('');
+
+      // 绑定确认按钮
+      list.querySelectorAll('.btn-confirm').forEach(btn => {
+        btn.onclick = async () => {
+          const reviewId = btn.dataset.review;
+          const idx = parseInt(btn.dataset.idx);
+          btn.textContent = '执行中...';
+          btn.disabled = true;
+          try {
+            const res = await fetch(`${API_BASE}/suggestions/${reviewId}/confirm`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ index: idx }),
+            });
+            const data = await res.json();
+            if (data.success) {
+              btn.outerHTML = `<span class="executed-tag">✅ ${data.result}</span>`;
+            }
+          } catch (e) { btn.textContent = '失败'; }
+        };
+      });
     } catch (e) {
       list.innerHTML = `<div class="empty">加载失败: ${e.message}</div>`;
     }

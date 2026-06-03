@@ -583,7 +583,7 @@ async def chat_api(body: dict):
 
         tool_calls_log = []  # 收集工具调用记录
 
-        async for chunk in agent_chat_stream(history, memory_context=memory_context):
+        async for chunk in agent_chat_stream(history, memory_context=memory_context, conversation_id=conv_id):
             # 工具调用通知（特殊标记）
             if chunk.startswith("[TOOL:"):
                 tool_name = chunk[6:-1]

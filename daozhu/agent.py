@@ -212,6 +212,7 @@ def _parse_anthropic_response(data: dict) -> dict:
 async def agent_chat_stream(
     messages: list[dict],
     memory_context: str = "",
+    conversation_id: str = "",
 ) -> AsyncGenerator[str, None]:
     """
     Agent 对话循环（流式版本）
@@ -471,7 +472,7 @@ async def agent_chat_stream(
                     from .compaction import should_compact, compact_messages
                     if should_compact(full_messages):
                         yield "[COMPACT]"
-                        full_messages = await compact_messages(full_messages)
+                        full_messages = await compact_messages(full_messages, conversation_id)
 
                     continue
 

@@ -47,10 +47,33 @@ def build_memory_context(user_message: str) -> str:
         failure_text = "\n".join(f"- {r['title']}: {r['content'][:100]}" for r in failures)
         parts.append(f"## 历史教训（避免重复）\n{failure_text}")
 
+    # 4. 未完成任务提醒（#064 AC5）
+    pending = _get_pending_tasks()
+    if pending:
+        parts.append(f"## 上次未完成的任务\n{pending}\n（如果合适，可以主动提醒用户是否需要继续）")
+
     if not parts:
         return ""
 
     return "\n\n".join(["[以下是你对这位用户的记忆，请自然地运用：]"] + parts)
+
+
+def _get_pending_tasks() -> str:
+    """检查是否有未完成的工作区创建任务（#064 AC5）"""
+    from .memory_db import get_incomplete_creations
+    try:
+        incomplete = get_incomplete_creations()
+        if not incomplete:
+            return ""
+        lines = []
+        for item in incomplete[:3]:
+            ws_id = item.get("workspace_id", "unknown")
+            done = item.get("done_steps", 0)
+            total = item.get("total_steps", 0)
+            lines.append(f"- 工作区「{ws_id}」创建未完成（{done}/{total} 步）")
+        return "\n".join(lines)
+    except Exception:
+        return ""
 
 
 def _extract_search_terms(text: str) -> str:

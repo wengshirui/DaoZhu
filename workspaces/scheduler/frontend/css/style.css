@@ -42,3 +42,6 @@ body { font-family: -apple-system, 'Noto Sans SC', sans-serif; background: var(-
 .modal__content label { display: block; font-size: 0.8rem; color: var(--text-muted); margin: 12px 0 4px; }
 .modal__content input, .modal__content textarea { width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.9rem; }
 .modal__actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+.btn-toggle { padding: 4px 10px; font-size: 0.75rem; background: transparent; border: 1px solid var(--border); color: var(--text-muted); border-radius: 4px; cursor: pointer; margin-left: auto; }
+.btn-toggle:hover { border-color: var(--accent); color: var(--accent); }

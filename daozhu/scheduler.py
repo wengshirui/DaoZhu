@@ -259,6 +259,16 @@ class Scheduler:
     async def start(self):
         """启动调度循环"""
         init_scheduler_db()
+        # AC4: 检测错过的任务（补办机制）
+        missed = get_due_tasks()
+        if missed:
+            logger.info(f"检测到 {len(missed)} 个错过执行的任务，标记为待补办")
+            for task in missed:
+                # 记录一次 skipped run
+                run_id = record_run_start(task["id"])
+                record_run_end(run_id, False, "错过执行窗口（平台未运行），可手动补办", 0)
+                # 不自动补办，只更新 next_run（下个周期正常执行）
+                mark_task_ran(task["id"], task["schedule"])
         self._task = asyncio.create_task(self._loop())
         logger.info("定时任务调度器已启动")
 
