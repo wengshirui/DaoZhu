@@ -1,5 +1,5 @@
 /**
- * Agent 成长工作区 — 前端
+ * Agent 成长工作�?�?前端
  */
 (function() {
   'use strict';
@@ -25,7 +25,7 @@
           <div class="stat-card">
             <div class="stat-card__name">${s.tool_name}</div>
             <div class="stat-card__rate" style="color:${color}">${rate.toFixed(0)}%</div>
-            <div class="stat-card__meta">${s.call_count} 次</div>
+            <div class="stat-card__meta">${s.call_count} �?/div>
           </div>
         `;
       }).join('');
@@ -37,12 +37,12 @@
   async function loadReviews() {
     const list = document.getElementById('review-list');
     try {
-      const res = await fetch(`${API_BASE}/reviews`);
+      const res = await fetch(`${API_BASE}/reports`);
       const data = await res.json();
       const reviews = data.reviews || [];
 
       if (reviews.length === 0) {
-        list.innerHTML = '<div class="empty"><p>暂无成长记录</p><p class="sub">点击"立即成长"生成第一份报告</p></div>';
+        list.innerHTML = '<div class="empty"><p>暂无成长记录</p><p class="sub">点击"立即成长"生成第一份报�?/p></div>';
         return;
       }
 
@@ -62,7 +62,7 @@
               const icon = s.level === 'green' ? '🟢' : s.level === 'yellow' ? '🟡' : '🔴';
               const btn = (s.level === 'yellow' && !s.executed)
                 ? `<button class="btn-confirm" data-review="${r.id}" data-idx="${idx}">确认</button>`
-                : (s.executed ? `<span class="executed-tag">✅ ${s.result || ''}</span>` : '');
+                : (s.executed ? `<span class="executed-tag">�?${s.result || ''}</span>` : '');
               return `<div class="suggestion">${icon} ${s.text} ${btn}</div>`;
             }).join('')
           : '';
@@ -71,9 +71,9 @@
         let insightHtml = '';
         if (insights.patterns && insights.patterns.length > 0) {
           insightHtml = `<div class="insights">
-            <span class="insight-tag">🎯 ${insights.patterns[0][0]}: ${insights.patterns[0][1]}次</span>
-            ${insights.peak_hour !== null ? `<span class="insight-tag">⏰ 高峰 ${insights.peak_hour}:00</span>` : ''}
-            ${insights.repeated_count ? `<span class="insight-tag">🔁 ${insights.repeated_count} 个重复模式</span>` : ''}
+            <span class="insight-tag">🎯 ${insights.patterns[0][0]}: ${insights.patterns[0][1]}�?/span>
+            ${insights.peak_hour !== null ? `<span class="insight-tag">�?高峰 ${insights.peak_hour}:00</span>` : ''}
+            ${insights.repeated_count ? `<span class="insight-tag">🔁 ${insights.repeated_count} 个重复模�?/span>` : ''}
           </div>`;
         }
 
@@ -104,7 +104,7 @@
               body: JSON.stringify({ index: idx }),
             });
             const data = await res.json();
-            btn.outerHTML = `<span class="executed-tag">✅ ${data.result || ''}</span>`;
+            btn.outerHTML = `<span class="executed-tag">�?${data.result || ''}</span>`;
           } catch (e) { btn.textContent = '失败'; }
         };
       });
@@ -115,18 +115,18 @@
 
   async function triggerGrowth() {
     const btn = document.getElementById('btn-review');
-    btn.textContent = '分析中...';
+    btn.textContent = '分析�?..';
     btn.disabled = true;
     try {
       const res = await fetch(`${API_BASE}/run`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        btn.textContent = '✅ 完成';
+        btn.textContent = '�?完成';
         loadStats();
         loadReviews();
       }
     } catch (e) { btn.textContent = '失败'; }
-    setTimeout(() => { btn.textContent = '▶ 立即成长'; btn.disabled = false; }, 2000);
+    setTimeout(() => { btn.textContent = '�?立即成长'; btn.disabled = false; }, 2000);
   }
 
   document.addEventListener('DOMContentLoaded', () => {

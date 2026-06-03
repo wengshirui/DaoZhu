@@ -44,6 +44,15 @@ async def lifespan(app: FastAPI):
     from .scheduler import scheduler
     await scheduler.start()
 
+    # Agent 成长检查（距上次 > 24h 自动执行）
+    from .growth import should_grow, run_growth
+    if should_grow():
+        try:
+            run_growth()
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"自动成长失败: {e}")
+
     yield
     await scheduler.stop()
     await manager.shutdown()
@@ -780,6 +789,22 @@ async def get_active_pet():
         }
     except Exception:
         return {"pet": None}
+
+
+# === Agent 成长 API（#069）===
+@app.post("/api/growth/run")
+async def api_growth_run():
+    """手动触发成长"""
+    from .growth import run_growth
+    result = run_growth()
+    return {"success": True, **result}
+
+
+@app.get("/api/growth/reports")
+async def api_growth_reports():
+    """获取成长报告"""
+    from .growth import get_growth_reports
+    return {"reports": get_growth_reports()}
 
 
 # === 定时任务 API（#067）===
