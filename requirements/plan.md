@@ -61,7 +61,7 @@ SELECT id, title FROM requirements WHERE status = 'done' ORDER BY id;
 
 | 方向 | 描述 | 前置条件 | 状态 |
 |------|------|---------|------|
-| Agent 生命周期 | 诞生→成长→死亡→继承。Agent 判定自身不可修复时优雅死亡（备份 memory/chat/config + 记录死因），新 Agent 从上一代选择性继承核心记忆 | 先做 #069 复盘，积累"什么情况治不好"的经验 | 等 #069 落地后再定义 |
+| Agent 生命周期 | 诞生→成长→繁衍/继承→死亡。Agent 判定自身不可修复时优雅死亡（备份 memory/chat/config + 记录死因），新 Agent 从上一代选择性继承核心记忆 | 先做 #069 复盘，积累"什么情况治不好"的经验 | 等 #069 落地后再定义 |
 
 ---
 
