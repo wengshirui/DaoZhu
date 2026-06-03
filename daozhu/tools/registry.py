@@ -88,18 +88,12 @@ class ToolRegistry:
             result = await tool.handler(**arguments)
             duration_ms = int((time.monotonic() - start) * 1000)
 
-            # 记录 skill 使用
-            from ..memory_db import track_skill_usage
-            track_skill_usage(name, "call", success=True, duration_ms=duration_ms)
-
             if isinstance(result, str):
                 return result
             return json.dumps(result, ensure_ascii=False)
 
         except Exception as e:
             duration_ms = int((time.monotonic() - start) * 1000)
-            from ..memory_db import track_skill_usage
-            track_skill_usage(name, "call", success=False, duration_ms=duration_ms)
 
             error_msg = f"工具执行失败 [{name}]: {str(e)}"
             if "missing" in str(e) and "positional argument" in str(e):

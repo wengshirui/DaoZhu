@@ -20,7 +20,7 @@ from .chat_db import (
     update_conversation_title, undo_messages,
 )
 from .chat_service import chat_stream
-from .memory_db import init_memory_db, get_skill_stats, get_stale_skills
+from .memory_db import init_memory_db
 from .memory_service import build_memory_context, extract_memories
 from .agent import agent_chat_stream
 
@@ -724,8 +724,9 @@ async def get_memory_knowledge(q: str = ""):
 
 @app.get("/api/memory/skills")
 async def get_skill_stats_api():
-    """获取 skill 使用统计"""
-    return {"stats": get_skill_stats(), "stale": get_stale_skills()}
+    """获取工具使用统计"""
+    from .tool_log_db import get_tool_stats, get_stale_tools
+    return {"stats": get_tool_stats(), "stale": get_stale_tools()}
 
 
 # === 宠物 API（供主界面浮动宠物使用） ===

@@ -82,11 +82,28 @@ def get_tool_stats(days: int = 30) -> list[dict]:
         """SELECT tool_name,
                   COUNT(*) as call_count,
                   SUM(success) as success_count,
-                  AVG(duration_ms) as avg_duration_ms
+                  ROUND(CAST(SUM(success) AS REAL) / COUNT(*) * 100, 1) as success_rate,
+                  AVG(duration_ms) as avg_duration_ms,
+                  MAX(created_at) as last_used
            FROM tool_logs
            WHERE created_at > datetime('now', ?)
            GROUP BY tool_name
            ORDER BY call_count DESC""",
+        (f"-{days} days",),
+    ).fetchall()
+    db.close()
+    return [dict(r) for r in rows]
+
+
+def get_stale_tools(days: int = 30) -> list[dict]:
+    """获取超过 N 天未使用的工具"""
+    db = _get_db()
+    rows = db.execute(
+        """SELECT tool_name, MAX(created_at) as last_used, COUNT(*) as total_calls
+           FROM tool_logs
+           GROUP BY tool_name
+           HAVING MAX(created_at) < datetime('now', ?)
+           ORDER BY last_used""",
         (f"-{days} days",),
     ).fetchall()
     db.close()

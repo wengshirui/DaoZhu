@@ -39,23 +39,23 @@ def _get_disabled_tools() -> set:
 
 def _build_stats_context() -> str:
     """构建使用统计上下文，触发 AI 主动建议优化"""
-    from .memory_db import get_skill_stats, get_stale_skills
+    from .tool_log_db import get_tool_stats, get_stale_tools
 
     parts = []
 
-    # 工具使用统计
-    stats = get_skill_stats()
+    # 工具使用统计（从 tool_logs 读取）
+    stats = get_tool_stats(days=7)
     if stats:
         # 找出失败率高的
         failing = [s for s in stats if s.get("success_rate", 100) < 70]
         if failing:
-            names = ", ".join(s["skill_id"] for s in failing[:3])
+            names = ", ".join(s["tool_name"] for s in failing[:3])
             parts.append(f"⚠️ 以下工具最近失败率较高: {names}。如果合适，可以建议用户优化或禁用。")
 
     # 长期未使用的工具
-    stale = get_stale_skills(days=30)
+    stale = get_stale_tools(days=30)
     if stale:
-        names = ", ".join(s["skill_id"] for s in stale[:3])
+        names = ", ".join(s["tool_name"] for s in stale[:3])
         parts.append(f"💤 以下工具超过30天未使用: {names}。可以建议用户是否需要禁用。")
 
     if parts:
