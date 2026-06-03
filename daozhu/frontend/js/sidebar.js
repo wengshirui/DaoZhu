@@ -97,12 +97,6 @@ const Sidebar = {
             const desc = btn.dataset.desc || '暂无说明';
             ReadmeViewer.show(`# 🔧 ${id}\n\n${desc}\n\n此工具由岛管理员自动调用。`, '');
             break;
-          case 'disable-tool':
-            const isDisabled = btn.textContent.trim() === '✅';
-            const endpoint = isDisabled ? 'enable' : 'disable';
-            await fetch(`/api/tools/${id}/${endpoint}`, {method:'POST'});
-            Sidebar.loadTools();
-            break;
         }
       });
     });
@@ -374,8 +368,6 @@ const Sidebar = {
   },
 
   _renderToolCard(tool) {
-    const statusClass = tool.status === 'disabled' ? 'badge--stopped' : 'badge--connected';
-
     return `
       <div class="card" data-id="${tool.id}" data-type="tool" data-desc="${(tool.description || '').replace(/"/g, '&quot;')}">
         <div class="card__icon">${tool.icon}</div>
@@ -384,7 +376,6 @@ const Sidebar = {
         </div>
         <div class="card__actions">
           <button class="card-btn" data-action="preview-tool" data-id="${tool.id}" data-desc="${(tool.description || '').replace(/"/g, '&quot;')}" title="查看">📖</button>
-          <button class="card-btn" data-action="disable-tool" data-id="${tool.id}" title="${tool.status === 'disabled' ? '启用' : '停用'}">${tool.status === 'disabled' ? '✓' : '⏸'}</button>
         </div>
       </div>
     `;

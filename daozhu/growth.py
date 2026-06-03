@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 GROWTH_DB_PATH = PLATFORM_ROOT / "growth.db"
 
-# 核心工具（永不建议禁用）
+# 核心工具（失败时标记为更高优先级排查）
 CORE_TOOLS = {
     "list_workspaces", "call_workspace_api", "start_workspace",
     "stop_workspace", "get_workspace_info", "list_templates",
@@ -245,21 +245,18 @@ def _generate_suggestions(insights: dict) -> list[dict]:
                 "executed": False,
             })
 
-    # 工具问题
+    # 工具问题 — 分析原因并建议优化，而非禁用
     for tool in insights.get("self_improvement", {}).get("failing_tools", []):
         error_sample = tool["errors"][0] if tool["errors"] else "未知"
-        if tool["is_core"]:
-            suggestions.append({
-                "level": "red",
-                "text": f"核心工具 {tool['name']} 失败率 {100-tool['rate']:.0f}%: {error_sample}",
-                "action": "investigate", "target": tool["name"], "executed": False,
-            })
-        else:
-            suggestions.append({
-                "level": "yellow",
-                "text": f"工具 {tool['name']} 失败率 {100-tool['rate']:.0f}%，建议禁用",
-                "action": "disable_tool", "target": tool["name"], "executed": False,
-            })
+        fail_rate = 100 - tool["rate"]
+        suggestions.append({
+            "level": "red" if tool["is_core"] else "yellow",
+            "text": f"工具 {tool['name']} 失败率 {fail_rate:.0f}%，需排查优化: {error_sample}",
+            "action": "investigate",
+            "target": tool["name"],
+            "errors": tool["errors"],
+            "executed": False,
+        })
 
     return suggestions
 
@@ -363,17 +360,14 @@ def confirm_suggestion(report_id: int, index: int) -> str:
     s = suggestions[index]
     result = "未知操作"
 
-    if s.get("action") == "disable_tool" and s.get("target") not in CORE_TOOLS:
-        from .config import get_config_value, set_config_value
-        disabled = get_config_value("disabled_tools", []) or []
-        if s["target"] not in disabled:
-            disabled.append(s["target"])
-            set_config_value("disabled_tools", disabled)
-            result = f"已禁用: {s['target']}"
+    if s.get("action") == "investigate":
+        errors = s.get("errors", [])
+        if errors:
+            result = f"已标记排查: {s['target']}，错误样本: {errors[0][:40]}"
+        else:
+            result = f"已标记排查: {s['target']}，需人工确认错误原因"
     elif s.get("action") == "suggest_automation":
         result = f"建议已记录，可在定时任务中创建"
-    elif s.get("action") == "investigate":
-        result = "已标记为需人工排查"
 
     suggestions[index]["executed"] = True
     suggestions[index]["result"] = result

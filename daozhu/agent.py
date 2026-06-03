@@ -30,13 +30,6 @@ from .tools import browser_tool  # noqa: F401
 MAX_ITERATIONS = 10  # 工具调用最大循环次数
 
 
-def _get_disabled_tools() -> set:
-    """从配置中读取被禁用的工具列表"""
-    from .config import get_config_value
-    disabled = get_config_value("disabled_tools", [])
-    return set(disabled) if disabled else set()
-
-
 def _build_stats_context() -> str:
     """构建使用统计上下文，触发 AI 主动建议优化"""
     from .tool_log_db import get_tool_stats, get_stale_tools
@@ -276,11 +269,8 @@ async def agent_chat_stream(
         })
     full_messages.extend(messages)
 
-    # 获取工具 schema（排除禁用的）
+    # 获取工具 schema
     tool_schemas = registry.get_schemas()
-    disabled = _get_disabled_tools()
-    if disabled:
-        tool_schemas = [t for t in tool_schemas if t["function"]["name"] not in disabled]
 
     # 根据协议构建 headers
     if protocol == "anthropic":
