@@ -69,20 +69,56 @@ async def trigger_review():
     stats = get_tool_stats(days=7)
     today = datetime.now().strftime("%Y-%m-%d")
 
+    # 核心工具列表（永远不建议禁用）
+    CORE_TOOLS = {
+        "list_workspaces", "call_workspace_api", "start_workspace",
+        "stop_workspace", "get_workspace_info", "list_templates",
+        "create_from_template", "write_file", "read_file", "list_files",
+    }
+
+    # 已处理过的建议（避免重复）
+    db = _get_db()
+    recent_reviews = db.execute(
+        "SELECT suggestions FROM reviews WHERE date >= date('now', '-7 days')"
+    ).fetchall()
+    already_suggested = set()
+    for row in recent_reviews:
+        for s in json.loads(row["suggestions"] or "[]"):
+            if s.get("executed"):
+                already_suggested.add(s.get("target", ""))
+
     # 分析：找出问题
     suggestions = []
     auto_executed = []
 
-    # 🟡 黄色建议：高失败率工具
-    failing = [s for s in stats if s.get("success_rate", 100) and s["success_rate"] < 70]
+    failing = [s for s in stats if s.get("success_rate") is not None and s["success_rate"] < 70]
     for s in failing:
-        suggestions.append({
-            "level": "yellow",
-            "text": f"工具 {s['tool_name']} 失败率 {100 - s['success_rate']:.0f}%，建议检查或禁用",
-            "action": "disable_tool",
-            "target": s["tool_name"],
-            "executed": False,
-        })
+        tool_name = s["tool_name"]
+        rate = s["success_rate"]
+        call_count = s.get("call_count", 0)
+
+        # 跳过已处理的
+        if tool_name in already_suggested:
+            continue
+
+        if tool_name in CORE_TOOLS:
+            # 核心工具：不建议禁用，建议排查原因
+            suggestions.append({
+                "level": "red",
+                "text": f"核心工具 {tool_name} 失败率 {100 - rate:.0f}%（{call_count} 次调用），建议排查失败原因（可能是参数配置问题）",
+                "action": "investigate",
+                "target": tool_name,
+                "executed": False,
+            })
+        else:
+            # 非核心工具：可以建议禁用
+            suggestions.append({
+                "level": "yellow",
+                "text": f"工具 {tool_name} 失败率 {100 - rate:.0f}%，建议检查或禁用",
+                "action": "disable_tool",
+                "target": tool_name,
+                "executed": False,
+            })
 
     # 🟢 自动执行：清理过期知识（超过 60 天的 tool_failure 记录）
     try:
@@ -91,7 +127,8 @@ async def trigger_review():
                    if k.get("category") == "tool_failure"
                    and k.get("created_at", "") < (datetime.now() - timedelta(days=60)).isoformat()]
         if expired:
-            db_mem = sqlite3.connect(str(Path(__file__).parent.parent.parent.parent / "memory.db"))
+            import sqlite3 as _sqlite3
+            db_mem = _sqlite3.connect(str(Path(__file__).parent.parent.parent.parent / "memory.db"))
             for k in expired:
                 db_mem.execute("DELETE FROM knowledge WHERE id=?", (k["id"],))
             db_mem.commit()
@@ -105,11 +142,12 @@ async def trigger_review():
         auto_executed.append(f"分析了 {len(stats)} 个工具的近 7 天使用数据")
 
     summary = f"共分析 {len(stats)} 个工具，发现 {len(failing)} 个高失败率工具。"
-    if not failing:
-        summary += " 所有工具运行正常 ✅"
+    if not suggestions:
+        summary += " 无需新的优化建议 ✅"
+    elif all(s["level"] == "red" for s in suggestions):
+        summary += " 均为核心工具，建议排查而非禁用。"
 
     # 写入复盘记录
-    db = _get_db()
     db.execute(
         "INSERT INTO reviews (date, summary, suggestions, auto_executed) VALUES (?,?,?,?)",
         (today, summary, json.dumps(suggestions, ensure_ascii=False),
