@@ -27,7 +27,7 @@ requirements/
 ```sql
 -- 连接: requirements/requirements.db
 SELECT id, title FROM requirements WHERE status = 'done' ORDER BY id;
--- 共 54 条已完成需求
+-- 共 58 条已完成需求
 ```
 
 ---
