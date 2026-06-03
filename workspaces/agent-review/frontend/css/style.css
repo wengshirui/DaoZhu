@@ -48,3 +48,12 @@ section h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--text-muted); }
 .btn-confirm:hover { opacity: 0.85; }
 .btn-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
 .executed-tag { font-size: 0.7rem; color: var(--success); margin-left: 8px; }
+
+
+/* 成长洞察标签 */
+.insights { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.insight-tag { font-size: 0.75rem; padding: 3px 8px; background: rgba(99,102,241,0.1); border-radius: 4px; color: #a5b4fc; }
+
+/* 自动执行动作 */
+.review-card__auto { margin: 8px 0; padding: 8px 12px; background: rgba(16,185,129,0.05); border-radius: 8px; border-left: 3px solid var(--success); }
+.auto-action { font-size: 0.8rem; color: var(--success); padding: 2px 0; }
