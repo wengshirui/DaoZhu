@@ -1,4 +1,5 @@
 {
   "onboarding_skipped": true,
-  "island_name": "桃花岛"
+  "island_name": "桃花岛",
+  "disabled_tools": []
 }
