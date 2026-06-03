@@ -160,6 +160,7 @@ python daozhu_main.py
 |--------|------|
 | [@wengshirui](https://gitee.com/yumen2278) | 项目发起人、核心开发 |
 | [@yanpeng](https://gitee.com/yanpeng) | 贡献者 |
+| [@crisp-aipj](https://gitee.com/crisp-aipj) | 贡献者 |
 
 欢迎参与！提 Issue、提 PR、提想法都行。
 

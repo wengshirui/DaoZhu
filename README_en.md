@@ -127,6 +127,7 @@ Enables the forum workspace + remote control features.
 |-------------|------|
 | [@wengshirui](https://gitee.com/yumen2278) | Creator & Lead Developer |
 | [@yanpeng](https://gitee.com/yanpeng) | Contributor |
+| [@crisp-aipj](https://gitee.com/crisp-aipj) | Contributor |
 
 Contributions welcome! Issues, PRs, and ideas are all appreciated.
 
