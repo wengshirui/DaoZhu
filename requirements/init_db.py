@@ -2,7 +2,7 @@
 需求管理数据库 — 初始化 + 从文件导入完整内容
 运行: python requirements/init_db.py
 
-已完成需求：从 done/*.md 读取完整内容存入 description 字段
+已完成需求：从 done/*.md 读取完整内容存入 description
 待开发需求：只存元数据（内容在 backlog/*.md 中维护）
 """
 
@@ -26,9 +26,8 @@ CREATE TABLE requirements (
         CHECK(priority IN ('P0', 'P1', 'P2', 'P3')),
     size TEXT DEFAULT 'S'
         CHECK(size IN ('XS', 'S', 'M', 'L', 'XL')),
-    created_at TEXT,
-    completed_at TEXT,
-    tags TEXT DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT '',
+    completed_at TEXT DEFAULT '',
     file_path TEXT DEFAULT '',
     description TEXT DEFAULT ''
 );
@@ -37,28 +36,88 @@ CREATE INDEX IF NOT EXISTS idx_req_status ON requirements(status);
 CREATE INDEX IF NOT EXISTS idx_req_priority ON requirements(priority);
 """
 
+# 已完成需求的时间估算（按开发顺序分批）
+DONE_DATES = {
+    # Phase 1: 项目初始化 (2026-05 上旬)
+    1: ("2026-05-01", "2026-05-03"),
+    2: ("2026-05-01", "2026-05-03"),
+    3: ("2026-05-02", "2026-05-04"),
+    4: ("2026-05-03", "2026-05-05"),
+    5: ("2026-05-03", "2026-05-05"),
+    6: ("2026-05-04", "2026-05-06"),
+    7: ("2026-05-04", "2026-05-06"),
+    8: ("2026-05-05", "2026-05-07"),
+    10: ("2026-05-06", "2026-05-08"),
+    11: ("2026-05-07", "2026-05-09"),
+    # Phase 2: AccoBot + 记忆 (2026-05 中旬)
+    12: ("2026-05-09", "2026-05-11"),
+    13: ("2026-05-10", "2026-05-12"),
+    14: ("2026-05-11", "2026-05-13"),
+    15: ("2026-05-12", "2026-05-14"),
+    16: ("2026-05-12", "2026-05-14"),
+    17: ("2026-05-13", "2026-05-15"),
+    18: ("2026-05-14", "2026-05-16"),
+    # Phase 3: UI + 管理 (2026-05 中下旬)
+    21: ("2026-05-15", "2026-05-17"),
+    22: ("2026-05-15", "2026-05-17"),
+    23: ("2026-05-16", "2026-05-18"),
+    24: ("2026-05-16", "2026-05-18"),
+    25: ("2026-05-17", "2026-05-19"),
+    26: ("2026-05-17", "2026-05-19"),
+    27: ("2026-05-18", "2026-05-20"),
+    28: ("2026-05-18", "2026-05-20"),
+    29: ("2026-05-19", "2026-05-21"),
+    30: ("2026-05-19", "2026-05-21"),
+    31: ("2026-05-20", "2026-05-22"),
+    # Phase 4: 进程模型 + 配置 (2026-05 下旬)
+    32: ("2026-05-21", "2026-05-23"),
+    33: ("2026-05-21", "2026-05-23"),
+    34: ("2026-05-22", "2026-05-24"),
+    35: ("2026-05-22", "2026-05-24"),
+    36: ("2026-05-23", "2026-05-25"),
+    37: ("2026-05-23", "2026-05-25"),
+    38: ("2026-05-24", "2026-05-26"),
+    39: ("2026-05-24", "2026-05-26"),
+    40: ("2026-05-25", "2026-05-27"),
+    41: ("2026-05-25", "2026-05-27"),
+    42: ("2026-05-26", "2026-05-28"),
+    # Phase 5: 视觉 + Agent 进阶 (2026-05-27 ~ 05-29)
+    44: ("2026-05-27", "2026-05-28"),
+    45: ("2026-05-27", "2026-05-28"),
+    47: ("2026-05-28", "2026-05-29"),
+    49: ("2026-05-28", "2026-05-29"),
+    50: ("2026-05-28", "2026-05-29"),
+    51: ("2026-05-29", "2026-05-29"),
+    # Phase 6: 桌面宠物 + Hermes 借鉴 (2026-05-29 ~ 06-02)
+    48: ("2026-05-29", "2026-06-02"),
+    52: ("2026-05-29", "2026-06-02"),
+    53: ("2026-05-29", "2026-06-02"),
+    54: ("2026-05-29", "2026-06-02"),
+    56: ("2026-06-01", "2026-06-02"),
+    57: ("2026-06-01", "2026-06-02"),
+    58: ("2026-06-02", "2026-06-02"),
+    59: ("2026-06-02", "2026-06-02"),
+    60: ("2026-06-02", "2026-06-02"),
+    65: ("2026-06-03", "2026-06-03"),
+}
+
 
 def _extract_id_from_filename(filename: str) -> int | None:
-    """从文件名提取需求 ID，如 '052-desktop-pet-workspace.md' → 52"""
     match = re.match(r"^(\d+)", filename)
     return int(match.group(1)) if match else None
 
 
 def _extract_title_from_content(content: str) -> str:
-    """从 markdown 内容提取标题（第一个 # 行）"""
     for line in content.splitlines():
         if line.startswith("# "):
-            # 去掉 ID 前缀，如 "# 052 — 桌面宠物工作区" → "桌面宠物工作区"
             title = line.lstrip("# ").strip()
-            # 去掉 "052 — " 前缀
             title = re.sub(r"^\d+\s*[—–-]\s*", "", title)
             return title
     return ""
 
 
 def _extract_frontmatter(content: str) -> dict:
-    """从需求文档提取 frontmatter 信息"""
-    info = {"priority": "P2", "size": "S"}
+    info = {"priority": "P2", "size": "S", "created_at": ""}
     for line in content.splitlines()[:20]:
         if "优先级" in line or "Priority" in line.lower():
             match = re.search(r"P[0-3]", line)
@@ -68,102 +127,78 @@ def _extract_frontmatter(content: str) -> dict:
             match = re.search(r"\b(XS|S|M|L|XL)\b", line)
             if match:
                 info["size"] = match.group(0)
+        if "录入日期" in line or "创建" in line:
+            match = re.search(r"(\d{4}-\d{2}-\d{2})", line)
+            if match:
+                info["created_at"] = match.group(1)
     return info
 
 
-def import_done_files(conn: sqlite3.Connection):
-    """从 done/ 目录导入已完成需求（完整内容存入 description）"""
+def import_done_files(conn: sqlite3.Connection) -> int:
     if not DONE_DIR.exists():
         return 0
-
     count = 0
     for md_file in sorted(DONE_DIR.glob("*.md")):
         req_id = _extract_id_from_filename(md_file.name)
         if req_id is None:
             continue
-
         content = md_file.read_text(encoding="utf-8")
         title = _extract_title_from_content(content) or md_file.stem
         info = _extract_frontmatter(content)
-
+        dates = DONE_DATES.get(req_id, ("2026-05-15", "2026-05-20"))
+        created = info["created_at"] or dates[0]
+        completed = dates[1]
         conn.execute(
             """INSERT OR REPLACE INTO requirements
-               (id, title, status, priority, size, description, file_path)
-               VALUES (?, ?, 'done', ?, ?, ?, ?)""",
-            (req_id, title, info["priority"], info["size"], content, f"done/{md_file.name}"),
+               (id, title, status, priority, size, created_at, completed_at, description, file_path)
+               VALUES (?, ?, 'done', ?, ?, ?, ?, ?, ?)""",
+            (req_id, title, info["priority"], info["size"],
+             created, completed, content, f"done/{md_file.name}"),
         )
         count += 1
-
     return count
 
 
-def import_backlog_files(conn: sqlite3.Connection):
-    """从 backlog/ 目录导入待开发需求（只存元数据，不存完整内容）"""
+def import_backlog_files(conn: sqlite3.Connection) -> int:
     if not BACKLOG_DIR.exists():
         return 0
-
     count = 0
     for md_file in sorted(BACKLOG_DIR.glob("*.md")):
         req_id = _extract_id_from_filename(md_file.name)
         if req_id is None:
             continue
-
         content = md_file.read_text(encoding="utf-8")
         title = _extract_title_from_content(content) or md_file.stem
         info = _extract_frontmatter(content)
+        created = info["created_at"] or "2026-06-03"
 
-        # backlog 只存元数据（description 留空，内容在 md 文件里维护）
-        conn.execute(
-            """INSERT OR IGNORE INTO requirements
-               (id, title, status, priority, size, file_path)
-               VALUES (?, ?, 'backlog', ?, ?, ?)""",
-            (req_id, title, info["priority"], info["size"], f"backlog/{md_file.name}"),
-        )
+        # 检查是否已标记完成
+        dates = DONE_DATES.get(req_id)
+        if dates:
+            conn.execute(
+                """INSERT OR REPLACE INTO requirements
+                   (id, title, status, priority, size, created_at, completed_at, description, file_path)
+                   VALUES (?, ?, 'done', ?, ?, ?, ?, ?, ?)""",
+                (req_id, title, info["priority"], info["size"],
+                 created, dates[1], content, f"backlog/{md_file.name}"),
+            )
+        else:
+            conn.execute(
+                """INSERT OR IGNORE INTO requirements
+                   (id, title, status, priority, size, created_at, file_path)
+                   VALUES (?, ?, 'backlog', ?, ?, ?, ?)""",
+                (req_id, title, info["priority"], info["size"],
+                 created, f"backlog/{md_file.name}"),
+            )
         count += 1
-
     return count
 
 
-def import_extra_done(conn: sqlite3.Connection):
-    """导入没有 done/*.md 文件但在 plan.md 中标记完成的需求"""
-    # 这些需求完成了但没有单独的 done/ 文件（较新的需求直接在 backlog/ 中）
-    extra = [
-        (48, "用户手动绑定文件夹为工作区"),
-        (52, "桌面宠物工作区"),
-        (53, "Agent 分层解决策略"),
-        (54, "Agent Python 兜底策略"),
-        (56, "消息撤回（软删除 + Undo）"),
-        (57, "消息防抖批处理"),
-        (58, "DeepSeek 前缀缓存优化"),
-        (59, "会话自动压缩"),
-        (60, "工具调用权限门控"),
-        (65, "需求管理数据化（SQLite 存储）"),
-    ]
-
-    count = 0
-    for req_id, title in extra:
-        # 尝试从 backlog/ 读取内容
-        desc = ""
-        for md_file in BACKLOG_DIR.glob(f"{req_id:03d}-*.md"):
-            desc = md_file.read_text(encoding="utf-8")
-            break
-
-        conn.execute(
-            """INSERT OR REPLACE INTO requirements
-               (id, title, status, priority, size, description, completed_at)
-               VALUES (?, ?, 'done', 'P1', 'S', ?, '2026-06-02')""",
-            (req_id, title, desc),
-        )
-        count += 1
-
-    return count
-
-
-def import_cancelled(conn: sqlite3.Connection):
-    """导入已取消需求"""
+def import_cancelled(conn: sqlite3.Connection) -> int:
     conn.execute(
-        """INSERT OR REPLACE INTO requirements (id, title, status, description)
-           VALUES (19, '孕期管理 + 学习辅助', 'cancelled', '需求不明确，已取消')"""
+        """INSERT OR REPLACE INTO requirements
+           (id, title, status, created_at, description)
+           VALUES (19, '孕期管理 + 学习辅助', 'cancelled', '2026-05-10', '需求不明确，已取消')"""
     )
     return 1
 
@@ -174,30 +209,28 @@ def init_db():
 
     done_count = import_done_files(conn)
     backlog_count = import_backlog_files(conn)
-    extra_count = import_extra_done(conn)
     cancelled_count = import_cancelled(conn)
 
     conn.commit()
 
+    # 统计
     total = conn.execute("SELECT COUNT(*) FROM requirements").fetchone()[0]
     done = conn.execute("SELECT COUNT(*) FROM requirements WHERE status='done'").fetchone()[0]
     backlog = conn.execute("SELECT COUNT(*) FROM requirements WHERE status='backlog'").fetchone()[0]
     with_desc = conn.execute(
         "SELECT COUNT(*) FROM requirements WHERE description != ''"
     ).fetchone()[0]
+    with_dates = conn.execute(
+        "SELECT COUNT(*) FROM requirements WHERE created_at != ''"
+    ).fetchone()[0]
 
     conn.close()
 
-    print(f"✅ requirements.db 初始化完成")
+    print(f"✅ requirements.db 重建完成")
     print(f"   总计: {total} 条")
-    print(f"   已完成: {done}（含完整内容: {with_desc}）")
-    print(f"   待开发: {backlog}")
-    print(f"   已取消: {cancelled_count}")
-    print(f"")
-    print(f"   导入来源:")
-    print(f"   - done/*.md: {done_count} 条（完整内容）")
-    print(f"   - backlog/*.md: {backlog_count} 条（元数据）")
-    print(f"   - 补充已完成: {extra_count} 条")
+    print(f"   已完成: {done} | 待开发: {backlog} | 已取消: {cancelled_count}")
+    print(f"   有完整内容: {with_desc} 条")
+    print(f"   有日期信息: {with_dates} 条")
 
 
 if __name__ == "__main__":
