@@ -211,11 +211,16 @@ const Chat = {
               if (!msgEl) {
                 msgEl = this._addMessageElement('assistant', '');
                 bubble = msgEl.querySelector('.message__bubble');
+                this._streamStartTime = Date.now();
               }
               fullText += data.chunk;
               // 实时过滤 DSML 标记
               bubble.textContent = this._cleanDSML(fullText);
               this._scrollToBottom();
+            }
+            if (data.usage) {
+              // Token 使用量统计（#061）
+              this._lastUsage = data.usage;
             }
             if (data.conversation_id) {
               this.conversationId = data.conversation_id;
@@ -225,6 +230,29 @@ const Chat = {
       }
 
       this.messages.push({ role: 'assistant', content: fullText });
+      // 渲染 token 统计（#061）
+      if (this._lastUsage && msgEl) {
+        const u = this._lastUsage;
+        const elapsed = (Date.now() - (this._streamStartTime || Date.now())) / 1000;
+        const speed = elapsed > 0 && u.completion_tokens ? Math.round(u.completion_tokens / elapsed) : 0;
+        // DeepSeek 费率: 输入 ¥1/M, 缓存 ¥0.1/M, 输出 ¥2/M
+        const inputCost = (u.prompt_tokens - (u.cache_hit_tokens || 0)) * 1 / 1000000;
+        const cacheCost = (u.cache_hit_tokens || 0) * 0.1 / 1000000;
+        const outputCost = (u.completion_tokens || 0) * 2 / 1000000;
+        const totalCost = inputCost + cacheCost + outputCost;
+
+        let statsText = `⚡ ${u.prompt_tokens || 0} 入 / ${u.completion_tokens || 0} 出`;
+        if (u.cache_hit_tokens > 0) statsText += ` · 缓存 ${u.cache_hit_tokens}`;
+        if (speed > 0) statsText += ` · ${speed} tok/s`;
+        if (totalCost > 0) statsText += ` · ≈¥${totalCost.toFixed(4)}`;
+
+        const statsEl = document.createElement('div');
+        statsEl.className = 'message__stats';
+        statsEl.textContent = statsText;
+        msgEl.querySelector('.message__content').appendChild(statsEl);
+      }
+      this._lastUsage = null;
+      this._streamStartTime = null;
       Panel.addLog('info', `管理员回复: ${fullText.substring(0, 30)}...`);
 
     } catch (err) {

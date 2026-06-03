@@ -599,6 +599,17 @@ async def chat_api(body: dict):
                     tool_calls_log[-1]["error"] = err_msg
                 yield f"data: {json.dumps({'tool_done': parts[0], 'status': 'error', 'error': err_msg, 'conversation_id': conv_id})}\n\n"
                 continue
+            if chunk.startswith("[USAGE:"):
+                # Token 使用量统计（#061）
+                try:
+                    usage_data = json.loads(chunk[7:-1])
+                    yield f"data: {json.dumps({'usage': usage_data, 'conversation_id': conv_id})}\n\n"
+                except (json.JSONDecodeError, IndexError):
+                    pass
+                continue
+            if chunk == "[COMPACT]":
+                yield f"data: {json.dumps({'compact': True, 'conversation_id': conv_id})}\n\n"
+                continue
 
             full_response += chunk
             yield f"data: {json.dumps({'chunk': chunk, 'conversation_id': conv_id})}\n\n"

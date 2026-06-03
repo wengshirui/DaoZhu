@@ -287,6 +287,7 @@ async def agent_chat_stream(
     iteration = 0
     _consecutive_failures = {}  # 追踪连续失败次数
     _had_tool_calls = False  # 追踪是否有过工具调用
+    _usage_total = {"prompt_tokens": 0, "completion_tokens": 0, "cache_hit_tokens": 0}
 
     while iteration < MAX_ITERATIONS:
         iteration += 1
@@ -328,6 +329,12 @@ async def agent_chat_stream(
                     return
 
                 data = resp.json()
+                # 提取 token 使用量（#061）
+                usage = data.get("usage") or {}
+                _usage_total["prompt_tokens"] += usage.get("prompt_tokens", 0)
+                _usage_total["completion_tokens"] += usage.get("completion_tokens", 0)
+                _usage_total["cache_hit_tokens"] += usage.get("prompt_cache_hit_tokens", 0)
+
                 if protocol == "anthropic":
                     message = _parse_anthropic_response(data)["message"]
                 else:
@@ -476,6 +483,7 @@ async def agent_chat_stream(
                                 base_url, headers, model, review_messages, protocol
                             ):
                                 yield chunk
+                            yield f"[USAGE:{json.dumps(_usage_total)}]"
                             return
                         except Exception:
                             pass  # 质检失败，回退到原始回复
@@ -494,6 +502,7 @@ async def agent_chat_stream(
                                 yield final_content
                         except Exception:
                             yield final_content
+                    yield f"[USAGE:{json.dumps(_usage_total)}]"
                     return
 
         except httpx.ConnectError:
