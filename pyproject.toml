@@ -13,6 +13,7 @@ dependencies = [
     "python-multipart>=0.0.9,<1",
     "playwright>=1.40.0,<2",
     "PySide6>=6.6.0,<7",
+    "ddgs>=9.0,<10",
 ]
 
 [project.scripts]
