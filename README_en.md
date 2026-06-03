@@ -1,300 +1,144 @@
-# DaoZhu 🏝️
+# DaoZhu 🏝️ — Your AI Digital Island
 
-[中文](./README.md) | **English**
+**English** | [中文](./README.md)
 
-> Your AI-powered digital island — a personal digital sovereignty platform that truly belongs to you.
+> A truly personal digital sovereignty platform — your machine is your server, your data stays with you.
 
 ---
 
 ## 🔑 Why DaoZhu?
 
-| Other Products | DaoZhu |
-|---------------|--------|
-| Require sign-up and login | **No login needed** — double-click the exe and go |
-| Your data lives on their servers | **Your data stays yours** — SQLite local storage, zero cloud |
-| Client apps can be shut down anytime | **Your client is yours** — open source, packaged as exe |
-| AI conversations go through third parties | **Your model can be yours too** — connect Ollama for local inference |
+| Others | DaoZhu |
+|--------|--------|
+| Requires signup / login | **No login** — double-click exe and go |
+| Data on their servers | **Your data** — SQLite local storage, zero cloud |
+| App can be shut down anytime | **Your client** — open source + standalone exe |
+| AI goes through third parties | **Your model** — Ollama local inference |
 
-**In one sentence: your machine is your server, your data never leaves your hands.**
-
----
-
-## ✨ Core Features
-
-- 🏝️ **Three-panel workspace** — Resources + AI chat + History
-- 🤖 **AI Island Manager** — 10 tools to start/stop workspaces, manage data, generate code
-- 📋 **Ready out of the box** — Ships with Todo, Accounting, and Forum workspaces
-- 🧠 **Three-layer memory** — Session memory + User profile + Knowledge base (learns as you use it)
-- 🏗️ **Build with one sentence** — Tell the AI what app you want, it builds it for you
-- 📖 **Skill system** — Extensible skill files, AI capabilities keep evolving
-- 🔒 **Fully local** — All data on your machine, works offline
-- 📦 **Double-click to run** — Lightweight launcher, bundled environment, auto-updates
-- 🎮 **Pixel manager** — Pure CSS pixel-art animated character with personality
-- 🎬 **Stickman Theater** — AI writes scripts, stickmen perform automatically, one sentence to animation
+**In one line: your machine is your server, your data is forever yours.**
 
 ---
 
-## 🛡️ Data Sovereignty Loop
+## ✨ What it can do
 
-```
-┌─────────────────────────────────────────────┐
-│            Your Digital Island                │
-│                                               │
-│  📁 Your data         → Local SQLite files    │
-│  🖥️ Your client       → Open source + exe     │
-│  🧠 Your model        → Ollama local LLM      │
-│  📱 Your remote       → Gitee Issue control   │
-│                                               │
-│  No sign-up. No login. No subscription.       │                           │
-└─────────────────────────────────────────────┘
-```
+- 🤖 **AI Butler** — manage everything in natural language (DeepSeek / Ollama / OpenAI)
+- 🏗️ **Build with one sentence** — "Build me a reading notes workspace" → AI generates a complete app
+- 📋 **Workspaces** — Todo, accounting, forum, desktop pet… each runs independently
+- 🐾 **Desktop Pet** — adopt pixel pets from Petdex community, drag & bounce on your desktop
+- 🎬 **Stickman Theater** — one sentence generates animated shorts, AI writes the script
+- 🧠 **Learns about you** — three-layer memory system, AI remembers your preferences
+- 🌐 **Web access** — ask about weather, news, tech questions — AI searches for you
+- 📁 **Bind folders** — turn any local folder into a workspace shortcut
+- 💰 **Cost efficient** — DeepSeek prefix cache (90% input savings) + auto session compression
+- 🔒 **Safe** — dangerous operations auto-blocked, permission rules configurable
 
 ---
 
 ## 🚀 Quick Start
 
-### Option 1: Download and run (recommended)
+### Option 1: Download & Run (Recommended)
 
-1. Download `DaoZhu-v1.0.0.zip` (77MB) from [Releases](https://gitee.com/yumen2278/DaoZhu/releases)
-2. Extract to any directory
+1. Download latest zip from [Releases](https://gitee.com/yumen2278/DaoZhu/releases)
+2. Extract anywhere
 3. Double-click `岛主DaoZhu.exe`
-4. First run automatically sets up environment and installs dependencies
-5. Browser opens automatically, follow the setup guide
-6. **Every subsequent launch auto-updates to the latest version**
+4. First run auto-installs environment; follow browser setup guide
+5. Subsequent launches auto-update
 
-> Bundled with Git + uv, no installation needed. Updates happen automatically via git pull.
+> Comes with Git + uv bundled. Nothing else to install.
 
-### Option 2: Developer setup
+### Option 2: Developer Setup
 
 ```bash
 git clone https://gitee.com/yumen2278/DaoZhu.git
 cd DaoZhu
-
-# Create virtual environment
 uv venv .venv --python 3.11
-.venv\Scripts\activate      # Windows
-# source .venv/bin/activate  # Linux/Mac
-
-# Install dependencies
+.venv\Scripts\activate
 uv pip install -e .
-
-# Start the platform
 python daozhu_main.py
 ```
 
-Browser opens `http://localhost:7788` automatically. First launch shows the setup guide.
+Browser opens `http://localhost:7788` automatically.
 
 ---
 
-## 🎮 How It Works
+## 🎮 Usage Examples
 
 ```
-You:     Build me a reading notes workspace
-Manager: Building...
-         ✅ "Reading Notes" created, port 7804.
+You: Build me a reading notes workspace
+Butler: Building... ✅ "Reading Notes" created
 
-You:     Add a todo: meeting tomorrow afternoon
-Manager: ✅ Added to "Personal Todo".
+You: What's the weather today?
+Butler: 🌤️ Sunny in Hangzhou, 28°C
 
-You:     Start the accounting assistant
-Manager: ✅ Accounting Assistant started, port 7803.
-```
+You: Add a todo: meeting tomorrow afternoon
+Butler: ✅ Added to "Personal Todo"
 
----
-
-## 🏗️ Architecture
-
-```
-DaoZhu/
-├── launcher.py             # Launcher source (packaged as exe)
-├── daozhu/                 # Platform core
-│   ├── app.py              # FastAPI main service (port 7788)
-│   ├── agent.py            # AI Agent (conversation loop + tool calls)
-│   ├── workspace_manager.py# Workspace process management
-│   ├── config.py           # Global configuration
-│   ├── memory_db.py        # Memory system
-│   ├── chat_service.py     # LLM streaming calls (multi-provider)
-│   ├── skill_loader.py     # Skill discovery and loading
-│   ├── template_engine.py  # Template rendering engine
-│   ├── tools/              # Agent tools (10)
-│   └── frontend/           # Main UI
-│
-├── workspaces/             # Workspace directory (each runs independently)
-├── templates/              # Workspace templates
-├── skills/                 # Skill files
-├── scripts/                # Build & release scripts
-├── vendor/                 # Bundled tools (Git + uv, release zip only)
-├── requirements/           # Requirement docs
-├── daozhu_main.py          # Dev mode entry point
-└── pyproject.toml          # Project config (v1.0.0)
+You: Bind D:\Projects\my-app as a workspace
+Butler: ✅ Bound "my-app" — click to open folder
 ```
 
 ---
 
-## 🔧 Agent Tools
+## 📚 Built-in Workspaces
 
-| Tool | Purpose |
-|------|---------|
-| `list_workspaces` | List all workspaces and their status |
-| `start_workspace` | Start a workspace |
-| `stop_workspace` | Stop a workspace |
-| `get_workspace_info` | Get workspace details |
-| `call_workspace_api` | Call workspace API (add todo, record expense, etc.) |
-| `list_templates` | List available templates |
-| `create_from_template` | Create workspace from template |
-| `write_file` | Write file in workspace |
-| `read_file` | Read workspace file |
-| `list_files` | List workspace files |
+| Workspace | Description |
+|-----------|-------------|
+| 📋 Personal Todo | Tasks, subtasks, tags, daily focus |
+| 💰 Finance Assistant | Bookkeeping, vouchers, balance queries |
+| 🏝️ Forum | Gitee Issues integration, community |
+| 🐾 Desktop Pet | Petdex store + pet management + desktop companion |
+| 🎬 Stickman Theater | AI screenplay → Canvas animation |
 
----
-
-## 📚 Default Workspaces
-
-| Workspace | Port | Features |
-|-----------|------|----------|
-| 📋 Personal Todo | 7801 | Task management, subtasks, tags, priorities, daily focus |
-| 💰 Accounting | 7803 | Multi-company ledgers, chart of accounts, journal entries |
-| 🏝️ Forum | 7802 | Integrated with Gitee Issues, browse/post/reply |
-
----
-
-## 🌈 Future Workspaces You Could Build
-
-DaoZhu's core philosophy is **build with one sentence** — whatever you imagine, the AI helps you create it. Here's some inspiration:
-
-| Workspace | One-liner | Possibilities |
-|-----------|-----------|---------------|
-| 🎬 AutoMovie Studio | AI writes script → generates storyboard → renders video | Input a story outline, output a short film |
-| 🎨 Photopea Design Studio | AI-driven online PS via Playwright + postMessage | "Remove background, add text, export PNG" |
-| 💬 Private Chat Server | Locally hosted instant messaging | Family group chat, small team collaboration — no third party |
-| 📚 Personal Wiki | Markdown knowledge base + full-text search | Your own Notion, but data stays local |
-| 🏥 Health Tracker | Weight / sleep / exercise / diet logging | AI analyzes trends and gives suggestions |
-| 🏠 Smart Home Console | Connect to Home Assistant / MQTT | "Turn off the living room lights" |
-| 📝 Code Snippet Manager | Organized by language / tags | Never dig through Stack Overflow history again |
-| 🎵 Local Music Library | Scan local music + player + lyrics | No streaming platform dependency |
-| 📷 Photo Timeline | Local album + EXIF parsing + AI tagging | Auto-organize by location / people / time |
-| 📰 RSS Reader | Feed management + AI summaries | Information without algorithmic feeds |
-| 🎮 Game Save Manager | Multi-platform save backup + sync | Never lose progress when switching machines |
-| 🐍 Python Learning Island | Interactive tutorials + live execution + AI tutor | Learn by doing, AI as your teacher |
-| 💼 Freelancer Dashboard | Projects / clients / income / invoices | Gigs, bookkeeping, invoicing — all in one |
-
-**Your island, your rules.** Just tell the Island Manager what you want, and it builds from scratch.
+Tell the butler to build more: knowledge base, RSS reader, health tracker…
 
 ---
 
 ## ⚙️ Configuration
 
-### AI Backend (required, choose one)
+### AI Model (pick one)
 
-**Cloud model (DeepSeek):**
-```
-DEEPSEEK_API_KEY=sk-xxxxxxxx
-```
+| Option | Description | Cost |
+|--------|-------------|------|
+| DeepSeek | Cloud, best quality | ~$0.001/conversation |
+| Ollama | Local, fully offline | Free |
+| OpenAI | Cloud, GPT series | Pay per use |
 
-**Local model (Ollama, fully offline):**
-```
-Install Ollama → Pull a model → Select "Local Model" in settings
-```
+### Gitee Token (optional)
 
-### Gitee Token (remote control + forum, optional)
-
-```
-GITEE_TOKEN=xxxxxxxx
-```
+Enables the forum workspace + remote control features.
 
 ---
 
-## 🗺️ Roadmap
-
-### ✅ Phase 0 — Foundation (Complete)
-
-- [x] FastAPI service + three-panel UI
-- [x] Workspace process management
-- [x] Global config + user onboarding
-- [x] Default workspaces (Todo / Accounting / Forum)
-
-### ✅ Phase 1 — AI Capabilities (Complete)
-
-- [x] AI Agent conversation loop + 10 tools
-- [x] SSE streaming + interrupt support
-- [x] Three-layer memory + Skill tracking
-- [x] Workspace templates + code generation
-- [x] Agent operates workspace data
-
-### 🚧 Phase 2 — Data Sovereignty (In Progress)
-
-- [x] Local Ollama model integration (fully offline)
-- [x] Multi-provider support (DeepSeek / Zhipu / Ollama / OpenAI)
-- [x] Stickman Theater (AutoMovie) — AI writes scripts → stickmen perform
-- [x] Lightweight launcher (bundled Git+uv, auto-update on launch)
-- [ ] Stickman Theater BGM + voice acting
-- [ ] Gitee remote control (control your island from your phone)
-- [ ] Workspace marketplace (Gitee ecosystem)
-- [ ] User-bound folder workspaces
-
-### 📋 Phase 3 — Ecosystem & Experience
-
-- [ ] Homepage visual polish (island ambiance)
-- [ ] Windows system tray
-- [ ] Gamification (sprites / achievements / levels)
-- [ ] Local performance detection + smart recommendations
-
----
-
-## 🌍 World View
-
-| Role | What | Does |
-|------|------|------|
-| 🏝️ Island | Your local space | Hosts everything |
-| 🧠 Brain (LLM) | AI model | Thinks (cloud or local) |
-| 🏛️ Manager (Agent) | AI executor | Receives commands, coordinates building |
-| 📖 Skill | Knowledge & process | Manager's experience |
-| 🔧 Tool | Operational ability | Start/stop workspaces, read/write files |
-| 🏠 Building (Workspace) | Independent app | Each functional module on the island |
-
----
-
-## Tech Stack
+## 🏗️ Tech Stack
 
 | Layer | Choice |
 |-------|--------|
 | Backend | Python 3.11+ / FastAPI |
-| Frontend | Pure HTML + CSS + JS (no Node dependency) |
-| AI Model | DeepSeek / OpenAI / Ollama / compatible APIs |
-| Database | SQLite (platform-level + per-workspace) |
-| Isolation | subprocess + independent ports |
-| Packaging | Lightweight launcher (PyInstaller) + bundled Git/uv + auto-update |
-| Package Manager | uv + pyproject.toml |
+| Frontend | Pure HTML + CSS + JS (no Node) |
+| AI | DeepSeek / OpenAI / Ollama / compatible APIs |
+| Database | SQLite |
+| Distribution | PyInstaller launcher + bundled Git/uv |
 
 ---
 
-## Who Is This For?
+## 🤝 Contributors
 
-| You are... | DaoZhu helps you... |
-|-----------|---------------------|
-| Regular user | Own your own toolset without knowing tech |
-| Small business owner | Accounting, project management, CRM — one platform |
-| Developer | Rapid prototyping, local toolchain, custom workspaces |
-| Privacy-conscious | All data local, model can be local too |
-| Remote worker | Use Gitee Issues as a remote control from any device |
+| Contributor | Role |
+|-------------|------|
+| [@wengshirui](https://gitee.com/yumen2278) | Creator & Lead Developer |
+| [@yanpeng](https://gitee.com/yanpeng) | Contributor |
 
----
-
-## Philosophy
-
-> Your machine is your server. Your bookshelf is your internet portal.
-> AI is your architect, workspaces are rooms you build, the whole platform is your own town.
->
-> No login. No subscription. No data leaks.
-> This is not a productivity tool — it's a new form of personal digital sovereignty.
+Contributions welcome! Issues, PRs, and ideas are all appreciated.
 
 ---
 
-## License
+## 📄 License
 
 MIT
 
-## Community
+---
+
+## 💬 Community
 
 - QQ Group: 1102100710
 - GitHub: https://github.com/wengshirui/DaoZhu
