@@ -101,24 +101,67 @@ async def trigger_review():
         if tool_name in already_suggested:
             continue
 
+        # 分析具体失败原因（读取最近 5 条失败日志）
+        import sqlite3 as _sqlite3
+        chat_db = _sqlite3.connect(str(Path(__file__).parent.parent.parent.parent / "chat.db"))
+        chat_db.row_factory = _sqlite3.Row
+        errors = chat_db.execute(
+            "SELECT error, args FROM tool_logs WHERE tool_name=? AND success=0 ORDER BY created_at DESC LIMIT 5",
+            (tool_name,)
+        ).fetchall()
+        chat_db.close()
+
+        # 归类错误原因
+        error_reasons = [e["error"] or "" for e in errors]
+        is_404 = all("404" in r for r in error_reasons if r)
+        is_param_error = any("参数" in r or "missing" in r or "positional" in r for r in error_reasons)
+
         if tool_name in CORE_TOOLS:
-            # 核心工具：不建议禁用，建议排查原因
-            suggestions.append({
-                "level": "red",
-                "text": f"核心工具 {tool_name} 失败率 {100 - rate:.0f}%（{call_count} 次调用），建议排查失败原因（可能是参数配置问题）",
-                "action": "investigate",
-                "target": tool_name,
-                "executed": False,
-            })
+            if is_404:
+                suggestions.append({
+                    "level": "yellow",
+                    "text": f"核心工具 {tool_name} 频繁 404（AI 传了错误路径），建议在工具返回中提示可用路径",
+                    "action": "investigate",
+                    "target": tool_name,
+                    "detail": "失败原因: AI 编造了不存在的 API 路径",
+                    "executed": False,
+                })
+            elif is_param_error:
+                suggestions.append({
+                    "level": "yellow",
+                    "text": f"核心工具 {tool_name} 参数错误频发，建议优化工具描述让 AI 更清楚参数格式",
+                    "action": "investigate",
+                    "target": tool_name,
+                    "detail": "失败原因: 参数格式错误",
+                    "executed": False,
+                })
+            else:
+                suggestions.append({
+                    "level": "red",
+                    "text": f"核心工具 {tool_name} 失败率 {100 - rate:.0f}%（{call_count} 次调用），需人工排查",
+                    "action": "investigate",
+                    "target": tool_name,
+                    "detail": f"错误样例: {error_reasons[0][:80] if error_reasons else '未知'}",
+                    "executed": False,
+                })
         else:
-            # 非核心工具：可以建议禁用
-            suggestions.append({
-                "level": "yellow",
-                "text": f"工具 {tool_name} 失败率 {100 - rate:.0f}%，建议检查或禁用",
-                "action": "disable_tool",
-                "target": tool_name,
-                "executed": False,
-            })
+            # 非核心工具
+            if is_404:
+                suggestions.append({
+                    "level": "yellow",
+                    "text": f"工具 {tool_name} 频繁 404，可能是目标地址不可达",
+                    "action": "investigate",
+                    "target": tool_name,
+                    "executed": False,
+                })
+            else:
+                suggestions.append({
+                    "level": "yellow",
+                    "text": f"工具 {tool_name} 失败率 {100 - rate:.0f}%，建议检查或禁用",
+                    "action": "disable_tool",
+                    "target": tool_name,
+                    "executed": False,
+                })
 
     # 🟢 自动执行：清理过期知识（超过 60 天的 tool_failure 记录）
     try:
