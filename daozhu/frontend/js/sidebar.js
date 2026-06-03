@@ -117,7 +117,36 @@ const Sidebar = {
         container.innerHTML = this._renderEmpty('🏗️', '还没有工作区', '告诉管家你想建造什么');
         return;
       }
-      container.innerHTML = workspaces.map(w => this._renderWorkspaceCard(w)).join('');
+
+      // 按 category 分组
+      const groups = { user: [], public: [], system: [] };
+      for (const w of workspaces) {
+        const cat = w.category || 'user';
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(w);
+      }
+
+      // 分组渲染
+      const categoryLabels = { user: '🏠 我的工作区', public: '🌐 公开', system: '⚙️ 系统' };
+      const categoryOrder = ['user', 'public', 'system'];
+      let html = '';
+
+      for (const cat of categoryOrder) {
+        const items = groups[cat];
+        if (!items || items.length === 0) continue;
+        const collapsed = cat === 'system' ? 'collapsed' : '';
+        html += `<div class="ws-group ${collapsed}" data-category="${cat}">
+          <div class="ws-group__header" onclick="Sidebar._toggleGroup(this)">
+            <span class="ws-group__arrow">${collapsed ? '▶' : '▼'}</span>
+            <span class="ws-group__label">${categoryLabels[cat]}</span>
+            <span class="ws-group__count">${items.length}</span>
+          </div>
+          <div class="ws-group__body">${items.map(w => this._renderWorkspaceCard(w)).join('')}</div>
+        </div>`;
+      }
+
+      container.innerHTML = html;
+
       // 添加"绑定文件夹"按钮
       container.insertAdjacentHTML('beforeend', `
         <div class="card card--add" id="btn-bind-folder">
@@ -356,6 +385,14 @@ const Sidebar = {
         </div>
       </div>
     `;
+  },
+
+  // === 工作区分组折叠 ===
+  _toggleGroup(headerEl) {
+    const group = headerEl.parentElement;
+    group.classList.toggle('collapsed');
+    const arrow = headerEl.querySelector('.ws-group__arrow');
+    arrow.textContent = group.classList.contains('collapsed') ? '▶' : '▼';
   },
 
   // === 绑定文件夹对话框 ===

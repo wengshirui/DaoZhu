@@ -7,5 +7,6 @@
   "port": 7801,
   "version": "1.0.0",
   "hidden": true,
-  "start_mode": "manual"
+  "start_mode": "manual",
+  "category": "system"
 }

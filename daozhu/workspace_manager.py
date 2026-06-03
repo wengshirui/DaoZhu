@@ -51,6 +51,7 @@ class WorkspaceInfo:
     sort_order: int = 99
     mode: str = "standard"  # "lightweight" | "standard" | "heavy" | "bound"
     bound_path: str = ""  # mode=bound 时指向的外部文件夹路径
+    category: str = "user"  # "system" | "public" | "user"
 
     # 运行时状态（不持久化）
     status: WorkspaceStatus = WorkspaceStatus.STOPPED
@@ -78,6 +79,7 @@ class WorkspaceInfo:
             "source": self.source,
             "sort_order": self.sort_order,
             "mode": self.mode,
+            "category": self.category,
         }
         if self.bound_path:
             d["bound_path"] = self.bound_path
@@ -145,6 +147,7 @@ class WorkspaceManager:
             sort_order=data.get("sort_order", 99),
             mode=data.get("mode", "standard"),
             bound_path=data.get("bound_path", ""),
+            category=data.get("category", "user"),
         )
 
     # === 端口分配 ===

@@ -9,6 +9,11 @@
   "entry": "app.py",
   "python": ".venv",
   "mode": "lightweight",
-  "tags": ["动画", "AI", "创作"],
-  "sort_order": 4
+  "tags": [
+    "动画",
+    "AI",
+    "创作"
+  ],
+  "sort_order": 4,
+  "category": "system"
 }

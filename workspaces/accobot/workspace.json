@@ -16,5 +16,6 @@
   "start_mode": "manual",
   "hidden": false,
   "source": "https://gitee.com/yumen2278/accobot",
-  "sort_order": 2
+  "sort_order": 2,
+  "category": "user"
 }

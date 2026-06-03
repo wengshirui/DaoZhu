@@ -8,10 +8,15 @@
   "port": 7805,
   "entry": "app.py",
   "python": ".venv",
-  "tags": ["趣味", "宠物", "桌面"],
+  "tags": [
+    "趣味",
+    "宠物",
+    "桌面"
+  ],
   "start_mode": "manual",
   "hidden": false,
   "source": "self-built",
   "mode": "standard",
-  "sort_order": 5
+  "sort_order": 5,
+  "category": "system"
 }
