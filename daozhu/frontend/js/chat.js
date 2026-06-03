@@ -107,6 +107,9 @@ const Chat = {
     this.isTyping = true;
     this._abortController = new AbortController();
 
+    // 显示思考中指示器
+    this._showTyping();
+
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -138,6 +141,8 @@ const Chat = {
           try {
             const data = JSON.parse(line.slice(6));
             if (data.tool) {
+              // 收到工具调用，隐藏思考指示器
+              this._hideTyping();
               // 工具调用：创建管理员风格的工具面板（带头像）
               const container = document.getElementById('chat-messages');
               if (!this._toolPanel) {
@@ -200,7 +205,8 @@ const Chat = {
               continue;
             }
             if (data.chunk) {
-              // 收到文本 chunk 时，关闭工具面板并创建消息气泡
+              // 收到文本 chunk 时，隐藏思考指示器，关闭工具面板并创建消息气泡
+              this._hideTyping();
               if (this._toolPanel) {
                 const title = this._toolPanel.querySelector('.tool-panel__title');
                 title.textContent = `✅ 完成 (${this._toolStepCount} 步)`;
@@ -264,6 +270,7 @@ const Chat = {
         Panel.addLog('error', `发送失败: ${err.message}`);
       }
     } finally {
+      this._hideTyping();
       this.isTyping = false;
       sendBtn.textContent = '发送';
       sendBtn.classList.remove('chat__send--stop');
@@ -346,14 +353,13 @@ const Chat = {
 
   // === 打字指示器 ===
   _showTyping() {
-    this.isTyping = true;
     const container = document.getElementById('chat-messages');
     const typing = document.createElement('div');
     typing.id = 'typing-indicator';
     typing.className = 'message message--assistant';
     typing.innerHTML = `
       <div class="message__avatar">
-        <div class="librarian librarian--thinking"><div class="librarian__pixel"></div></div>
+        <img src="/img/librarian.svg" alt="岛管理员" style="width:28px;height:28px;image-rendering:pixelated" class="librarian-avatar">
       </div>
       <div class="typing-indicator">
         <div class="typing-indicator__dot"></div>
@@ -366,7 +372,6 @@ const Chat = {
   },
 
   _hideTyping() {
-    this.isTyping = false;
     const typing = document.getElementById('typing-indicator');
     if (typing) typing.remove();
   },

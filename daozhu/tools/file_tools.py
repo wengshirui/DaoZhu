@@ -30,15 +30,25 @@ def _safe_path(file_path: str) -> Path:
     return target
 
 
-async def write_file_tool(file_path: str, content: str) -> str:
+async def write_file_tool(file_path: str = None, content: str = None) -> str:
     """在工作区目录内写入文件"""
+    if not content:
+        return json.dumps({"error": "缺少必填参数 content（文件内容）"}, ensure_ascii=False)
+
+    # file_path 为空时自动放到 out/ 目录
+    if not file_path:
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_path = f"out/output_{timestamp}.txt"
+
     try:
         target = _safe_path(file_path)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(content, encoding="utf-8")
         return json.dumps({
             "success": True,
-            "message": f"文件已写入: workspaces/{file_path}",
+            "message": f"文件已写入: {file_path}",
+            "path": file_path,
             "size": len(content),
         }, ensure_ascii=False)
     except Exception as e:
@@ -86,14 +96,14 @@ async def list_files_tool(directory: str = "") -> str:
 
 registry.register(
     name="write_file",
-    description="在工作区或技能目录内创建或覆盖文件。路径支持 'workspaces/xxx/file' 或 'skills/xxx/SKILL.md'。用于生成工作区代码或创建新技能。",
+    description="在工作区或技能目录内创建或覆盖文件。路径支持 'workspaces/xxx/file' 或 'skills/xxx/SKILL.md'。未指定路径时自动写入 out/ 目录。",
     parameters={
         "type": "object",
         "properties": {
-            "file_path": {"type": "string", "description": "文件路径，如 'myapp/app.py'（workspaces下）或 'skills/weather/SKILL.md'（skills下）"},
+            "file_path": {"type": "string", "description": "文件路径，如 'myapp/app.py'。不传则自动放到 out/ 目录"},
             "content": {"type": "string", "description": "文件内容"},
         },
-        "required": ["file_path", "content"],
+        "required": ["content"],
     },
     handler=write_file_tool,
     category="file",
