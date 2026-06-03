@@ -39,7 +39,13 @@ async def lifespan(app: FastAPI):
     init_tool_log_db()
     await manager.startup()
     _mount_lightweight_workspaces(app)
+
+    # 启动定时任务调度器
+    from .scheduler import scheduler
+    await scheduler.start()
+
     yield
+    await scheduler.stop()
     await manager.shutdown()
 
 
@@ -774,6 +780,57 @@ async def get_active_pet():
         }
     except Exception:
         return {"pet": None}
+
+
+# === 定时任务 API（#067）===
+@app.get("/api/scheduler/tasks")
+async def list_scheduled_tasks():
+    """列出所有定时任务"""
+    from .scheduler import list_tasks
+    return {"tasks": list_tasks()}
+
+
+@app.post("/api/scheduler/tasks")
+async def create_scheduled_task(body: dict):
+    """创建定时任务"""
+    from .scheduler import create_task
+    name = body.get("name", "").strip()
+    task_type = body.get("task_type", "ai_prompt")
+    payload = body.get("payload", "").strip()
+    schedule = body.get("schedule", "24h")
+    description = body.get("description", "")
+
+    if not name or not payload:
+        raise HTTPException(400, "name 和 payload 不能为空")
+
+    task = create_task(name, task_type, payload, schedule, description)
+    return {"success": True, "task": task}
+
+
+@app.put("/api/scheduler/tasks/{task_id}")
+async def update_scheduled_task(task_id: int, body: dict):
+    """更新定时任务"""
+    from .scheduler import update_task
+    task = update_task(task_id, **body)
+    if not task:
+        raise HTTPException(404, "任务不存在")
+    return {"success": True, "task": task}
+
+
+@app.delete("/api/scheduler/tasks/{task_id}")
+async def delete_scheduled_task(task_id: int):
+    """删除定时任务"""
+    from .scheduler import delete_task
+    if not delete_task(task_id):
+        raise HTTPException(404, "任务不存在")
+    return {"success": True}
+
+
+@app.get("/api/scheduler/tasks/{task_id}/runs")
+async def get_task_run_history(task_id: int):
+    """获取任务执行历史"""
+    from .scheduler import get_task_runs
+    return {"runs": get_task_runs(task_id)}
 
 
 if __name__ == "__main__":
