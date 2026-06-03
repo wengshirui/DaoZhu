@@ -1,5 +1,5 @@
 /**
- * Agent 成长工作�?�?前端
+ * Agent 成长工作区 — 前端
  */
 (function() {
   'use strict';
@@ -25,56 +25,53 @@
           <div class="stat-card">
             <div class="stat-card__name">${s.tool_name}</div>
             <div class="stat-card__rate" style="color:${color}">${rate.toFixed(0)}%</div>
-            <div class="stat-card__meta">${s.call_count} �?/div>
+            <div class="stat-card__meta">${s.call_count} 次</div>
           </div>
         `;
       }).join('');
     } catch (e) {
-      grid.innerHTML = `<p class="muted">加载失败</p>`;
+      grid.innerHTML = '<p class="muted">加载失败</p>';
     }
   }
 
-  async function loadReviews() {
+  async function loadReports() {
     const list = document.getElementById('review-list');
     try {
       const res = await fetch(`${API_BASE}/reports`);
       const data = await res.json();
-      const reviews = data.reviews || [];
+      const reports = data.reports || [];
 
-      if (reviews.length === 0) {
-        list.innerHTML = '<div class="empty"><p>暂无成长记录</p><p class="sub">点击"立即成长"生成第一份报�?/p></div>';
+      if (reports.length === 0) {
+        list.innerHTML = '<div class="empty"><p>暂无成长记录</p><p class="sub">点击"立即成长"生成第一份报告</p></div>';
         return;
       }
 
-      list.innerHTML = reviews.map(r => {
+      list.innerHTML = reports.map(r => {
         const suggestions = r.suggestions || [];
         const autoActions = r.auto_executed || [];
-        const insights = r.growth_insights || {};
+        const insights = r.insights || {};
 
-        // 自动执行动作
         const autoHtml = autoActions.length > 0
           ? autoActions.map(a => `<div class="auto-action">${a}</div>`).join('')
           : '';
 
-        // 建议
         const sugHtml = suggestions.length > 0
           ? suggestions.map((s, idx) => {
               const icon = s.level === 'green' ? '🟢' : s.level === 'yellow' ? '🟡' : '🔴';
               const btn = (s.level === 'yellow' && !s.executed)
-                ? `<button class="btn-confirm" data-review="${r.id}" data-idx="${idx}">确认</button>`
-                : (s.executed ? `<span class="executed-tag">�?${s.result || ''}</span>` : '');
+                ? `<button class="btn-confirm" data-report="${r.id}" data-idx="${idx}">确认</button>`
+                : (s.executed ? `<span class="executed-tag">✅ ${s.result || ''}</span>` : '');
               return `<div class="suggestion">${icon} ${s.text} ${btn}</div>`;
             }).join('')
           : '';
 
-        // 洞察数据
         let insightHtml = '';
         if (insights.patterns && insights.patterns.length > 0) {
-          insightHtml = `<div class="insights">
-            <span class="insight-tag">🎯 ${insights.patterns[0][0]}: ${insights.patterns[0][1]}�?/span>
-            ${insights.peak_hour !== null ? `<span class="insight-tag">�?高峰 ${insights.peak_hour}:00</span>` : ''}
-            ${insights.repeated_count ? `<span class="insight-tag">🔁 ${insights.repeated_count} 个重复模�?/span>` : ''}
-          </div>`;
+          const tags = [];
+          tags.push(`<span class="insight-tag">🎯 ${insights.patterns[0][0]}: ${insights.patterns[0][1]}次</span>`);
+          if (insights.peak_hour != null) tags.push(`<span class="insight-tag">⏰ 高峰 ${insights.peak_hour}:00</span>`);
+          if (insights.repeated_count) tags.push(`<span class="insight-tag">🔁 ${insights.repeated_count} 个重复模式</span>`);
+          insightHtml = `<div class="insights">${tags.join('')}</div>`;
         }
 
         return `
@@ -90,48 +87,47 @@
         `;
       }).join('');
 
-      // 绑定确认按钮
       list.querySelectorAll('.btn-confirm').forEach(btn => {
         btn.onclick = async () => {
-          const reviewId = btn.dataset.review;
+          const reportId = btn.dataset.report;
           const idx = parseInt(btn.dataset.idx);
           btn.textContent = '...';
           btn.disabled = true;
           try {
-            const res = await fetch(`${API_BASE}/suggestions/${reviewId}/confirm`, {
+            const res = await fetch(`${API_BASE}/suggestions/${reportId}/confirm`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ index: idx }),
             });
             const data = await res.json();
-            btn.outerHTML = `<span class="executed-tag">�?${data.result || ''}</span>`;
+            btn.outerHTML = `<span class="executed-tag">✅ ${data.result || ''}</span>`;
           } catch (e) { btn.textContent = '失败'; }
         };
       });
     } catch (e) {
-      list.innerHTML = `<div class="empty">加载失败</div>`;
+      list.innerHTML = '<div class="empty">加载失败</div>';
     }
   }
 
   async function triggerGrowth() {
     const btn = document.getElementById('btn-review');
-    btn.textContent = '分析�?..';
+    btn.textContent = '分析中...';
     btn.disabled = true;
     try {
       const res = await fetch(`${API_BASE}/run`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        btn.textContent = '�?完成';
+        btn.textContent = '✅ 完成';
         loadStats();
-        loadReviews();
+        loadReports();
       }
     } catch (e) { btn.textContent = '失败'; }
-    setTimeout(() => { btn.textContent = '�?立即成长'; btn.disabled = false; }, 2000);
+    setTimeout(() => { btn.textContent = '▶ 立即成长'; btn.disabled = false; }, 2000);
   }
 
   document.addEventListener('DOMContentLoaded', () => {
     loadStats();
-    loadReviews();
+    loadReports();
     document.getElementById('btn-review').onclick = triggerGrowth;
   });
 })();
