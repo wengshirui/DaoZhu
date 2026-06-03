@@ -46,6 +46,7 @@ SELECT id, title FROM requirements WHERE status = 'done' ORDER BY id;
 | P1 | 068 | ~~工作区分类（system/public/user）~~ ✅ | S | 完成 6/3 |
 | P1 | 067 | 定时任务系统工作区 | M | 缺 AC4 补办 + AC5 暂停恢复 |
 | P1 | 069 | Agent 复盘系统工作区 | M | 缺 AC3 自动执行 + AC4 确认按钮 |
+| P1 | 059 | 会话自动压缩 | M | 缺 AC6 压缩消息未存 DB |
 | P1 | 061 | ~~对话 Token 消耗 + 速度显示~~ ✅ | S | 完成 6/3 |
 | P1 | 063 | 智能模型路由（大模型带小模型） | M | |
 | P1 | 064 | AI 主动交互（评估需求 + 主动提问） | M | 缺 AC5 未完成任务提醒 |
