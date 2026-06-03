@@ -6,8 +6,9 @@ dist/
 build/
 .venv/
 
-# Database
+# Database (runtime-generated, user-specific)
 *.db
+!requirements/requirements.db
 
 # IDE
 .idea/
