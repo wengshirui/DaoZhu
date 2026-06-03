@@ -11,12 +11,11 @@
 ```
 requirements/
 ├── plan.md            # 本文件 — 需求总览（只列 backlog + 进行中）
-├── requirements.db    # 全量需求元数据（SQLite，查询/统计用）
+├── requirements.db    # 全量需求元数据 + 已完成需求完整内容（SQLite）
 ├── init_db.py         # DB 初始化 + 导入脚本
 ├── AGENTS.md          # AI 需求管理指南
 ├── backlog/           # 待开发需求（详细文档）
-├── references/        # 技术参考文档
-└── done/              # 已完成需求（归档，详细描述保留）
+└── references/        # 技术参考文档
 ```
 
 ### 状态流转

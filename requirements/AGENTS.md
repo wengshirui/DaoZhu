@@ -11,14 +11,13 @@
 | `requirements.db` | 全量需求元数据 + 已完成需求完整内容 | 查询/统计/归档检索 |
 | `plan.md` | 当前 backlog 概览 | 了解待做优先级 |
 | `backlog/*.md` | **待开发**需求详细文档 | 开发具体需求时 |
-| `done/*.md` | 已完成需求原始文件（逐步迁移到 DB） | 一般不用，查 DB |
 | `references/*.md` | 开源项目学习笔记 | 需要技术参考时 |
 
 ### 存储策略
 
 - **待开发（backlog）** → 用 md 文件存（方便阅读和修改）
 - **已完成（done）** → 完整内容归档到 `requirements.db` 的 `description` 字段
-- 需求完成后：把 md 内容写入 DB → 可删除 md 文件（或留着不管）
+- 需求完成后：把 md 内容写入 DB → 删除 backlog 中的 md 文件
 
 ---
 
