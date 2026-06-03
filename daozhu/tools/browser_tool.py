@@ -54,29 +54,44 @@ async def browser_open_tool(url: str) -> str:
 
 
 async def browser_search_tool(query: str) -> str:
-    """通过浏览器搜索（百度，国内无障碍）"""
+    """通过浏览器搜索（优先 Google，无代理时用 Bing）"""
     page = await _get_page()
     if not page:
         return json.dumps({"error": "无法启动浏览器"})
 
     try:
-        await page.goto(f"https://www.baidu.com/s?wd={query}", timeout=15000)
-        await page.wait_for_selector(".result", timeout=8000)
+        # 检测是否有代理 → 决定用 Google 还是 Bing
+        from .web_search_tool import _get_proxy
+        proxy = _get_proxy()
 
-        results = await page.evaluate("""() => {
-            const items = document.querySelectorAll('.result');
+        if proxy:
+            # 有代理用 Google
+            search_url = f"https://www.google.com/search?q={query}&hl=zh-CN"
+            selector = "div.g"
+            source = "google"
+        else:
+            # 无代理用 Bing（国内可直连）
+            search_url = f"https://www.bing.com/search?q={query}&setlang=zh-Hans"
+            selector = "li.b_algo"
+            source = "bing"
+
+        await page.goto(search_url, timeout=15000)
+        await page.wait_for_selector(selector, timeout=8000)
+
+        results = await page.evaluate("""(selector) => {
+            const items = document.querySelectorAll(selector);
             return Array.from(items).slice(0, 5).map(item => {
                 const link = item.querySelector('a');
-                const abs = item.querySelector('.c-abstract') || item.querySelector('.content-right_8Zs40');
+                const snippetEl = item.querySelector('p') || item.querySelector('.b_caption p') || item.querySelector('span.st') || item.querySelector('div[data-sncf]');
                 return {
                     title: link ? link.textContent.trim() : '',
                     url: link ? link.href : '',
-                    snippet: abs ? abs.textContent.trim().slice(0, 200) : ''
+                    snippet: snippetEl ? snippetEl.textContent.trim().slice(0, 200) : ''
                 };
-            }).filter(r => r.title);
-        }""")
+            }).filter(r => r.title && r.url && r.url.startsWith('http'));
+        }""", selector)
 
-        return json.dumps({"query": query, "results": results, "source": "baidu"}, ensure_ascii=False)
+        return json.dumps({"query": query, "results": results, "source": source}, ensure_ascii=False)
     except Exception as e:
         return json.dumps({"error": f"浏览器搜索失败: {e}"}, ensure_ascii=False)
 
@@ -139,7 +154,7 @@ registry.register(
 
 registry.register(
     name="browser_search",
-    description="通过浏览器搜索（百度，国内无障碍）。当 web_search 失败时使用。",
+    description="通过浏览器搜索（有代理用 Google，否则用 Bing）。当 web_search 失败时使用。",
     parameters={
         "type": "object",
         "properties": {

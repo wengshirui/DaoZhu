@@ -1,6 +1,6 @@
 """
 岛主工具 — 网络搜索
-使用 DuckDuckGo HTML 接口，无需 API Key
+多引擎降级: DuckDuckGo → Bing → 搜狗，确保搜索稳定可用
 """
 
 import json
@@ -13,81 +13,66 @@ from .registry import registry
 
 
 async def web_search_tool(query: str, max_results: int = 5) -> str:
-    """搜索网络，返回结果摘要"""
-    try:
-        # 优先用国内可访问的搜索方案
-        # 方案1: 直接用百度搜索（国内无障碍）
-        import os
-        proxy = _get_proxy()
+    """搜索网络，返回结果摘要（多引擎自动降级）"""
+    proxy = _get_proxy()
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                      "AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+    }
 
-        async with httpx.AsyncClient(timeout=10, follow_redirects=True, proxy=proxy) as client:
-            # 尝试 DuckDuckGo Lite
-            url = "https://lite.duckduckgo.com/lite/"
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "Accept": "text/html,application/xhtml+xml",
-                "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
-            }
-            resp = await client.post(url, data={"q": query}, headers=headers)
+    # 按优先级尝试多个引擎
+    engines = [
+        ("duckduckgo", _search_duckduckgo),
+        ("bing", _search_bing),
+        ("sogou", _search_sogou),
+    ]
 
-            if resp.status_code not in (200, 202):
-                # 降级：尝试直接用 API
-                return await _search_fallback(client, query, max_results, headers)
+    last_error = ""
+    for engine_name, engine_fn in engines:
+        try:
+            async with httpx.AsyncClient(
+                timeout=12, follow_redirects=True, proxy=proxy
+            ) as client:
+                results = await engine_fn(client, query, max_results, headers)
+                if results:
+                    return json.dumps(
+                        {"query": query, "results": results, "source": engine_name},
+                        ensure_ascii=False,
+                    )
+        except Exception as e:
+            last_error = f"{engine_name}: {e}"
+            continue
 
-            html = resp.text
-            results = _parse_lite_results(html, max_results)
-
-            if not results:
-                # 降级方案
-                return await _search_fallback(client, query, max_results, headers)
-
-            return json.dumps({"query": query, "results": results}, ensure_ascii=False)
-
-    except Exception as e:
-        return json.dumps({"error": f"搜索出错: {str(e)}"}, ensure_ascii=False)
-
-
-async def _search_fallback(client: httpx.AsyncClient, query: str, max_results: int, headers: dict) -> str:
-    """降级方案：用 DuckDuckGo instant answer API"""
-    try:
-        resp = await client.get(
-            f"https://api.duckduckgo.com/?q={quote_plus(query)}&format=json&no_html=1&skip_disambig=1",
-            headers=headers,
-        )
-        if resp.status_code == 200:
-            data = resp.json()
-            results = []
-            # Abstract
-            if data.get("Abstract"):
-                results.append({
-                    "title": data.get("Heading", query),
-                    "url": data.get("AbstractURL", ""),
-                    "snippet": data["Abstract"][:300],
-                })
-            # Related topics
-            for topic in data.get("RelatedTopics", [])[:max_results]:
-                if isinstance(topic, dict) and topic.get("Text"):
-                    results.append({
-                        "title": topic.get("Text", "")[:60],
-                        "url": topic.get("FirstURL", ""),
-                        "snippet": topic.get("Text", "")[:200],
-                    })
-            if results:
-                return json.dumps({"query": query, "results": results}, ensure_ascii=False)
-    except Exception:
-        pass
-
-    return json.dumps({"error": "搜索服务暂时不可用，请稍后重试", "query": query}, ensure_ascii=False)
+    return json.dumps(
+        {"error": f"所有搜索引擎均失败: {last_error}", "query": query},
+        ensure_ascii=False,
+    )
 
 
-def _parse_lite_results(html: str, max_results: int) -> list[dict]:
-    """从 DuckDuckGo Lite 结果中提取"""
+async def _search_duckduckgo(
+    client: httpx.AsyncClient, query: str, max_results: int, headers: dict
+) -> list[dict]:
+    """DuckDuckGo Lite（隐私友好，需代理或国际网络）"""
+    resp = await client.post(
+        "https://lite.duckduckgo.com/lite/",
+        data={"q": query},
+        headers=headers,
+    )
+    if resp.status_code not in (200, 202):
+        return []
+
+    html = resp.text
     results = []
 
-    # Lite 版本的结果格式不同
-    # 匹配链接和摘要
-    links = re.findall(r'<a rel="nofollow" href="([^"]+)" class=\'result-link\'>(.*?)</a>', html)
-    snippets = re.findall(r'<td class="result-snippet">(.*?)</td>', html, re.DOTALL)
+    links = re.findall(
+        r'<a rel="nofollow" href="([^"]+)" class=\'result-link\'>(.*?)</a>', html
+    )
+    snippets = re.findall(
+        r'<td class="result-snippet">(.*?)</td>', html, re.DOTALL
+    )
 
     for i, (href, title) in enumerate(links[:max_results]):
         title = re.sub(r'<[^>]+>', '', title).strip()
@@ -100,40 +85,87 @@ def _parse_lite_results(html: str, max_results: int) -> list[dict]:
     return results
 
 
-def _parse_results(html: str, max_results: int) -> list[dict]:
-    """从 DuckDuckGo HTML 结果中提取标题、链接、摘要"""
+async def _search_bing(
+    client: httpx.AsyncClient, query: str, max_results: int, headers: dict
+) -> list[dict]:
+    """Bing 搜索（国内可直连，结果质量好）"""
+    url = f"https://www.bing.com/search?q={quote_plus(query)}&setlang=zh-Hans"
+    resp = await client.get(url, headers=headers)
+    if resp.status_code != 200:
+        return []
+
+    html = resp.text
     results = []
 
-    # 匹配结果块
+    # Bing 搜索结果块
     blocks = re.findall(
-        r'<a rel="nofollow" class="result__a" href="([^"]*)"[^>]*>(.*?)</a>.*?'
-        r'<a class="result__snippet"[^>]*>(.*?)</a>',
-        html, re.DOTALL
+        r'<li class="b_algo">(.*?)</li>', html, re.DOTALL
     )
 
-    for href, title, snippet in blocks[:max_results]:
-        # 清理 HTML 标签
-        title = re.sub(r'<[^>]+>', '', title).strip()
-        snippet = re.sub(r'<[^>]+>', '', snippet).strip()
-        # DuckDuckGo 的链接是重定向格式，提取真实 URL
-        real_url = href
-        if "uddg=" in href:
-            match = re.search(r'uddg=([^&]+)', href)
-            if match:
-                from urllib.parse import unquote
-                real_url = unquote(match.group(1))
+    for block in blocks[:max_results]:
+        # 提取标题和链接
+        link_match = re.search(r'<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>', block)
+        if not link_match:
+            continue
+        href = link_match.group(1)
+        title = re.sub(r'<[^>]+>', '', link_match.group(2)).strip()
 
-        if title:
-            results.append({
-                "title": title,
-                "url": real_url,
-                "snippet": snippet[:200],
-            })
+        # 提取摘要
+        snippet = ""
+        snippet_match = re.search(
+            r'<p class="b_lineclamp[^"]*">(.*?)</p>', block, re.DOTALL
+        )
+        if not snippet_match:
+            snippet_match = re.search(
+                r'<div class="b_caption">(.*?)</div>', block, re.DOTALL
+            )
+        if snippet_match:
+            snippet = re.sub(r'<[^>]+>', '', snippet_match.group(1)).strip()[:200]
+
+        if title and href.startswith("http"):
+            results.append({"title": title, "url": href, "snippet": snippet})
 
     return results
 
 
-# === 注册工具 ===
+async def _search_sogou(
+    client: httpx.AsyncClient, query: str, max_results: int, headers: dict
+) -> list[dict]:
+    """搜狗搜索（国内备用）"""
+    url = f"https://www.sogou.com/web?query={quote_plus(query)}"
+    resp = await client.get(url, headers=headers)
+    if resp.status_code != 200:
+        return []
+
+    html = resp.text
+    results = []
+
+    blocks = re.findall(
+        r'<div class="vrwrap">(.*?)</div>\s*</div>', html, re.DOTALL
+    )
+    if not blocks:
+        blocks = re.findall(
+            r'<div class="rb">(.*?)</div>\s*</div>', html, re.DOTALL
+        )
+
+    for block in blocks[:max_results]:
+        link_match = re.search(r'<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>', block)
+        if not link_match:
+            continue
+        href = link_match.group(1)
+        title = re.sub(r'<[^>]+>', '', link_match.group(2)).strip()
+
+        snippet = ""
+        snippet_match = re.search(
+            r'<p class="str[^"]*">(.*?)</p>', block, re.DOTALL
+        )
+        if snippet_match:
+            snippet = re.sub(r'<[^>]+>', '', snippet_match.group(1)).strip()[:200]
+
+        if title:
+            results.append({"title": title, "url": href, "snippet": snippet})
+
+    return results
 
 
 # === fetch_url 工具：让 Agent 能调用任何公开 API ===
@@ -153,7 +185,7 @@ async def fetch_url_tool(url: str, method: str = "GET") -> str:
             if resp.status_code != 200:
                 return json.dumps({"error": f"HTTP {resp.status_code}", "url": url}, ensure_ascii=False)
 
-            content = resp.text[:3000]  # 限制返回大小
+            content = resp.text[:3000]
             return json.dumps({"url": url, "status": resp.status_code, "content": content}, ensure_ascii=False)
 
     except Exception as e:
@@ -177,9 +209,11 @@ def _get_proxy():
     return proxy
 
 
+# === 注册工具 ===
+
 registry.register(
     name="web_search",
-    description="搜索互联网获取信息。用于搜索开源项目、技术文档等。",
+    description="搜索互联网获取信息（多引擎自动降级: DuckDuckGo → Bing → 搜狗）。",
     parameters={
         "type": "object",
         "properties": {
@@ -199,7 +233,7 @@ registry.register(
     parameters={
         "type": "object",
         "properties": {
-            "url": {"type": "string", "description": "要访问的 URL，如 'https://wttr.in/南京?format=3'"},
+            "url": {"type": "string", "description": "要访问的 URL"},
             "method": {"type": "string", "description": "HTTP 方法，默认 GET", "default": "GET"},
         },
         "required": ["url"],
