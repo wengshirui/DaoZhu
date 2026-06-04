@@ -113,6 +113,7 @@
   border: 1.5px solid var(--border-color);
   border-radius: var(--radius-md);
   background: var(--bg-primary);
+  color: var(--text-primary);
   min-height: 44px;
   max-height: 130px;
   line-height: 1.6;
@@ -123,6 +124,10 @@
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+[data-theme="dark"] .chat__textarea {
+  color: #93c5fd;
 }
 
 .chat__textarea::placeholder {

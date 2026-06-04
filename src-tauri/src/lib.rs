@@ -252,12 +252,14 @@ pub fn run() {
             let show_item = MenuItemBuilder::with_id("show", "显示主窗口").build(app)?;
             let pin_item = MenuItemBuilder::with_id("pin", "窗口置顶").build(app)?;
             let pet_item = MenuItemBuilder::with_id("pet", "显示/隐藏宠物").build(app)?;
+            let pet_switch = MenuItemBuilder::with_id("pet_switch", "切换宠物...").build(app)?;
             let quit_item = MenuItemBuilder::with_id("quit", "退出").build(app)?;
             let tray_menu = MenuBuilder::new(app)
                 .item(&show_item)
                 .item(&pin_item)
                 .separator()
                 .item(&pet_item)
+                .item(&pet_switch)
                 .separator()
                 .item(&quit_item)
                 .build()?;
@@ -295,6 +297,16 @@ pub fn run() {
                                 let _ = pet_win.show();
                             }
                         }
+                    }
+                    "pet_switch" => {
+                        // 显示主窗口并导航到宠物管理
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.unminimize();
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                        // 在浏览器中打开宠物商店（需要先启动工作区）
+                        let _ = open::that("http://localhost:7805");
                     }
                     "quit" => {
                         SHOULD_EXIT.store(true, Ordering::SeqCst);

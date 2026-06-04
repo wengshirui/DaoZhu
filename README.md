@@ -85,7 +85,9 @@ cd DaoZhu
 uv venv .venv --python 3.11
 .venv\Scripts\activate
 uv pip install -e .
-python daozhu_main.py
+python daozhu_main.py          # 启动后端 + 浏览器（开发模式）
+python daozhu_main.py --shell  # 启动后端 + Tauri 客户端壳
+
 ```
 
 自动打开浏览器 `http://localhost:7788`，支持代码热重载。
