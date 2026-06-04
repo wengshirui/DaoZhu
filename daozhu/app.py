@@ -24,8 +24,14 @@ from .memory_db import init_memory_db
 from .memory_service import build_memory_context, extract_memories
 from .agent import agent_chat_stream
 
-# 静态文件目录
-FRONTEND_DIR = Path(__file__).parent / "frontend"
+# 静态文件目录（适配 PyInstaller 打包环境）
+import sys
+if getattr(sys, 'frozen', False):
+    # PyInstaller 打包后，资源在 _MEIPASS 目录
+    FRONTEND_DIR = Path(sys._MEIPASS) / "daozhu" / "frontend"
+else:
+    # 开发模式
+    FRONTEND_DIR = Path(__file__).parent / "frontend"
 
 
 @asynccontextmanager
@@ -147,6 +153,18 @@ async def favicon_ico():
 async def onboarding_page():
     """引导页面"""
     return FileResponse(FRONTEND_DIR / "onboarding.html")
+
+
+@app.get("/loading.html")
+async def loading_page():
+    """启动加载页（Tauri 壳用）"""
+    return FileResponse(FRONTEND_DIR / "loading.html")
+
+
+@app.get("/pet.html")
+async def pet_page():
+    """桌面宠物页面（Tauri 透明窗口用）"""
+    return FileResponse(FRONTEND_DIR / "pet.html")
 
 
 @app.post("/api/onboarding/save-key")

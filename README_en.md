@@ -41,10 +41,21 @@
 1. Download latest zip from [Releases](https://gitee.com/yumen2278/DaoZhu/releases)
 2. Extract anywhere
 3. Double-click `岛主DaoZhu.exe`
-4. First run auto-installs environment; follow browser setup guide
-5. Subsequent launches auto-update
+4. First run: follow the setup guide to enter your API Key
+5. Desktop pet appears automatically, main UI loads and you're ready
 
-> Comes with Git + uv bundled. Nothing else to install.
+> Requirements: Windows 10+ (Edge WebView2 pre-installed). ~10MB client + Python runtime.
+
+### Shortcuts
+
+| Action | Effect |
+|--------|--------|
+| Close window | Minimizes to system tray (doesn't quit) |
+| Double-click tray icon | Reopen window |
+| Right-click tray icon | Menu: Show / Pin / Pet / Quit |
+| Ctrl+Alt+D | Global toggle show/hide window |
+| Double-click desktop pet | Bring main window to front |
+| Drag pet | Move pet (it runs!) |
 
 ### Option 2: Developer Setup
 
@@ -57,7 +68,7 @@ uv pip install -e .
 python daozhu_main.py
 ```
 
-Browser opens `http://localhost:7788` automatically.
+Browser opens `http://localhost:7788` automatically with hot-reload enabled.
 
 ---
 
@@ -115,9 +126,10 @@ Enables the forum workspace + remote control features.
 |-------|--------|
 | Backend | Python 3.11+ / FastAPI |
 | Frontend | Pure HTML + CSS + JS (no Node) |
+| Client Shell | Tauri 2 (Rust) — system WebView |
 | AI | DeepSeek / OpenAI / Ollama / compatible APIs |
 | Database | SQLite |
-| Distribution | PyInstaller launcher + bundled Git/uv |
+| Distribution | Tauri build + embedded Python |
 
 ---
 

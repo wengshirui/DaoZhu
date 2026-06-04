@@ -12,7 +12,6 @@
 import subprocess
 import sys
 import os
-import webbrowser
 import time
 import threading
 from pathlib import Path
@@ -182,22 +181,16 @@ def start_service():
     """启动岛主服务"""
     version = get_version()
     print(f"\n  🏝️  岛主 DaoZhu v{version}")
-    print(f"  📍 http://127.0.0.1:7788")
+    print(f"  🚀 正在启动...")
     print(f"  按 Ctrl+C 退出\n")
 
-    # 1.5 秒后打开浏览器
-    def open_browser():
-        time.sleep(1.5)
-        webbrowser.open("http://127.0.0.1:7788")
-    threading.Thread(target=open_browser, daemon=True).start()
-
-    # 用 .venv 中的 python 启动
+    # 用 .venv 中的 python 启动后端服务
     venv_python = ROOT / ".venv" / "Scripts" / "python.exe"
     if venv_python.exists():
-        cmd = f'"{venv_python}" -m daozhu_main'
+        cmd = f'"{venv_python}" -m uvicorn daozhu.app:app --host 127.0.0.1 --port 7788'
     else:
         uv = get_uv()
-        cmd = f'"{uv}" run daozhu'
+        cmd = f'"{uv}" run uvicorn daozhu.app:app --host 127.0.0.1 --port 7788'
 
     try:
         subprocess.run(cmd, cwd=ROOT, shell=True)

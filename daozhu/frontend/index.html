@@ -6,6 +6,24 @@
   <title>岛主 DaoZhu</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="/favicon.ico" sizes="any">
+  <script>
+    // Tauri 壳兼容：window.open 在 WebView2 中默认无效
+    (function() {
+      const isTauri = window.__TAURI_INTERNALS__ !== undefined;
+      if (!isTauri) return;
+
+      window.open = function(url, _target) {
+        if (!url) return null;
+        // 相对路径转绝对路径
+        if (url.startsWith('/')) {
+          url = window.location.origin + url;
+        }
+        // 统一在系统浏览器打开
+        window.__TAURI_INTERNALS__.invoke('open_external', { url: url });
+        return null;
+      };
+    })();
+  </script>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
@@ -99,6 +117,6 @@
   <script src="js/chat.js"></script>
   <script src="js/panel.js"></script>
   <script src="js/app.js"></script>
-  <script src="js/pet-floater.js"></script>
+  <!-- pet-floater 已移至独立桌面宠物窗口，主界面不再显示 -->
 </body>
 </html>

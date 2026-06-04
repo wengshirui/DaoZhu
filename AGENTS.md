@@ -10,9 +10,11 @@
 |------|------|
 | 后端 | Python 3.11+ / FastAPI |
 | 前端 | 纯 HTML + CSS + JS（无 Node 依赖） |
+| 客户端壳 | Tauri 2 (Rust) — 系统 WebView |
+| 桌面宠物 | Tauri 透明窗口 + CSS 精灵动画 |
 | 数据库 | SQLite（每工作区独立） |
 | AI 模型 | DeepSeek / OpenAI / 兼容接口 |
-| 包管理 | uv + pyproject.toml |
+| 包管理 | uv + pyproject.toml (Python) / Cargo (Rust) |
 
 ---
 
@@ -35,6 +37,8 @@
 5. **开源优先，不造轮子** — 创建工作区时必须先研究开源社区，复用成熟方案
 6. **没写完的需求不要标记完成** — 所有 AC 逐条验证通过才能标记 done，避免需求遗漏
 7. **完成需求前必须对照 AC 自检** — 实现完后逐条检查 AC，确认代码覆盖了每一条（包括边界 case 和数据持久化），有 AC 未满足的留在 backlog 并标注缺哪条
+8. **剃刀原理 — 能改不新建** — 优先修改现有文件/资源，避免无端创建新文件。能用旧图标就不新建 SVG，能改配置就不新增文件
+9. **测试文件管理** — 临时测试脚本用完即删，长期测试文件放入 `tests/` 目录，禁止在根目录散落测试文件
 
 ---
 
@@ -89,6 +93,14 @@
 - `IF NOT EXISTS` 防重复，常用字段建索引
 - 每实体提供完整 CRUD API
 
+### 打包规范
+
+**Tauri 打包：**
+1. **进程检查** — 确认目标 exe 对应的进程已完全关闭
+2. **构建命令** — `cargo tauri build`（在 src-tauri/ 目录下）
+3. **产物位置** — `src-tauri/target/release/bundle/`
+4. **剃刀原理** — 优先复用现有资源（如 favicon.ico），禁止无端新建文件
+
 ---
 
 ## workspace.json 规范
@@ -116,7 +128,15 @@
 cd DaoZhu
 .venv\Scripts\activate
 uv pip install -e .
-daozhu serve                    # 平台主服务 :7788
+
+# 开发模式（后端 + 浏览器）
+python daozhu_main.py
+
+# Tauri 壳开发（需要 Rust 工具链）
+cargo tauri dev                 # 壳 + 后端联调
+cargo tauri build               # 正式打包
+
+# 其他
 pytest tests/ -v                # 测试
 ruff check . && ruff format .   # lint + format
 ```
@@ -136,6 +156,10 @@ ruff check . && ruff format .   # lint + format
 | 前端反复调试不成功 | 去看开源项目怎么做，直接复用 |
 | Agent 不知道新工作区的 API | 系统提示动态注入工作区列表（agent.py 自动扫描） |
 | tool_call 消息发给 LLM 报 400 | 构建历史时过滤非 user/assistant 角色 |
+| Tauri JSON 配置有 BOM | 用 `UTF8Encoding($false)` 写文件，不要用 PowerShell `Set-Content` |
+| Tauri window.open 无效 | 前端覆盖 `window.open`，调用 Rust IPC `open_external` |
+| Tauri 透明窗口有边框 | `.shadow(false)` + `.decorations(false)` |
+| Cargo 下载超时 | 配置 `HTTP_PROXY` / `HTTPS_PROXY` 环境变量 |
 
 ---
 

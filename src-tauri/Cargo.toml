@@ -1,0 +1,27 @@
+[package]
+name = "daozhu"
+version = "1.0.0"
+description = "岛主 DaoZhu — 你的 AI 数字小岛"
+authors = ["wengshirui"]
+license = "MIT"
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2" }
+
+[dependencies]
+serde_json = "1"
+serde = { version = "1", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-log = "2"
+tauri-plugin-shell = "2"
+tauri-plugin-process = "2"
+tauri-plugin-global-shortcut = "2"
+reqwest = { version = "0.12", features = ["blocking"] }
+open = "5"

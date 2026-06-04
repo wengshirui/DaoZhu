@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>桌面宠物</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .pet-floater {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    cursor: grab;
+    border: none;
+    background: transparent;
+    padding: 6px;
+    border-radius: 16px;
+    outline: none;
+    touch-action: none;
+  }
+  .pet-floater--dragging { cursor: grabbing; }
+
+  .pet-floater__frame {
+    width: 110px;
+    height: 119px;
+    overflow: hidden;
+    contain: layout paint;
+    border-radius: 12px;
+  }
+
+  .pet-floater__sprite {
+    --sprite-row: 0;
+    --sprite-frames: 6;
+    --sprite-duration: 1100ms;
+    --sprite-y: calc(var(--sprite-row) * -208px);
+    --sprite-end-x: calc(var(--sprite-frames) * -192px);
+    width: 192px;
+    height: 208px;
+    background-repeat: no-repeat;
+    background-size: 1536px 1872px;
+    image-rendering: pixelated;
+    transform: scale(0.57) translateZ(0);
+    transform-origin: top left;
+    will-change: background-position;
+    animation: pet-anim var(--sprite-duration) steps(var(--sprite-frames)) infinite;
+  }
+
+  @keyframes pet-anim {
+    from { background-position: 0 var(--sprite-y); }
+    to { background-position: var(--sprite-end-x) var(--sprite-y); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pet-floater__sprite { animation: none; }
+  }
+</style>
+</head>
+<body>
+<script>
+(function() {
+  'use strict';
+
+  const PET_STATES = [
+    { id: 'idle', row: 0, frames: 6, durationMs: 1100 },
+    { id: 'running-right', row: 1, frames: 8, durationMs: 1060 },
+    { id: 'running-left', row: 2, frames: 8, durationMs: 1060 },
+    { id: 'waving', row: 3, frames: 4, durationMs: 700 },
+    { id: 'jumping', row: 4, frames: 5, durationMs: 840 },
+    { id: 'failed', row: 5, frames: 8, durationMs: 1220 },
+    { id: 'waiting', row: 6, frames: 6, durationMs: 1010 },
+    { id: 'running', row: 7, frames: 6, durationMs: 820 },
+    { id: 'review', row: 8, frames: 6, durationMs: 1030 },
+  ];
+
+  const IDLE_CYCLE = ['idle','idle','waiting','waving','jumping','review','idle'];
+  const IDLE_TICK_MIN = 1700, IDLE_TICK_MAX = 3000;
+  const REACTION_MS = 1100;
+
+  let el, sprite, state = 'idle', idleIdx = 0, idleTimer = null;
+
+  function applyState(sid) {
+    state = sid;
+    const s = PET_STATES.find(p => p.id === sid) || PET_STATES[0];
+    sprite.style.setProperty('--sprite-row', s.row);
+    sprite.style.setProperty('--sprite-frames', s.frames);
+    sprite.style.setProperty('--sprite-duration', s.durationMs + 'ms');
+  }
+
+  function startIdleCycle() {
+    const wait = IDLE_TICK_MIN + Math.random() * (IDLE_TICK_MAX - IDLE_TICK_MIN);
+    idleTimer = setTimeout(() => {
+      idleIdx = (idleIdx + 1) % IDLE_CYCLE.length;
+      applyState(IDLE_CYCLE[idleIdx]);
+      startIdleCycle();
+    }, wait);
+  }
+
+  function triggerReaction() {
+    if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+    applyState(state === 'waving' ? 'jumping' : 'waving');
+    setTimeout(() => { applyState('idle'); startIdleCycle(); }, REACTION_MS);
+  }
+
+  // 拖拽窗口 + 跑动动画
+  function bindDrag() {
+    let lastClickTime = 0;
+
+    el.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+
+      // 双击检测（两次 pointerdown 间隔 < 300ms）
+      const now = Date.now();
+      if (now - lastClickTime < 300) {
+        lastClickTime = 0;
+        if (window.__TAURI_INTERNALS__) {
+          window.__TAURI_INTERNALS__.invoke('show_main_window');
+        }
+        return; // 不进入拖拽
+      }
+      lastClickTime = now;
+
+      let moved = false;
+      let lastScreenX = e.screenX;
+
+      const onMove = (ev) => {
+        moved = true;
+        const dx = ev.screenX - lastScreenX;
+        if (dx > 2) applyState('running-right');
+        else if (dx < -2) applyState('running-left');
+        lastScreenX = ev.screenX;
+      };
+
+      const onUp = () => {
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        if (!moved) {
+          triggerReaction();
+        } else {
+          applyState('idle');
+          startIdleCycle();
+        }
+      };
+
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+
+      // 启动 Tauri 原生拖拽
+      if (window.__TAURI_INTERNALS__) {
+        window.__TAURI_INTERNALS__.invoke('start_dragging');
+      }
+    });
+  }
+
+  async function init() {
+    try {
+      const res = await fetch('http://localhost:7788/api/pet/active');
+      const data = await res.json();
+      if (!data.pet) { document.body.style.display = 'none'; return; }
+
+      el = document.createElement('button');
+      el.className = 'pet-floater';
+      el.title = data.pet.displayName + ': 拖我移动 / 双击打开岛主';
+
+      const frame = document.createElement('div');
+      frame.className = 'pet-floater__frame';
+
+      sprite = document.createElement('div');
+      sprite.className = 'pet-floater__sprite';
+      sprite.style.backgroundImage = `url("http://localhost:7788/pets/${data.pet.name}/spritesheet.webp")`;
+
+      frame.appendChild(sprite);
+      el.appendChild(frame);
+      document.body.appendChild(el);
+
+      applyState('idle');
+      startIdleCycle();
+      bindDrag();
+    } catch(e) {
+      setTimeout(init, 3000);
+    }
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

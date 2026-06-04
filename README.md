@@ -58,10 +58,21 @@
 1. 从 [Releases](https://gitee.com/yumen2278/DaoZhu/releases) 下载最新版 zip
 2. 解压到任意目录
 3. 双击 `岛主DaoZhu.exe`
-4. 首次运行自动安装环境，浏览器打开后按引导配置
-5. 后续每次启动自动更新到最新版
+4. 首次运行按引导配置 API Key
+5. 桌面宠物自动出现，主界面加载完成即可使用
 
-> 自带 Git + uv，无需安装任何东西。
+> 系统要求：Windows 10+ (已预装 Edge WebView2)。约 10MB 客户端 + Python 环境。
+
+### 快捷操作
+
+| 操作 | 效果 |
+|------|------|
+| 关闭窗口 | 最小化到系统托盘（不退出） |
+| 双击托盘图标 | 重新打开窗口 |
+| 右键托盘图标 | 菜单：显示 / 置顶 / 宠物 / 退出 |
+| Ctrl+Alt+D | 全局呼出/隐藏窗口 |
+| 双击桌面宠物 | 呼出主窗口 |
+| 拖拽宠物 | 移动宠物位置（会跑动） |
 
 ### 方式二：开发者运行
 
@@ -74,7 +85,7 @@ uv pip install -e .
 python daozhu_main.py
 ```
 
-浏览器自动打开 `http://localhost:7788`。
+自动打开浏览器 `http://localhost:7788`，支持代码热重载。
 
 ---
 
@@ -146,9 +157,10 @@ python daozhu_main.py
 |------|------|
 | 后端 | Python 3.11+ / FastAPI |
 | 前端 | 纯 HTML + CSS + JS（无 Node） |
+| 客户端壳 | Tauri 2 (Rust) — 系统 WebView |
 | AI | DeepSeek / OpenAI / Ollama / 兼容接口 |
 | 数据库 | SQLite |
-| 分发 | PyInstaller 启动器 + 自带 Git/uv |
+| 分发 | Tauri 打包 + 嵌入式 Python |
 
 ---
 
