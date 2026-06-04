@@ -16,7 +16,7 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 PYTHON_VERSION = "3.11.9"
 PYTHON_EMBED_URL = f"https://www.python.org/ftp/python/{PYTHON_VERSION}/python-{PYTHON_VERSION}-embed-amd64.zip"
 
@@ -229,7 +229,7 @@ def create_zip():
 
 
 def main():
-    print("\n  🏝️  岛主 DaoZhu — Release 打包")
+    print("\n  岛主 DaoZhu — Release 打包")
     print(f"  版本: v{VERSION}")
     print(f"  目标: Windows x64 portable zip\n")
 
@@ -239,7 +239,7 @@ def main():
     assemble_bundle()
     create_zip()
 
-    print("\n  🎉 Done! 可以发布了。\n")
+    print("\n  Done! 可以发布了。\n")
 
 
 if __name__ == "__main__":

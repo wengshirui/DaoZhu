@@ -1,6 +1,6 @@
 [package]
 name = "daozhu"
-version = "1.0.0"
+version = "1.0.1"
 description = "岛主 DaoZhu — 你的 AI 数字小岛"
 authors = ["wengshirui"]
 license = "MIT"
@@ -23,5 +23,6 @@ tauri-plugin-log = "2"
 tauri-plugin-shell = "2"
 tauri-plugin-process = "2"
 tauri-plugin-global-shortcut = "2"
+tauri-plugin-single-instance = "2"
 reqwest = { version = "0.12", features = ["blocking"] }
 open = "5"
