@@ -1,17 +1,15 @@
 """
-岛主 DaoZhu — 一键发布脚本（v1.0+ 新方案）
+岛主 DaoZhu — 一键发布脚本
 用法: python scripts/publish_release.py [版本号]
-示例: python scripts/publish_release.py v1.0.0
+示例: python scripts/publish_release.py v1.0.1
 
 流程:
-1. 打包启动器 exe (PyInstaller)
-2. 压缩为 zip（exe + 源码 + vendor）
-3. 创建 Gitee Release + 上传附件
+1. 运行 pack_release.py 生成 zip
+2. 创建 Gitee Release + 上传附件
 
 前置条件:
 - config.db 中已配置 GITEE_TOKEN
-- vendor/git/ 和 vendor/uv/ 已准备好
-- 已安装 pyinstaller + httpx
+- Rust 工具链已安装（cargo build --release）
 """
 
 import sys
@@ -40,69 +38,58 @@ def get_version():
     return "v0.0.0"
 
 
-def step_build_launcher():
-    """Step 1: 打包启动器 exe"""
-    print("\n" + "=" * 50)
-    print("📦 Step 1: 打包启动器 exe")
-    print("=" * 50)
-    result = subprocess.run(
-        [sys.executable, str(ROOT / "scripts" / "build_launcher.py")],
-        cwd=str(ROOT),
-    )
-    if result.returncode != 0:
-        print("❌ 打包失败！")
-        sys.exit(1)
-
-
-def step_pack_zip(version: str) -> Path:
-    """Step 2: 打包分发 zip"""
-    print("\n" + "=" * 50)
-    print("📦 Step 2: 打包分发 zip")
-    print("=" * 50)
+def step_pack(version: str) -> Path:
+    """打包 release zip"""
+    print(f"\n{'='*50}")
+    print(f"  Step 1: 打包 release zip")
+    print(f"{'='*50}")
     result = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "pack_release.py")],
         cwd=str(ROOT),
     )
     if result.returncode != 0:
-        print("❌ 打包 zip 失败！")
+        print("  FAILED")
         sys.exit(1)
 
-    zip_path = ROOT / "dist" / f"DaoZhu-{version}.zip"
+    # 查找产物
+    zip_path = ROOT / "release" / f"岛主DaoZhu-{version}-win-x64.zip"
     if not zip_path.exists():
-        print(f"❌ zip 文件不存在: {zip_path}")
+        print(f"  zip not found: {zip_path}")
         sys.exit(1)
     return zip_path
 
 
 def step_gitee_release(version: str, zip_path: Path):
-    """Step 3: 发布到 Gitee"""
-    print("\n" + "=" * 50)
-    print("🚀 Step 3: 发布到 Gitee")
-    print("=" * 50)
+    """发布到 Gitee"""
+    print(f"\n{'='*50}")
+    print(f"  Step 2: 发布到 Gitee")
+    print(f"{'='*50}")
 
     token = get_secret("GITEE_TOKEN")
     if not token:
-        print("⚠️ 未配置 GITEE_TOKEN，跳过 Gitee 发布")
+        print("  未配置 GITEE_TOKEN，跳过")
         return
 
     base = f"https://gitee.com/api/v5/repos/{OWNER_GITEE}/{REPO_GITEE}"
     body = f"""## 岛主 DaoZhu {version}
 
-### 使用方式
-1. 下载 `DaoZhu-{version}.zip`
+### 使用方法
+1. 下载 `岛主DaoZhu-{version}-win-x64.zip`
 2. 解压到任意目录
 3. 双击 `岛主DaoZhu.exe`
-4. 首次运行自动创建环境并安装依赖
-5. 后续每次启动自动检查更新（git pull）
+4. 首次运行按引导配置 API Key
 
-### 包含内容
-- 岛主DaoZhu.exe — 启动器
-- vendor/git/ — 便携版 Git
-- vendor/uv/ — Python 包管理器
-- 项目源码
+### 快捷操作
+- 关闭窗口 = 最小化到托盘（右下角）
+- Ctrl+Alt+D = 全局呼出/隐藏
+- 双击桌面宠物 = 呼出主窗口
+- 右键托盘 = 菜单
+
+### 系统要求
+- Windows 10+ (Edge WebView2 已预装)
 """
 
-    # 检查是否已存在，存在则删除
+    # 检查是否已存在
     r = httpx.get(f"{base}/releases/tags/{version}",
                   params={"access_token": token}, timeout=15)
     if r.status_code == 200:
@@ -121,42 +108,39 @@ def step_gitee_release(version: str, zip_path: Path):
     }, timeout=30)
 
     if resp.status_code not in (200, 201):
-        print(f"❌ 创建失败: {resp.status_code} {resp.text[:200]}")
+        print(f"  创建失败: {resp.status_code} {resp.text[:200]}")
         return
 
     release_id = resp.json()["id"]
-    print(f"✅ Release 创建成功 (id={release_id})")
+    print(f"  Release 创建成功 (id={release_id})")
 
     # 上传附件
-    print(f"📤 上传 {zip_path.name} ({zip_path.stat().st_size/1024/1024:.1f}MB)...")
+    size_mb = zip_path.stat().st_size / 1024 / 1024
+    print(f"  上传 {zip_path.name} ({size_mb:.1f}MB)...")
     with open(zip_path, "rb") as f:
         upload_resp = httpx.post(
             f"{base}/releases/{release_id}/attach_files",
             data={"access_token": token},
             files={"file": (zip_path.name, f, "application/zip")},
-            timeout=300,
+            timeout=600,
         )
 
     if upload_resp.status_code in (200, 201):
         url = upload_resp.json().get("browser_download_url", "")
-        print(f"✅ 发布成功！")
-        print(f"📥 下载: {url}")
+        print(f"  发布成功!")
+        print(f"  下载: {url}")
     else:
-        print(f"❌ 上传失败: {upload_resp.status_code} {upload_resp.text[:200]}")
+        print(f"  上传失败: {upload_resp.status_code} {upload_resp.text[:200]}")
 
 
 def main():
     version = get_version()
-    print(f"🏝️ 岛主 DaoZhu 发布流程 — {version}")
+    print(f"\n  岛主 DaoZhu 发布 — {version}")
 
-    step_build_launcher()
-    zip_path = step_pack_zip(version)
+    zip_path = step_pack(version)
     step_gitee_release(version, zip_path)
 
-    print("\n" + "=" * 50)
-    print(f"🎉 发布完成！版本: {version}")
-    print(f"   https://gitee.com/{OWNER_GITEE}/{REPO_GITEE}/releases/tag/{version}")
-    print("=" * 50)
+    print(f"\n  Done! https://gitee.com/{OWNER_GITEE}/{REPO_GITEE}/releases/tag/{version}\n")
 
 
 if __name__ == "__main__":

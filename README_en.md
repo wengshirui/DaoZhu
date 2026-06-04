@@ -1,63 +1,83 @@
-# DaoZhu 🏝️ — Your AI Digital Island
+# DaoZhu 🏝️ — Your AI Desktop Assistant
 
 **English** | [中文](./README.md)
 
-> A truly personal digital sovereignty platform — your machine is your server, your data stays with you.
+An open-source, standalone desktop app. Tell it what you need in plain language — it builds tools and automates tasks for you.
 
 ---
 
-## 🔑 Why DaoZhu?
+## What it does
 
-| Others | DaoZhu |
-|--------|--------|
-| Requires signup / login | **No login** — double-click exe and go |
-| Data on their servers | **Your data** — SQLite local storage, zero cloud |
-| App can be shut down anytime | **Your client** — open source + standalone exe |
-| AI goes through third parties | **Your model** — Ollama local inference |
+### 1. Build tools
 
-**In one line: your machine is your server, your data is forever yours.**
+Want a simple app — reading notes, expense tracker, idea collector, file organizer?
+Just tell it. It generates the tool for you. No coding required.
 
----
+### 2. Save time
 
-## ✨ What it can do
+Things you do every day or every week — check websites for updates, organize files, generate reports.
+Describe the steps once. It runs them automatically on schedule.
 
-- 🤖 **AI Butler** — manage everything in natural language (DeepSeek / Ollama / OpenAI)
-- 🏗️ **Build with one sentence** — "Build me a reading notes workspace" → AI generates a complete app
-- 📋 **Workspaces** — Todo, accounting, forum, desktop pet… each runs independently
-- 🐾 **Desktop Pet** — adopt pixel pets from Petdex community, drag & bounce on your desktop
-- 🎬 **Stickman Theater** — one sentence generates animated shorts, AI writes the script
-- 🧠 **Learns about you** — three-layer memory system, AI remembers your preferences
-- 🌐 **Web access** — ask about weather, news, tech questions — AI searches for you
-- 📁 **Bind folders** — turn any local folder into a workspace shortcut
-- 💰 **Cost efficient** — DeepSeek prefix cache (90% input savings) + auto session compression
-- 🔒 **Safe** — dangerous operations auto-blocked, permission rules configurable
+### 3. Desktop pet
+
+Adopt a pixel pet that lives on your desktop. Drag it, toss it, double-click to open the main window.
 
 ---
 
-## 🚀 Quick Start
+## How is it different
 
-### Option 1: Download & Run (Recommended)
+- No signup, no login. Open and use.
+- Data stays on your computer. Nobody else can see it.
+- Open source. Anyone can inspect or modify the code.
+- Works fully offline with a local AI model.
+
+---
+
+## Examples
+
+```
+"Build me a reading notes tool — record book name, thoughts, and rating."
+
+"Every morning at 9, check these websites for updates and notify me."
+
+"Organize these messy files by month and type."
+```
+
+You talk, it does. Not happy? Tell it to change. Iterate until it's right.
+
+---
+
+## Who is it for
+
+Anyone who wants to save time or build things on their computer.
+No technical background needed. Just know what you want.
+
+---
+
+## Quick Start
+
+### Download & Run (Recommended)
 
 1. Download latest zip from [Releases](https://gitee.com/yumen2278/DaoZhu/releases)
 2. Extract anywhere
 3. Double-click `岛主DaoZhu.exe`
-4. First run: follow the setup guide to enter your API Key
-5. Desktop pet appears automatically, main UI loads and you're ready
+4. First run: follow setup guide to enter API Key (DeepSeek recommended)
 
-> Requirements: Windows 10+ (Edge WebView2 pre-installed). ~10MB client + Python runtime.
+> Requirements: Windows 10+. ~60MB download.
 
 ### Shortcuts
 
 | Action | Effect |
 |--------|--------|
 | Close window | Minimizes to system tray (doesn't quit) |
-| Double-click tray icon | Reopen window |
-| Right-click tray icon | Menu: Show / Pin / Pet / Quit |
-| Ctrl+Alt+D | Global toggle show/hide window |
-| Double-click desktop pet | Bring main window to front |
+| Double-click tray | Reopen window |
+| Double-click exe again | Shows existing window (no duplicate) |
+| Ctrl+Alt+D | Global toggle show/hide |
+| Double-click desktop pet | Show main window |
 | Drag pet | Move pet (it runs!) |
+| Right-click tray | Menu: Show / Pin / Pet / Quit |
 
-### Option 2: Developer Setup
+### Developer Setup
 
 ```bash
 git clone https://gitee.com/yumen2278/DaoZhu.git
@@ -68,91 +88,42 @@ uv pip install -e .
 python daozhu_main.py
 ```
 
-Browser opens `http://localhost:7788` automatically with hot-reload enabled.
+Opens browser at `http://localhost:7788` with hot-reload.
 
 ---
 
-## 🎮 Usage Examples
-
-```
-You: Build me a reading notes workspace
-Butler: Building... ✅ "Reading Notes" created
-
-You: What's the weather today?
-Butler: 🌤️ Sunny in Hangzhou, 28°C
-
-You: Add a todo: meeting tomorrow afternoon
-Butler: ✅ Added to "Personal Todo"
-
-You: Bind D:\Projects\my-app as a workspace
-Butler: ✅ Bound "my-app" — click to open folder
-```
-
----
-
-## 📚 Built-in Workspaces
-
-| Workspace | Description |
-|-----------|-------------|
-| 📋 Personal Todo | Tasks, subtasks, tags, daily focus |
-| 💰 Finance Assistant | Bookkeeping, vouchers, balance queries |
-| 🏝️ Forum | Gitee Issues integration, community |
-| 🐾 Desktop Pet | Petdex store + pet management + desktop companion |
-| 🎬 Stickman Theater | AI screenplay → Canvas animation |
-
-Tell the butler to build more: knowledge base, RSS reader, health tracker…
-
----
-
-## ⚙️ Configuration
-
-### AI Model (pick one)
+## AI Model Options
 
 | Option | Description | Cost |
 |--------|-------------|------|
-| DeepSeek | Cloud, best quality | ~$0.001/conversation |
+| DeepSeek | Cloud, recommended | ~$0.001/conversation |
 | Ollama | Local, fully offline | Free |
 | OpenAI | Cloud, GPT series | Pay per use |
 
-### Gitee Token (optional)
-
-Enables the forum workspace + remote control features.
-
 ---
 
-## 🏗️ Tech Stack
+## Tech Stack
 
 | Layer | Choice |
 |-------|--------|
-| Backend | Python 3.11+ / FastAPI |
-| Frontend | Pure HTML + CSS + JS (no Node) |
 | Client Shell | Tauri 2 (Rust) — system WebView |
-| AI | DeepSeek / OpenAI / Ollama / compatible APIs |
+| Desktop Pet | Tauri transparent window + CSS sprite |
+| Backend | Python 3.11+ / FastAPI |
+| Frontend | Pure HTML + CSS + JS |
 | Database | SQLite |
-| Distribution | Tauri build + embedded Python |
+| AI | DeepSeek / OpenAI / Ollama |
 
 ---
 
-## 🤝 Contributors
+## Contributing
 
-| Contributor | Role |
-|-------------|------|
-| [@wengshirui](https://gitee.com/yumen2278) | Creator & Lead Developer |
-| [@yanpeng](https://gitee.com/yanpeng) | Contributor |
-| [@crisp-aipj](https://gitee.com/crisp-aipj) | Contributor |
+Issues, PRs, and ideas are all welcome.
 
-Contributions welcome! Issues, PRs, and ideas are all appreciated.
+- Gitee: https://gitee.com/yumen2278/DaoZhu
+- GitHub: https://github.com/wengshirui/DaoZhu
 
 ---
 
-## 📄 License
+## License
 
 MIT
-
----
-
-## 💬 Community
-
-- QQ Group: 1102100710
-- GitHub: https://github.com/wengshirui/DaoZhu
-- Gitee: https://gitee.com/yumen2278/DaoZhu

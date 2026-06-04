@@ -85,23 +85,33 @@ fn start_backend(port: u16) -> Option<Child> {
     let python_candidates = vec![
         ".venv/Scripts/python.exe",
         ".venv/bin/python",
+        "python/python.exe",
         "python",
     ];
 
     for python in &python_candidates {
-        let result = Command::new(python)
-            .args([
-                "-m", "uvicorn",
-                "daozhu.app:app",
-                "--host", "127.0.0.1",
-                "--port", &port.to_string(),
-                "--log-level", "warning",
-            ])
-            .spawn();
+        let mut cmd = Command::new(python);
+        cmd.args([
+            "-m", "uvicorn",
+            "daozhu.app:app",
+            "--host", "127.0.0.1",
+            "--port", &port.to_string(),
+            "--log-level", "warning",
+        ]);
 
-        if let Ok(child) = result {
-            log::info!("后端启动成功: {} (PID: {})", python, child.id());
-            return Some(child);
+        // Windows: 隐藏子进程的 cmd 窗口
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        }
+
+        match cmd.spawn() {
+            Ok(child) => {
+                log::info!("后端启动成功: {} (PID: {})", python, child.id());
+                return Some(child);
+            }
+            Err(_) => continue,
         }
     }
 
@@ -163,6 +173,8 @@ pub fn run() {
         .plugin(
             tauri_plugin_log::Builder::default()
                 .level(log::LevelFilter::Info)
+                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
+                .max_file_size(1024 * 1024) // 1MB per file
                 .build(),
         )
         .manage(BackendProcess(Mutex::new(None)))
