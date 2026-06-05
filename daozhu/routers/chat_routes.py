@@ -192,15 +192,15 @@ def _parse_file(filename: str, content: bytes) -> str:
     if ext in (".xlsx", ".xls"):
         import io
         from openpyxl import load_workbook
-        wb = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+        wb = load_workbook(io.BytesIO(content), read_only=False, data_only=True)
         lines = []
         for sheet_name in wb.sheetnames:
             ws = wb[sheet_name]
             if len(wb.sheetnames) > 1:
                 lines.append(f"[工作表: {sheet_name}]")
-            for row in ws.iter_rows(values_only=True):
-                cells = [str(c) if c is not None else "" for c in row]
-                if any(cells):
+            for row in ws.iter_rows(min_row=1, values_only=True):
+                cells = [str(c).strip() if c is not None else "" for c in row]
+                if any(c for c in cells):  # 跳过全空行
                     lines.append(" | ".join(cells))
         wb.close()
         return "\n".join(lines)
