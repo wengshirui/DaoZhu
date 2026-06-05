@@ -93,10 +93,12 @@ def step_gitee_release(version: str, zip_path: Path):
     r = httpx.get(f"{base}/releases/tags/{version}",
                   params={"access_token": token}, timeout=15)
     if r.status_code == 200:
-        old_id = r.json()["id"]
-        print(f"  删除旧 Release (id={old_id})...")
-        httpx.delete(f"{base}/releases/{old_id}",
-                     params={"access_token": token}, timeout=15)
+        data = r.json()
+        if data and isinstance(data, dict) and "id" in data:
+            old_id = data["id"]
+            print(f"  删除旧 Release (id={old_id})...")
+            httpx.delete(f"{base}/releases/{old_id}",
+                         params={"access_token": token}, timeout=15)
 
     # 创建 Release
     resp = httpx.post(f"{base}/releases", json={
