@@ -14,6 +14,7 @@ const Chat = {
   init() {
     this._bindForm();
     this._bindTextarea();
+    this._bindFileUpload();
     this._showWelcome();
     this._loadGreeting();
   },
@@ -40,6 +41,46 @@ const Chat = {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         this._handleSend();
+      }
+    });
+  },
+
+  // === 文件上传 ===
+  _bindFileUpload() {
+    const fileInput = document.getElementById('chat-file');
+    if (!fileInput) return;
+
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      fileInput.value = ''; // 重置以允许重复上传同一文件
+
+      this._removeWelcome();
+      this._addMessage('user', `📎 上传文件: ${file.name}`);
+      this._showTyping();
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || `上传失败 (${res.status})`);
+        }
+
+        const data = await res.json();
+        this._hideTyping();
+
+        // 把文件内容作为消息发给 AI
+        const prompt = `我上传了文件「${file.name}」，以下是文件内容：\n\n${data.content}\n\n请帮我分析这个文件的内容。`;
+        const textarea = document.getElementById('chat-input');
+        textarea.value = prompt;
+        this._handleSend();
+      } catch (e) {
+        this._hideTyping();
+        this._addMessage('assistant', `文件处理失败: ${e.message}`);
+        Panel.addLog('error', `文件上传失败: ${e.message}`);
       }
     });
   },

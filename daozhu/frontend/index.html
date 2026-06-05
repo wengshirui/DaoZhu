@@ -82,6 +82,10 @@
           rows="1"
           aria-label="消息输入框"
         ></textarea>
+        <label class="chat__upload" title="上传文件（Word/Excel/PDF）" aria-label="上传文件">
+          📎
+          <input type="file" id="chat-file" accept=".docx,.xlsx,.xls,.pdf,.txt,.csv" hidden>
+        </label>
         <button class="chat__send" type="submit" aria-label="发送消息">发送</button>
       </form>
     </section>

@@ -148,6 +148,22 @@
   color: var(--text-muted);
 }
 
+.chat__upload {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.chat__upload:hover {
+  background: var(--bg-hover);
+}
+
 .chat__send {
   padding: 10px 20px;
   background: linear-gradient(135deg, var(--accent), var(--accent-hover));

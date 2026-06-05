@@ -1,5 +1,5 @@
 import json
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File
 from starlette.responses import StreamingResponse
 from ..chat_db import (
     create_conversation, list_conversations,
@@ -157,3 +157,99 @@ async def chat_api(body: dict):
     )
 
 
+
+# === 文件上传解析 API ===
+
+ALLOWED_EXTENSIONS = {".docx", ".xlsx", ".xls", ".pdf", ".txt", ".csv"}
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+
+
+def _parse_file(filename: str, content: bytes) -> str:
+    """解析文件内容为文本"""
+    ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+
+    if ext not in ALLOWED_EXTENSIONS:
+        raise ValueError(f"不支持的文件格式: {ext}。支持: {', '.join(ALLOWED_EXTENSIONS)}")
+
+    if ext == ".txt":
+        return content.decode("utf-8", errors="replace")
+
+    if ext == ".csv":
+        return content.decode("utf-8", errors="replace")
+
+    if ext == ".docx":
+        import io
+        from docx import Document
+        doc = Document(io.BytesIO(content))
+        paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
+        # 也读取表格
+        for table in doc.tables:
+            for row in table.rows:
+                cells = [cell.text.strip() for cell in row.cells]
+                paragraphs.append(" | ".join(cells))
+        return "\n".join(paragraphs)
+
+    if ext in (".xlsx", ".xls"):
+        import io
+        from openpyxl import load_workbook
+        wb = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+        lines = []
+        for sheet_name in wb.sheetnames:
+            ws = wb[sheet_name]
+            if len(wb.sheetnames) > 1:
+                lines.append(f"[工作表: {sheet_name}]")
+            for row in ws.iter_rows(values_only=True):
+                cells = [str(c) if c is not None else "" for c in row]
+                if any(cells):
+                    lines.append(" | ".join(cells))
+        wb.close()
+        return "\n".join(lines)
+
+    if ext == ".pdf":
+        import io
+        from PyPDF2 import PdfReader
+        reader = PdfReader(io.BytesIO(content))
+        pages = []
+        for page in reader.pages:
+            text = page.extract_text()
+            if text:
+                pages.append(text)
+        return "\n".join(pages)
+
+    raise ValueError(f"解析失败: {ext}")
+
+
+@router.post("/api/upload")
+async def upload_file(file: UploadFile = File(...)):
+    """
+    上传文件并解析为文本。
+    返回解析后的内容，前端可将内容作为消息发给 AI。
+    """
+    if not file.filename:
+        raise HTTPException(400, "缺少文件名")
+
+    # 大小检查
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(413, f"文件过大（最大 {MAX_FILE_SIZE // 1024 // 1024}MB）")
+
+    try:
+        text = _parse_file(file.filename, content)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        raise HTTPException(500, f"文件解析失败: {str(e)[:100]}")
+
+    # 截断过长内容（避免 token 爆炸）
+    max_chars = 8000
+    truncated = len(text) > max_chars
+    if truncated:
+        text = text[:max_chars] + f"\n\n... (内容已截断，共 {len(text)} 字符)"
+
+    return {
+        "success": True,
+        "filename": file.filename,
+        "content": text,
+        "chars": len(text),
+        "truncated": truncated,
+    }
