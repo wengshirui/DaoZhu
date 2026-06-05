@@ -345,8 +345,23 @@ pub fn run() {
                         let _ = window.navigate(url.parse().unwrap());
                     }
 
-                    // 创建桌面宠物透明窗口
+                    // 创建桌面宠物透明窗口（默认右下角）
                     let pet_url = format!("http://localhost:{}/pet.html", port);
+                    // 计算右下角位置
+                    let (pet_x, pet_y) = if let Some(main_win) = handle_for_backend.get_webview_window("main") {
+                        if let Ok(Some(monitor)) = main_win.current_monitor() {
+                            let size = monitor.size();
+                            let scale = monitor.scale_factor();
+                            let screen_w = size.width as f64 / scale;
+                            let screen_h = size.height as f64 / scale;
+                            (screen_w - 180.0, screen_h - 200.0)
+                        } else {
+                            (1740.0, 900.0)
+                        }
+                    } else {
+                        (1740.0, 900.0)
+                    };
+
                     let _ = WebviewWindowBuilder::new(
                         &handle_for_backend,
                         "pet",
@@ -360,13 +375,7 @@ pub fn run() {
                     .always_on_top(true)
                     .skip_taskbar(true)
                     .shadow(false)
-                    .position(
-                        (handle_for_backend.get_webview_window("main")
-                            .and_then(|w| w.outer_position().ok())
-                            .map(|p| p.x as f64)
-                            .unwrap_or(800.0)) + 200.0,
-                        100.0,
-                    )
+                    .position(pet_x, pet_y)
                     .build();
 
                     // #055 今日聚焦侧边栏 — 暂停，后续再开发

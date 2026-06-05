@@ -285,7 +285,7 @@ async def get_greeting(conversation_id: str = None):
 
     # 场景 0.5：未完成 onboarding（没有核心 profile）
     from daozhu.memory_db import get_profile, get_all_profiles
-    role = get_profile("岗位") or get_profile("职位") or get_profile("role")
+    role = get_profile("岗位") or get_profile("职位") or get_profile("role") or get_profile("职业") or get_profile("身份") or get_profile("角色") or get_profile("用户角色")
     if not role:
         return {
             "greeting": "你好！我是你的 AI 伙伴。为了更好地帮到你，能简单告诉我：\n\n1️⃣ 你的岗位是什么？（如产品经理、开发、设计师…）\n2️⃣ 你日常工作中最烦的重复事务是什么？\n\n这样我就知道怎么主动帮你了。",
