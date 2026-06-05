@@ -283,10 +283,11 @@ async def get_greeting(conversation_id: str = None):
             "source": "no_key",
         }
 
-    # 场景 0.5：未完成 onboarding（没有核心 profile）
+    # 场景 0.5：未完成 onboarding（AI 对用户还一无所知）
     from daozhu.memory_db import get_profile, get_all_profiles
-    role = get_profile("岗位") or get_profile("职位") or get_profile("role") or get_profile("职业") or get_profile("身份") or get_profile("角色") or get_profile("用户角色")
-    if not role:
+    all_profiles = get_all_profiles()
+    # 如果 profile 条目 >= 3，说明已通过对话了解了用户，跳过 onboarding
+    if len(all_profiles) < 3:
         return {
             "greeting": "你好！我是你的 AI 伙伴。为了更好地帮到你，能简单告诉我：\n\n1️⃣ 你的岗位是什么？（如产品经理、开发、设计师…）\n2️⃣ 你日常工作中最烦的重复事务是什么？\n\n这样我就知道怎么主动帮你了。",
             "has_todo_data": False,
@@ -367,14 +368,17 @@ async def get_greeting(conversation_id: str = None):
                     context_str = "\n".join(context_lines)
 
                     # 构建用户画像上下文
-                    all_profiles = get_all_profiles()
                     profile_str = ""
                     if all_profiles:
-                        key_profiles = [p for p in all_profiles if p["key"] in
-                            ("岗位", "称呼", "关注领域", "迭代节奏", "管理项目", "活跃时段")]
+                        # 取最相关的 profile 条目（身份/工作相关优先）
+                        priority_keys = {"岗位", "职位", "职业", "身份", "角色", "称呼",
+                                        "关注领域", "迭代节奏", "管理项目", "活跃时段", "主要用途"}
+                        key_profiles = [p for p in all_profiles if p["key"] in priority_keys]
+                        if not key_profiles:
+                            key_profiles = all_profiles[:5]  # fallback: 取前5条
                         if key_profiles:
                             profile_str = "用户画像：" + "、".join(
-                                f"{p['key']}={p['value']}" for p in key_profiles)
+                                f"{p['key']}={p['value']}" for p in key_profiles[:6])
 
                     # 调 LLM 生成简短问候
                     from daozhu.chat_service import call_llm_simple
