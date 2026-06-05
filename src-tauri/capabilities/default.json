@@ -1,7 +1,7 @@
 {
   "identifier": "default",
   "description": "Default permissions for DaoZhu",
-  "windows": ["main"],
+  "windows": ["main", "pet"],
   "permissions": [
     "core:default",
     "shell:allow-open",

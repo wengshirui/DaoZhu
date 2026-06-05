@@ -9,6 +9,7 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
@@ -34,6 +35,14 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="个人待办", version="1.0.0", lifespan=lifespan)
+
+# CORS — 允许岛主主服务和 Tauri 壳访问
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:7788", "http://127.0.0.1:7788", "tauri://localhost"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # API 路由
 app.include_router(api_router, prefix="/api")

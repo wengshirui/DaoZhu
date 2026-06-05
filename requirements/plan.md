@@ -46,6 +46,8 @@ SELECT id, title FROM requirements WHERE status = 'done' ORDER BY id;
 | P1 | 063 | 智能模型路由（大模型带小模型） | M | |
 | P1 | 066 | Gitee 生态架构（四仓库体系） | L | 含原 #043 #009 |
 | P1 | 069 | Agent 成长系统（AC8-10 待做） | M | AC1-7 已完成 |
+| P1 | 073 | AI 空闲主动对话（12h不活跃自动总结问候） | M | 依赖 #067 |
+| P1 | 074 | Codex CLI 集成 + 代码工坊工作区 | L | CLI自动安装 + 可视化管理面板 |
 | P2 | 020 | 本地性能检测 + 智能推荐 | S | |
 | P3 | 055 | 待办今日聚焦桌面侧边栏 | M | |
 

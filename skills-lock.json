@@ -116,19 +116,6 @@
         "瑞士风PPT"
       ]
     },
-    "jira-worklog": {
-      "source": "kiro",
-      "sourceType": "local",
-      "skillPath": "skills/jira-worklog/SKILL.md",
-      "description": "快速批量记录 Jira Tempo 工时，支持 Module 属性管理。",
-      "triggerWords": [
-        "记工时",
-        "Jira",
-        "worklog",
-        "tempo",
-        "工时"
-      ]
-    },
     "ppt-editor": {
       "source": "kiro",
       "sourceType": "local",
@@ -206,7 +193,6 @@
     "edit-md": "需要写入或编辑大型 Markdown 文件时自动使用",
     "grill-me": "用户要求对计划/设计进行严格审查时加载",
     "guizang-ppt-skill": "用户需要创建网页 PPT 时加载",
-    "jira-worklog": "用户需要记录 Jira 工时时加载",
     "ppt-editor": "用户需要编辑 PowerPoint 文件时加载",
     "processon-diagram-generator": "用户需要绘制各种图表时加载",
     "to-issues": "需要将计划分解为可执行 Issue 时加载",

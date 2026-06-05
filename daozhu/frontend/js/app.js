@@ -17,7 +17,7 @@ const App = {
       Chat.init();
       Panel.init();
       Panel.addLog('success', '所有模块初始化完成');
-    this._checkUpdate();
+      this._checkUpdate();
     } catch (err) {
       console.error('初始化失败:', err);
       this.showToast('页面初始化失败，请刷新重试');
