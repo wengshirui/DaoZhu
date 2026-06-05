@@ -238,3 +238,47 @@ AI 如果能学会这套框架，帮用户自动分类新进来的事项 → 这
 - 只要待办里有真实数据 + AI 知道你的迭代节奏 → 每次开口都有用
 
 **前提条件：** 用户必须把真实工作数据放进来（待办/项目节点）。空工作区 = 空助理。
+
+---
+
+## 第十一层：竞品验证 — 荣耀 YOYO（2026-06-05）
+
+### 荣耀 YOYO 做了什么
+
+荣耀 Magic 7 系列（2024年11月发布）将 YOYO 从 "Assistant" 升级为 "Agent"：
+
+- 学习用户行为习惯，理解用户意图（不只是执行指令）
+- 独立操作手机资源和第三方服务
+- 基于场景主动服务（外卖取餐码提醒、出行信息聚合、智能胶囊）
+- MagicOS 9 官方描述："YOYO can understand user needs, decompose task steps, and independently operate based on learning of user behavior habits and usage scenarios"
+
+### 岛主 vs YOYO 对比
+
+| 维度 | 荣耀 YOYO | 岛主 073 |
+|------|-----------|----------|
+| 平台 | 手机 OS 级，绑定荣耀硬件 | 桌面本地应用，跨平台 |
+| 数据源 | 手机全部数据（短信/日历/位置/APP） | 工作区 + 对话 + 待办 + 可扩展 |
+| 场景 | 生活场景（出行/外卖/日程） | **工作场景（项目管理/迭代/跟进）** |
+| 商业模型 | 厂商预装免费（成本含在手机售价里） | 用户自付 token（AI 干的活必须值那个钱） |
+| 隐私 | 云端处理（厂商可看数据） | **完全本地，数据永远在用户机器上** |
+| 深度 | 宽而浅（覆盖生活方方面面） | **窄而深（聚焦知识工作者的项目管理）** |
+| 开放性 | 封闭生态，只能在荣耀手机用 | 开源/可扩展，工作区可对接任何系统 |
+
+### 验证结论
+
+1. **方向正确** — 大厂已经在做"主动式 AI"，说明市场认可这个方向
+2. **差异化明确** — YOYO 做"生活助理"，岛主做"工作助理"（项目管理/迭代节奏/多方协作）
+3. **护城河存在** — 本地隐私 + 工作场景深度 + 不被平台绑定 + 越用越懂你的时间壁垒
+4. **YOYO 的弱点 = 岛主的机会**：
+   - YOYO 绑硬件 → 岛主跨平台
+   - YOYO 数据上云 → 岛主完全本地
+   - YOYO 覆盖面广但都很浅 → 岛主专注一个场景做到极致
+
+### 学术验证（arxiv 2025-2026）
+
+相关论文已出现：
+- "Toward Intent-Aware Proactive Agents with Long-Term Memory"（2025）
+- "A Benchmark for Proactive and Personalized Mobile LLM Agents"（2025）
+- "Learning Preference-Aligned Proactive Assistants From Large-Scale Persona Interactions"（2025）
+
+说明学术界也在研究"主动式 + 个性化 + 长期记忆"的 AI Agent，方向前沿且有学术支撑。
