@@ -63,11 +63,11 @@ const Chat = {
     if (this._uploadedFiles && this._uploadedFiles.length > 0) {
       const fileNames = this._uploadedFiles.map(f => f.name).join('、');
       const fileSection = this._uploadedFiles.map(f =>
-        `[文件: ${f.name}]\n${f.content}`
+        `--- 文件「${f.name}」的内容（已解析，无需再用工具读取）---\n${f.content}\n--- 文件结束 ---`
       ).join('\n\n');
       fullMessage = text
-        ? `${text}\n\n---\n附件内容：\n${fileSection}`
-        : `我上传了以下文件，请帮我处理：\n\n${fileSection}`;
+        ? `${text}\n\n${fileSection}`
+        : `请帮我处理以下文件内容：\n\n${fileSection}`;
       displayText = text
         ? `${text}\n📎 ${fileNames}`
         : `📎 ${fileNames}`;
