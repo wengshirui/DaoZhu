@@ -347,8 +347,9 @@ async def get_greeting(conversation_id: str = None):
                     context_str = "\n".join(context_lines)
                     # 调 LLM 生成简短问候
                     from daozhu.chat_service import call_llm_simple
-                    prompt = f"""你是用户的私人AI管家。用户回来了，请用一句话主动问候他。
-要求：简短（不超过40字）、温暖、结合上下文。如果有待办信息也可以提醒。
+                    prompt = f"""你是用户的 AI 伙伴（不是仆人，是平等的朋友和搭档）。用户回来了，请用一句话主动问候。
+要求：简短（不超过40字）、自然、平等语气。结合上下文提醒重要事项。
+禁止：不要用"主人"、"您"等敬语，用"你"就好。不要过度热情或谄媚。
 
 最近对话：
 {context_str}
