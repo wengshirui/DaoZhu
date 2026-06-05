@@ -249,3 +249,73 @@ async def get_task_run_history(task_id: int):
     """获取任务执行历史"""
     from daozhu.scheduler import get_task_runs
     return {"runs": get_task_runs(task_id)}
+
+
+# === 管家问候 API（#073 Phase 1）===
+@router.get("/api/greeting")
+async def get_greeting():
+    """
+    管家主动开口：基于时间 + 待办数据生成问候语。
+    不消耗 LLM token，纯逻辑拼接。
+    思想基石：用户是谁 → 他想干什么 → 怎么帮他更好地实现
+    """
+    import httpx
+    from datetime import datetime, date
+
+    now = datetime.now()
+    hour = now.hour
+
+    # 时间段问候
+    if 5 <= hour < 9:
+        time_greeting = "早上好"
+    elif 9 <= hour < 12:
+        time_greeting = "上午好"
+    elif 12 <= hour < 14:
+        time_greeting = "中午好"
+    elif 14 <= hour < 18:
+        time_greeting = "下午好"
+    elif 18 <= hour < 22:
+        time_greeting = "晚上好"
+    else:
+        time_greeting = "夜深了，注意休息"
+
+    # 尝试获取用户称呼
+    from daozhu.memory_db import get_profile
+    name = get_profile("称呼") or get_profile("nickname") or ""
+    if name:
+        time_greeting = f"{time_greeting}，{name}"
+
+    # 尝试获取待办数据（降级处理）
+    todo_summary = ""
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            resp = await client.get("http://localhost:7801/api/tasks/", params={"today": "true"})
+            if resp.status_code == 200:
+                data = resp.json()
+                tasks = data.get("tasks", [])
+                active = [t for t in tasks if t.get("status") != "done"]
+                overdue = [t for t in active if t.get("due_date") and t["due_date"] <= date.today().isoformat()]
+                high_priority = [t for t in active if t.get("priority") == "high"]
+
+                if overdue:
+                    todo_summary = f"你有 {len(overdue)} 个待办已到期，需要优先处理。"
+                elif high_priority:
+                    todo_summary = f"今天有 {len(high_priority)} 个高优先级待办。"
+                elif active:
+                    todo_summary = f"今天有 {len(active)} 个待办事项。"
+                else:
+                    todo_summary = "今天的待办都完成了，做得不错。"
+    except Exception:
+        # 待办服务不可用，优雅降级
+        todo_summary = ""
+
+    # 拼接问候语
+    parts = [time_greeting + "。"]
+    if todo_summary:
+        parts.append(todo_summary)
+    if not todo_summary:
+        parts.append("有什么我能帮你的？")
+
+    greeting = "".join(parts)
+
+    return {"greeting": greeting, "has_todo_data": bool(todo_summary)}

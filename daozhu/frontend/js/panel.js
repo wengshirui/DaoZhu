@@ -201,6 +201,7 @@ const Panel = {
     const form = document.getElementById('chat-form');
     form.style.display = 'flex';
     Chat._showWelcome();
+    Chat._loadGreeting();
     this.loadHistory();
   },
 

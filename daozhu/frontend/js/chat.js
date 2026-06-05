@@ -15,6 +15,7 @@ const Chat = {
     this._bindForm();
     this._bindTextarea();
     this._showWelcome();
+    this._loadGreeting();
   },
 
   // === 表单提交 ===
@@ -349,6 +350,38 @@ const Chat = {
   _removeWelcome() {
     const welcome = document.getElementById('chat-welcome');
     if (welcome) welcome.remove();
+    // 同时移除管家问候
+    const greeting = document.getElementById('greeting-message');
+    if (greeting) greeting.remove();
+  },
+
+  // === 管家主动开口（#073 Phase 1）===
+  async _loadGreeting() {
+    try {
+      const res = await fetch('/api/greeting');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.greeting) return;
+
+      const container = document.getElementById('chat-messages');
+      // 如果用户已经开始聊天了（欢迎已移除），不再插入
+      if (!document.getElementById('chat-welcome')) return;
+
+      const greetingEl = document.createElement('div');
+      greetingEl.id = 'greeting-message';
+      greetingEl.className = 'message message--assistant message--greeting';
+      greetingEl.innerHTML = `
+        <div class="message__avatar">
+          <img src="/img/librarian.svg" alt="岛管理员" style="width:28px;height:28px;image-rendering:pixelated" class="librarian-avatar">
+        </div>
+        <div class="message__content">
+          <div class="message__bubble message__bubble--greeting">${this._escapeHtml(data.greeting)}</div>
+        </div>
+      `;
+      container.appendChild(greetingEl);
+    } catch (e) {
+      // 静默失败，不影响正常使用
+    }
   },
 
   // === 打字指示器 ===
