@@ -46,43 +46,64 @@ const Chat = {
   },
 
   // === 文件上传 ===
+  _uploadedFiles: [], // 暂存已上传文件的解析结果
+
   _bindFileUpload() {
     const fileInput = document.getElementById('chat-file');
     if (!fileInput) return;
 
     fileInput.addEventListener('change', async () => {
-      const file = fileInput.files[0];
-      if (!file) return;
-      fileInput.value = ''; // 重置以允许重复上传同一文件
+      const files = Array.from(fileInput.files);
+      if (!files.length) return;
+      fileInput.value = '';
 
-      this._removeWelcome();
-      this._addMessage('user', `📎 上传文件: ${file.name}`);
-      this._showTyping();
-
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.detail || `上传失败 (${res.status})`);
-        }
-
-        const data = await res.json();
-        this._hideTyping();
-
-        // 把文件内容作为消息发给 AI
-        const prompt = `我上传了文件「${file.name}」，以下是文件内容：\n\n${data.content}\n\n请帮我分析这个文件的内容。`;
-        const textarea = document.getElementById('chat-input');
-        textarea.value = prompt;
-        this._handleSend();
-      } catch (e) {
-        this._hideTyping();
-        this._addMessage('assistant', `文件处理失败: ${e.message}`);
-        Panel.addLog('error', `文件上传失败: ${e.message}`);
+      for (const file of files) {
+        await this._processUploadedFile(file);
       }
     });
+  },
+
+  async _processUploadedFile(file) {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (!res.ok) {
+        const err = await res.json();
+        App.showToast(`${file.name}: ${err.detail || '上传失败'}`);
+        return;
+      }
+
+      const data = await res.json();
+      this._uploadedFiles.push({ name: file.name, content: data.content });
+      this._renderFileChips();
+      Panel.addLog('info', `📎 已解析: ${file.name} (${data.chars} 字)`);
+    } catch (e) {
+      App.showToast(`文件处理失败: ${e.message}`);
+    }
+  },
+
+  _renderFileChips() {
+    let container = document.getElementById('file-chips');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'file-chips';
+      container.className = 'file-chips';
+      const form = document.getElementById('chat-form');
+      form.parentElement.insertBefore(container, form);
+    }
+    container.innerHTML = this._uploadedFiles.map((f, i) => `
+      <span class="file-chip">
+        📎 ${f.name}
+        <button class="file-chip__remove" onclick="Chat._removeFile(${i})">✕</button>
+      </span>
+    `).join('');
+  },
+
+  _removeFile(index) {
+    this._uploadedFiles.splice(index, 1);
+    this._renderFileChips();
   },
 
   // === 发送消息 ===
@@ -97,15 +118,35 @@ const Chat = {
       return;
     }
 
-    if (!text) return;
+    // 无文字也无文件则不发送
+    if (!text && !this._uploadedFiles.length) return;
 
     textarea.value = '';
     textarea.style.height = 'auto';
     this._removeWelcome();
 
+    // 构建完整消息（用户文字 + 文件内容）
+    let fullMessage = text;
+    if (this._uploadedFiles.length > 0) {
+      const fileSection = this._uploadedFiles.map(f =>
+        `[文件: ${f.name}]\n${f.content}`
+      ).join('\n\n');
+      fullMessage = text
+        ? `${text}\n\n---\n附件内容：\n${fileSection}`
+        : `我上传了以下文件，请帮我处理：\n\n${fileSection}`;
+      // 清空文件
+      this._uploadedFiles = [];
+      this._renderFileChips();
+    }
+
+    // 显示给用户看的（简短版）
+    const displayText = this._uploadedFiles.length === 0 && text
+      ? text
+      : (text || `📎 ${this._uploadedFiles?.length || 0} 个文件`);
+
     // 防抖：收集消息，等待静默后一起发送
-    this._pendingMessages.push(text);
-    this._addMessage('user', text);
+    this._pendingMessages.push(fullMessage);
+    this._addMessage('user', text || '📎 已上传文件');
 
     // 显示等待提示（第二条开始显示）
     if (this._pendingMessages.length > 1) {
