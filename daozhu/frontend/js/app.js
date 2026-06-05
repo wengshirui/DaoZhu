@@ -8,6 +8,7 @@ const App = {
     this._bindThemeToggle();
     this._initModules();
     this._updateStatus();
+    this._bindVisibility();
   },
 
   // === 模块初始化 ===
@@ -372,6 +373,18 @@ const App = {
         }
       })
       .catch(() => {});  // 静默失败
+  },
+
+  // === 窗口焦点监听（#073 优化点4）===
+  _bindVisibility() {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        // 窗口重新获得焦点 → 通知后端 + 刷新问候
+        fetch('/api/focus', { method: 'POST' }).catch(() => {});
+        // 如果当前在欢迎页或对话页，刷新问候
+        setTimeout(() => Chat._loadGreeting(Chat.conversationId), 500);
+      }
+    });
   },
 
   // === 全局错误提示 ===

@@ -251,6 +251,16 @@ async def get_task_run_history(task_id: int):
     return {"runs": get_task_runs(task_id)}
 
 
+# === 窗口 focus 事件（#073 优化点4）===
+@router.post("/api/focus")
+async def on_focus():
+    """窗口获得焦点时调用，触发智能检查"""
+    from daozhu.idle_worker import on_window_focus, record_interaction
+    record_interaction("focus")
+    await on_window_focus()
+    return {"ok": True}
+
+
 # === 管家问候 API（#073 Phase 1）===
 @router.get("/api/greeting")
 async def get_greeting(conversation_id: str = None):
