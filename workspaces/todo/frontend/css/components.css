@@ -334,6 +334,19 @@
 /* 任务内容 */
 .task-card__body { flex: 1; min-width: 0; }
 
+/* 分类图标 */
+.task-card__category { flex-shrink: 0; margin-right: 4px; }
+.task-card__category-tag {
+  font-size: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: rgba(196, 122, 58, 0.08);
+}
+
 .task-card__title {
   font-size: 0.9rem;
   color: var(--text-ink);

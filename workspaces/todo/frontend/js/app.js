@@ -138,6 +138,15 @@ const App = {
     const priorityLabels = { urgent: '紧急', high: '高', medium: '中', low: '低' };
     const priorityTag = `<span class="task-card__priority-tag task-card__priority-tag--${task.priority}">${priorityLabels[task.priority]}</span>`;
 
+    // 分类图标
+    let categoryTag = '';
+    if (task.project_id) {
+      const project = this.projects.find(p => p.id == task.project_id);
+      if (project) {
+        categoryTag = `<span class="task-card__category-tag" title="${project.name}">${project.icon}</span>`;
+      }
+    }
+
     // 截止日期
     let dueTag = '';
     if (task.due_date) {
@@ -155,6 +164,7 @@ const App = {
           ${checkIcon}
         </button>
         <div class="task-card__priority-bar task-card__priority-bar--${task.priority}"></div>
+        ${categoryTag ? `<div class="task-card__category">${categoryTag}</div>` : ''}
         <div class="task-card__body">
           <div class="task-card__title">${this.escapeHtml(task.title)}</div>
         </div>
