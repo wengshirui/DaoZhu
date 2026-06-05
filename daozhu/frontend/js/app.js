@@ -330,8 +330,6 @@ const App = {
     }).catch(() => {});
   },
 
-  },
-
   // === 更新检查 ===
   _checkUpdate() {
     fetch('/api/check-update')
@@ -357,7 +355,6 @@ const App = {
   },
 
   // === 全局错误提示 ===
-  showToast
   showToast(message, duration = 3000) {
     let toast = document.querySelector('.error-toast');
     if (!toast) {
