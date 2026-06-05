@@ -283,6 +283,16 @@ async def get_greeting(conversation_id: str = None):
             "source": "no_key",
         }
 
+    # 场景 0.5：未完成 onboarding（没有核心 profile）
+    from daozhu.memory_db import get_profile, get_all_profiles
+    role = get_profile("岗位") or get_profile("职位") or get_profile("role")
+    if not role:
+        return {
+            "greeting": "你好！我是你的 AI 伙伴。为了更好地帮到你，能简单告诉我：\n\n1️⃣ 你的岗位是什么？（如产品经理、开发、设计师…）\n2️⃣ 你日常工作中最烦的重复事务是什么？\n\n这样我就知道怎么主动帮你了。",
+            "has_todo_data": False,
+            "source": "onboarding",
+        }
+
     # 时间问候
     now = datetime.now()
     hour = now.hour
@@ -300,7 +310,6 @@ async def get_greeting(conversation_id: str = None):
         time_greeting = "夜深了，注意休息"
 
     # 尝试获取用户称呼
-    from daozhu.memory_db import get_profile
     name = get_profile("称呼") or get_profile("nickname") or ""
     if name:
         time_greeting = f"{time_greeting}，{name}"
@@ -345,11 +354,24 @@ async def get_greeting(conversation_id: str = None):
 
                 if context_lines:
                     context_str = "\n".join(context_lines)
+
+                    # 构建用户画像上下文
+                    all_profiles = get_all_profiles()
+                    profile_str = ""
+                    if all_profiles:
+                        key_profiles = [p for p in all_profiles if p["key"] in
+                            ("岗位", "称呼", "关注领域", "迭代节奏", "管理项目", "活跃时段")]
+                        if key_profiles:
+                            profile_str = "用户画像：" + "、".join(
+                                f"{p['key']}={p['value']}" for p in key_profiles)
+
                     # 调 LLM 生成简短问候
                     from daozhu.chat_service import call_llm_simple
                     prompt = f"""你是用户的 AI 伙伴（不是仆人，是平等的朋友和搭档）。用户回来了，请用一句话主动问候。
 要求：简短（不超过40字）、自然、平等语气。结合上下文提醒重要事项。
 禁止：不要用"主人"、"您"等敬语，用"你"就好。不要过度热情或谄媚。
+
+{profile_str}
 
 最近对话：
 {context_str}

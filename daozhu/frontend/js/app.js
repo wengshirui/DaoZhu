@@ -151,6 +151,14 @@ const App = {
             </select>
           </div>
 
+          <div>
+            <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🤖 AI 主动开口</label>
+            <select id="settings-greeting" style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
+              <option value="true">开启（打开应用时 AI 主动问候）</option>
+              <option value="false">关闭</option>
+            </select>
+          </div>
+
           <button onclick="App._saveSettings()" style="padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font:inherit;font-weight:500;margin-top:8px">
             保存设置
           </button>
@@ -167,6 +175,10 @@ const App = {
     const currentProvider = config?.ai?.provider || 'deepseek';
     document.getElementById('settings-provider').value = currentProvider;
     App._onProviderChange();
+
+    // 填充 AI 主动开口设置
+    const greetingEnabled = config?.greeting?.enabled !== false;
+    document.getElementById('settings-greeting').value = greetingEnabled ? 'true' : 'false';
 
     // 填充当前岛名
     fetch('/api/config').then(r => r.json()).then(data => {
@@ -278,6 +290,14 @@ const App = {
       const chatBg = document.getElementById('settings-chatbg').value;
       document.querySelector('.chat').setAttribute('data-bg', chatBg);
       localStorage.setItem('daozhu-chatbg', chatBg);
+
+      // 保存 AI 主动开口设置
+      const greetingEnabled = document.getElementById('settings-greeting').value === 'true';
+      await fetch('/api/config/greeting.enabled', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: greetingEnabled }),
+      });
 
       status.textContent = '✅ 设置已保存';
       status.style.color = 'var(--success)';
