@@ -59,19 +59,24 @@ const Chat = {
 
     // 构建完整消息（用户文字 + 文件内容）
     let fullMessage = text;
+    let displayText = text;
     if (this._uploadedFiles && this._uploadedFiles.length > 0) {
+      const fileNames = this._uploadedFiles.map(f => f.name).join('、');
       const fileSection = this._uploadedFiles.map(f =>
         `[文件: ${f.name}]\n${f.content}`
       ).join('\n\n');
       fullMessage = text
         ? `${text}\n\n---\n附件内容：\n${fileSection}`
         : `我上传了以下文件，请帮我处理：\n\n${fileSection}`;
+      displayText = text
+        ? `${text}\n📎 ${fileNames}`
+        : `📎 ${fileNames}`;
       this._uploadedFiles = [];
       this._renderFileChips();
     }
 
     this._pendingMessages.push(fullMessage);
-    this._addMessage('user', text || '📎 已上传文件');
+    this._addMessage('user', displayText);
 
     if (this._pendingMessages.length > 1) this._showBatchHint();
 
@@ -277,15 +282,29 @@ const Chat = {
       if (!res.ok) return;
       const data = await res.json();
       if (!data.greeting) return;
+
       const container = document.getElementById('chat-messages');
       const existing = document.getElementById('greeting-message');
       if (existing) existing.remove();
+
       const greetingEl = document.createElement('div');
       greetingEl.id = 'greeting-message';
       greetingEl.className = 'message message--assistant message--greeting';
       greetingEl.innerHTML = `<div class="message__avatar"><img src="/img/librarian.svg" alt="岛管理员" style="width:28px;height:28px;image-rendering:pixelated" class="librarian-avatar"></div><div class="message__content"><div class="message__bubble message__bubble--greeting">${this._escapeHtml(data.greeting)}</div></div>`;
       container.appendChild(greetingEl);
       this._scrollToBottom();
+
+      // 持久化问候到对话记录（这是我们的特色）
+      if (data.source !== 'no_key' && data.source !== 'disabled') {
+        fetch('/api/greeting/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            greeting: data.greeting,
+            conversation_id: conversationId || null,
+          }),
+        }).catch(() => {});
+      }
     } catch (e) {}
   },
 

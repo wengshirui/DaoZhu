@@ -262,6 +262,29 @@ async def on_focus():
 
 
 # === 管家问候 API（#073 Phase 1）===
+
+@router.post("/api/greeting/save")
+async def save_greeting(body: dict):
+    """持久化管家问候到对话记录"""
+    from daozhu.chat_db import create_conversation, add_message, get_conversation
+    greeting = body.get("greeting", "")
+    conv_id = body.get("conversation_id")
+    if not greeting:
+        return {"ok": False}
+
+    # 如果有 conversation_id，追加到该对话；否则创建新对话
+    if conv_id:
+        conv = get_conversation(conv_id)
+        if conv:
+            add_message(conv_id, "assistant", greeting)
+            return {"ok": True, "conversation_id": conv_id}
+
+    # 新对话：创建并保存
+    conv = create_conversation(title="管家问候")
+    add_message(conv["id"], "assistant", greeting)
+    return {"ok": True, "conversation_id": conv["id"]}
+
+
 @router.get("/api/greeting")
 async def get_greeting(conversation_id: str = None):
     """

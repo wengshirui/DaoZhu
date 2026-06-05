@@ -11,11 +11,11 @@ Chat._bindFileUpload = function() {
   fileInput.addEventListener('change', async () => {
     const files = Array.from(fileInput.files);
     if (!files.length) return;
-    fileInput.value = '';
 
     for (const file of files) {
       await Chat._processUploadedFile(file);
     }
+    fileInput.value = ''; // 所有文件处理完后再清空
   });
 };
 
