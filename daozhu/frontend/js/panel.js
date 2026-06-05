@@ -185,8 +185,11 @@ const Panel = {
           }
         }
         Chat.messages = data.messages;
+        // 管家主动开口（基于当前对话上下文）
+        Chat._loadGreeting(convId);
       } else {
         Chat._showWelcome();
+        Chat._loadGreeting();
       }
     } catch (e) {
       App.showToast('加载对话失败');

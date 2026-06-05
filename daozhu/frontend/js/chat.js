@@ -356,16 +356,18 @@ const Chat = {
   },
 
   // === 管家主动开口（#073 Phase 1）===
-  async _loadGreeting() {
+  async _loadGreeting(conversationId) {
     try {
-      const res = await fetch('/api/greeting');
+      const params = conversationId ? `?conversation_id=${conversationId}` : '';
+      const res = await fetch(`/api/greeting${params}`);
       if (!res.ok) return;
       const data = await res.json();
       if (!data.greeting) return;
 
       const container = document.getElementById('chat-messages');
-      // 如果用户已经开始聊天了（欢迎已移除），不再插入
-      if (!document.getElementById('chat-welcome')) return;
+      // 移除已有问候（避免重复）
+      const existing = document.getElementById('greeting-message');
+      if (existing) existing.remove();
 
       const greetingEl = document.createElement('div');
       greetingEl.id = 'greeting-message';
@@ -379,6 +381,7 @@ const Chat = {
         </div>
       `;
       container.appendChild(greetingEl);
+      this._scrollToBottom();
     } catch (e) {
       // 静默失败，不影响正常使用
     }

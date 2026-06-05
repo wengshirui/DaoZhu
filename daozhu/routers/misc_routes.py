@@ -253,19 +253,39 @@ async def get_task_run_history(task_id: int):
 
 # === 管家问候 API（#073 Phase 1）===
 @router.get("/api/greeting")
-async def get_greeting():
+async def get_greeting(conversation_id: str = None):
     """
-    管家主动开口：基于时间 + 待办数据生成问候语。
-    不消耗 LLM token，纯逻辑拼接。
+    管家主动开口。三种场景：
+    1. 未配置 API key → 固定引导语
+    2. 新对话（无 conversation_id）→ 时间 + 待办数据（零 token）
+    3. 有历史对话（传 conversation_id）→ 调 LLM 总结 + 待办（少量 token）
+
     思想基石：用户是谁 → 他想干什么 → 怎么帮他更好地实现
     """
     import httpx
     from datetime import datetime, date
+    from daozhu.config import get_config_value, get_api_key
 
+    # 检查开关
+    enabled = get_config_value("greeting.enabled", True)
+    if not enabled:
+        return {"greeting": "", "has_todo_data": False, "source": "disabled"}
+
+    # 检查 API key 是否配置
+    api_key = get_api_key()
+    has_key = bool(api_key)
+
+    # 场景 1：未配置 key
+    if not has_key:
+        return {
+            "greeting": "你好，我是岛管理员。告诉我你想建造什么工作区，或者问我任何问题。\n\n⚠️ 但你需要先在设置里配置 LLM 的 API Key，我才能正常工作。",
+            "has_todo_data": False,
+            "source": "no_key",
+        }
+
+    # 时间问候
     now = datetime.now()
     hour = now.hour
-
-    # 时间段问候
     if 5 <= hour < 9:
         time_greeting = "早上好"
     elif 9 <= hour < 12:
@@ -285,7 +305,7 @@ async def get_greeting():
     if name:
         time_greeting = f"{time_greeting}，{name}"
 
-    # 尝试获取待办数据（降级处理）
+    # 获取待办数据（降级处理）
     todo_summary = ""
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:
@@ -306,16 +326,55 @@ async def get_greeting():
                 else:
                     todo_summary = "今天的待办都完成了，做得不错。"
     except Exception:
-        # 待办服务不可用，优雅降级
         todo_summary = ""
 
-    # 拼接问候语
+    # 场景 3：有历史对话 → 调 LLM 做个性化问候
+    if conversation_id:
+        try:
+            from daozhu.chat_db import get_conversation
+            conv = get_conversation(conversation_id)
+            if conv and conv.get("messages"):
+                # 取最近 5 条消息做上下文
+                recent = conv["messages"][-5:]
+                context_lines = []
+                for msg in recent:
+                    role = "用户" if msg["role"] == "user" else "管家"
+                    content = (msg.get("content") or "")[:100]
+                    if content:
+                        context_lines.append(f"{role}: {content}")
+
+                if context_lines:
+                    context_str = "\n".join(context_lines)
+                    # 调 LLM 生成简短问候
+                    from daozhu.chat_service import call_llm_simple
+                    prompt = f"""你是用户的私人AI管家。用户回来了，请用一句话主动问候他。
+要求：简短（不超过40字）、温暖、结合上下文。如果有待办信息也可以提醒。
+
+最近对话：
+{context_str}
+
+{"待办情况：" + todo_summary if todo_summary else ""}
+
+请直接输出问候语（不要解释）："""
+                    llm_greeting = await call_llm_simple(prompt, max_tokens=80)
+                    if llm_greeting:
+                        return {
+                            "greeting": llm_greeting.strip(),
+                            "has_todo_data": bool(todo_summary),
+                            "source": "llm",
+                        }
+        except Exception:
+            pass  # LLM 失败时 fallback 到模板
+
+    # 场景 2：新对话 / LLM fallback → 纯模板
     parts = [time_greeting + "。"]
     if todo_summary:
         parts.append(todo_summary)
     if not todo_summary:
         parts.append("有什么我能帮你的？")
 
-    greeting = "".join(parts)
-
-    return {"greeting": greeting, "has_todo_data": bool(todo_summary)}
+    return {
+        "greeting": "".join(parts),
+        "has_todo_data": bool(todo_summary),
+        "source": "template",
+    }

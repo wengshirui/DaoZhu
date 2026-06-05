@@ -154,3 +154,52 @@ async def chat_stream(
         yield "⚠️ AI 服务响应超时，请稍后重试。"
     except Exception as e:
         yield f"⚠️ 发生错误: {str(e)}"
+
+
+async def call_llm_simple(prompt: str, max_tokens: int = 150) -> str | None:
+    """
+    简单 LLM 调用（非流式，返回完整文本）。
+    用于管家问候、摘要等短文本生成。失败返回 None。
+    """
+    provider = get_config_value("ai.provider", "deepseek")
+    model = get_provider_model(provider)
+    api_key = get_api_key(provider)
+    base_url = get_provider_base_url(provider)
+    protocol = get_provider_protocol(provider)
+
+    if not api_key:
+        return None
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            if protocol == "anthropic":
+                headers = {
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                }
+                payload = {
+                    "model": model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": max_tokens,
+                }
+                resp = await client.post(f"{base_url}/v1/messages", headers=headers, json=payload)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    return data.get("content", [{}])[0].get("text", "")
+            else:
+                headers = {"Content-Type": "application/json"}
+                if provider != "ollama":
+                    headers["Authorization"] = f"Bearer {api_key}"
+                payload = {
+                    "model": model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": max_tokens,
+                }
+                resp = await client.post(f"{base_url}/chat/completions", headers=headers, json=payload)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    return data["choices"][0]["message"]["content"]
+    except Exception:
+        return None
+    return None

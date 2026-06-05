@@ -31,6 +31,9 @@ DEFAULT_CONFIG = {
         "theme": "light",
         "language": "zh-CN",
     },
+    "greeting": {
+        "enabled": True,
+    },
 }
 
 # 多 Provider 配置表
