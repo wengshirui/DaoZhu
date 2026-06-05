@@ -293,6 +293,17 @@ async def get_greeting(conversation_id: str = None):
             "source": "onboarding",
         }
 
+    # 场景 0.8：有未展示的 AI 自主工作汇报（AC8）
+    from daozhu.idle_worker import get_pending_report
+    report = get_pending_report()
+    if report:
+        return {
+            "greeting": f"你不在的时候我做了些事：\n\n{report['summary']}",
+            "has_todo_data": True,
+            "source": "idle_report",
+            "report": report,
+        }
+
     # 时间问候
     now = datetime.now()
     hour = now.hour

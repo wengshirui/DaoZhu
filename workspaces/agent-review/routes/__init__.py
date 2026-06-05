@@ -17,6 +17,16 @@ async def list_reports():
     return {"reports": get_growth_reports()}
 
 
+@router.get("/idle-history")
+async def idle_work_history():
+    """获取 AI 自主工作历史（#073）"""
+    from daozhu.idle_worker import get_report_history, get_idle_minutes
+    return {
+        "reports": get_report_history(limit=20),
+        "current_idle_minutes": round(get_idle_minutes(), 1),
+    }
+
+
 @router.get("/stats")
 async def get_stats():
     """获取工具健康数据"""

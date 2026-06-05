@@ -33,6 +33,7 @@ DEFAULT_CONFIG = {
     },
     "greeting": {
         "enabled": True,
+        "idle_threshold_hours": 2,
     },
 }
 

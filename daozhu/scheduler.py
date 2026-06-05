@@ -288,10 +288,17 @@ class Scheduler:
             await asyncio.sleep(self.TICK_INTERVAL)
 
     async def _tick(self):
-        """单次 tick：执行所有到期任务"""
+        """单次 tick：执行所有到期任务 + 空闲检测"""
         due_tasks = get_due_tasks()
         for task in due_tasks:
             await self._execute_task(task)
+
+        # 空闲自主工作检测（#073 Phase 3）
+        try:
+            from .idle_worker import check_and_run
+            await check_and_run()
+        except Exception as e:
+            logger.debug(f"空闲检测异常: {e}")
 
     async def _execute_task(self, task: dict):
         """执行单个任务"""

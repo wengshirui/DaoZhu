@@ -57,6 +57,10 @@ async def chat_api(body: dict):
     if not message:
         raise HTTPException(status_code=400, detail="消息不能为空")
 
+    # 记录交互（#073 AC5）
+    from daozhu.idle_worker import record_interaction
+    record_interaction("chat", message[:30])
+
     # 创建或获取会话
     if not conv_id:
         conv = create_conversation(title=message[:20])
