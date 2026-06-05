@@ -7,9 +7,12 @@
   "description": "AI 自主成长：理解用户 + 优化自己 + 主动服务",
   "port": 7788,
   "entry": "app.py",
-  "tags": ["系统", "优化"],
+  "tags": [
+    "系统",
+    "优化"
+  ],
   "start_mode": "manual",
   "mode": "lightweight",
   "category": "system",
-  "sort_order": 91
+  "sort_order": 7
 }

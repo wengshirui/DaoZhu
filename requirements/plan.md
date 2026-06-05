@@ -1,6 +1,6 @@
 # 岛主 DaoZhu — 需求计划
 
-> 最后更新: 2026-06-04
+> 最后更新: 2026-06-05
 
 ---
 
@@ -27,7 +27,7 @@ requirements/
 ```sql
 -- 连接: requirements/requirements.db
 SELECT id, title FROM requirements WHERE status = 'done' ORDER BY id;
--- 共 58 条已完成需求
+-- 共 65 条已完成需求
 ```
 
 ---
@@ -44,8 +44,6 @@ SELECT id, title FROM requirements WHERE status = 'done' ORDER BY id;
 |--------|-----|------|------|------|
 | P0 | 046 | 火柴人剧场 BGM + 配音 | M | 待澄清 |
 | P1 | 063 | 智能模型路由（大模型带小模型） | M | |
-| P1 | 070 | 工作区自动排序（按使用频率） | S | |
-| P1 | 072 | 客户端自动更新（Tauri Updater） | S | 替代旧 git pull 方案 |
 | P1 | 066 | Gitee 生态架构（四仓库体系） | L | 含原 #043 #009 |
 | P1 | 069 | Agent 成长系统（AC8-10 待做） | M | AC1-7 已完成 |
 | P2 | 020 | 本地性能检测 + 智能推荐 | S | |
@@ -53,6 +51,8 @@ SELECT id, title FROM requirements WHERE status = 'done' ORDER BY id;
 
 > #062（AI 复盘）被 #069 替代扩展；#066-D（定时机制）被 #067 替代扩展。
 > 已完成归档：#059 #061 #064 #067 #068（2026-06-04 归档至 DB）。
+> #070 已完成归档（2026-06-05）：工作区自动排序。
+> #072 已完成归档（2026-06-05）：客户端自动更新（Tauri Updater）。
 > #071 已完成归档（2026-06-04）：Tauri 壳 + 桌面宠物 + 系统托盘 + 全局快捷键。PySide6 依赖已移除。
 
 ---
@@ -70,3 +70,6 @@ SELECT id, title FROM requirements WHERE status = 'done' ORDER BY id;
 | ID | 需求 | 原因 |
 |----|------|------|
 | 019 | 孕期管理 + 学习辅助 | 需求不明确 |
+
+
+

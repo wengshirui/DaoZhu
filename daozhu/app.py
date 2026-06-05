@@ -1,37 +1,60 @@
-"""
-岛主 DaoZhu — 平台主服务
+"""岛主 DaoZhu — 平台主服务
 端口: 7788
-职责: 托管书架 UI + 提供 API + 管理工作区生命周期
+职责: 应用生命周期 + 路由注册 + 入口点
+路由按功能拆分到 routers/ 目录下。
 """
 
 from contextlib import asynccontextmanager
 from pathlib import Path
-import json
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 
-from .config import load_config, get_config_value, set_config_value
+from .config import get_config_value
 from .workspace_manager import manager
-from .chat_db import (
-    init_chat_db, create_conversation, list_conversations,
-    get_conversation, delete_conversation, add_message,
-    update_conversation_title, undo_messages,
-)
-from .chat_service import chat_stream
+from .chat_db import init_chat_db
 from .memory_db import init_memory_db
-from .memory_service import build_memory_context, extract_memories
-from .agent import agent_chat_stream
+from .routers import register_routers
 
 # 静态文件目录（适配 PyInstaller 打包环境）
 import sys
-if getattr(sys, 'frozen', False):
-    # PyInstaller 打包后，资源在 _MEIPASS 目录
+if getattr(sys, "frozen", False):
     FRONTEND_DIR = Path(sys._MEIPASS) / "daozhu" / "frontend"
 else:
-    # 开发模式
     FRONTEND_DIR = Path(__file__).parent / "frontend"
+
+
+def _mount_lightweight_workspaces(the_app: FastAPI):
+    """将 mode=lightweight 的工作区挂载为主进程子路由"""
+    import importlib.util
+    import sys as _sys
+    from .workspace_manager import WorkspaceStatus
+    for ws in manager.workspaces.values():
+        if ws.mode != "lightweight":
+            continue
+        app_file = ws.path / ws.entry
+        if not app_file.exists():
+            continue
+        try:
+            ws_path_str = str(ws.path)
+            for mod_name in list(_sys.modules.keys()):
+                if mod_name == "routes" or mod_name.startswith("routes."):
+                    del _sys.modules[mod_name]
+                if mod_name == "db" or mod_name == "gitee_client":
+                    del _sys.modules[mod_name]
+            if ws_path_str not in _sys.path:
+                _sys.path.insert(0, ws_path_str)
+            spec = importlib.util.spec_from_file_location(f"ws_{ws.id}_app", str(app_file))
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            if hasattr(mod, "app") and hasattr(mod.app, "routes"):
+                the_app.mount(f"/ws/{ws.id}", mod.app)
+                ws.status = WorkspaceStatus.RUNNING
+                ws.port = 7788
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"轻挂载 {ws.id} 失败: {e}")
+            ws.mode = "standard"
 
 
 @asynccontextmanager
@@ -50,7 +73,7 @@ async def lifespan(app: FastAPI):
     from .scheduler import scheduler
     await scheduler.start()
 
-    # Agent 成长检查（距上次 > 24h 自动执行）
+    # Agent 成长检查
     from .growth import should_grow, run_growth
     if should_grow():
         try:
@@ -59,799 +82,34 @@ async def lifespan(app: FastAPI):
             import logging
             logging.getLogger(__name__).warning(f"自动成长失败: {e}")
 
+    # 启动时检查更新（异步，不阻塞启动）
+    from .updater_service import check_for_update
+    import asyncio
+    try:
+        asyncio.ensure_future(check_for_update())
+    except Exception:
+        pass
+
     yield
+
     await scheduler.stop()
     await manager.shutdown()
 
 
-def _mount_lightweight_workspaces(the_app: FastAPI):
-    """将 mode=lightweight 的工作区挂载为主进程子路由"""
-    import importlib.util
-    import sys
-    from .workspace_manager import WorkspaceStatus
-    for ws in manager.workspaces.values():
-        if ws.mode != "lightweight":
-            continue
-        app_file = ws.path / ws.entry
-        if not app_file.exists():
-            continue
-        try:
-            ws_path_str = str(ws.path)
-
-            # 临时将工作区目录放到 sys.path 最前面
-            # 并在导入后保留（工作区运行时需要）
-            # 关键：清除可能被其他工作区污染的 routes 模块缓存
-            for mod_name in list(sys.modules.keys()):
-                if mod_name == "routes" or mod_name.startswith("routes."):
-                    del sys.modules[mod_name]
-                if mod_name == "db" or mod_name == "gitee_client":
-                    del sys.modules[mod_name]
-
-            if ws_path_str not in sys.path:
-                sys.path.insert(0, ws_path_str)
-
-            # 动态导入工作区的 app 模块
-            spec = importlib.util.spec_from_file_location(f"ws_{ws.id}_app", str(app_file))
-            mod = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(mod)
-
-            if hasattr(mod, 'app') and hasattr(mod.app, 'routes'):
-                the_app.mount(f"/ws/{ws.id}", mod.app)
-                ws.status = WorkspaceStatus.RUNNING
-                ws.port = 7788
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning(f"轻挂载 {ws.id} 失败: {e}")
-            ws.mode = "standard"
-
-
 app = FastAPI(title="岛主 DaoZhu", version="0.1.0", lifespan=lifespan)
 
-
-# === 页面路由 ===
-@app.get("/")
-async def index():
-    """返回主界面（未配置且未跳过引导时跳转引导页）"""
-    from fastapi import Request
-    from .config import get_api_key, ENV_FILE, PLATFORM_ROOT
-
-    # 检查是否已跳过引导（config.json 中标记）
-    config_file = PLATFORM_ROOT / "config.json"
-    skipped = False
-    if config_file.exists():
-        import json as _json
-        try:
-            cfg = _json.loads(config_file.read_text(encoding="utf-8"))
-            skipped = cfg.get("onboarding_skipped", False)
-        except Exception:
-            pass
-
-    # 未配置 API Key 且未跳过 → 跳转引导
-    if not skipped and (not ENV_FILE.exists() or not get_api_key()):
-        from fastapi.responses import RedirectResponse
-        return RedirectResponse("/onboarding")
-
-    return FileResponse(FRONTEND_DIR / "index.html")
+# 挂载静态文件
+app.mount("/css", StaticFiles(directory=str(FRONTEND_DIR / "css")), name="css")
+app.mount("/js", StaticFiles(directory=str(FRONTEND_DIR / "js")), name="js")
+app.mount("/img", StaticFiles(directory=str(FRONTEND_DIR / "img")), name="img")
 
 
-@app.get("/favicon.svg")
-async def favicon():
-    """返回 favicon SVG"""
-    return FileResponse(FRONTEND_DIR / "favicon.svg", media_type="image/svg+xml")
-
-
-@app.get("/favicon.ico")
-async def favicon_ico():
-    """返回 favicon ICO"""
-    ico_path = FRONTEND_DIR / "favicon.ico"
-    if ico_path.exists():
-        return FileResponse(ico_path, media_type="image/x-icon")
-    return FileResponse(FRONTEND_DIR / "favicon.svg", media_type="image/svg+xml")
-
-
-@app.get("/onboarding")
-async def onboarding_page():
-    """引导页面"""
-    return FileResponse(FRONTEND_DIR / "onboarding.html")
-
-
-@app.get("/loading.html")
-async def loading_page():
-    """启动加载页（Tauri 壳用）"""
-    return FileResponse(FRONTEND_DIR / "loading.html")
-
-
-@app.get("/pet.html")
-async def pet_page():
-    """桌面宠物页面（Tauri 透明窗口用）"""
-    return FileResponse(FRONTEND_DIR / "pet.html")
-
-
-@app.post("/api/onboarding/save-key")
-async def save_api_key(body: dict):
-    """保存 API Key 到 config.db + .env"""
-    key = body.get("key", "").strip()
-    if not key:
-        raise HTTPException(400, "Key 不能为空")
-
-    # 写入 config.db
-    from .config_db import set_secret
-    set_secret("DEEPSEEK_API_KEY", key)
-
-    # 同时写入 .env（向后兼容）
-    from .config import PLATFORM_ROOT
-    env_path = PLATFORM_ROOT / ".env"
-    existing = ""
-    if env_path.exists():
-        existing = env_path.read_text(encoding="utf-8")
-
-    lines = existing.split("\n")
-    found = False
-    for i, line in enumerate(lines):
-        if line.startswith("DEEPSEEK_API_KEY="):
-            lines[i] = f"DEEPSEEK_API_KEY={key}"
-            found = True
-            break
-    if not found:
-        lines.append(f"DEEPSEEK_API_KEY={key}")
-
-    env_path.write_text("\n".join(lines), encoding="utf-8")
-    return {"success": True}
-
-
-@app.post("/api/onboarding/save-gitee-token")
-async def save_gitee_token(body: dict):
-    """保存 Gitee Token 到 config.db + .env"""
-    token = body.get("token", "").strip()
-    if not token:
-        raise HTTPException(400, "Token 不能为空")
-
-    # 写入 config.db
-    from .config_db import set_secret
-    set_secret("GITEE_TOKEN", token)
-
-    # 同时写入 .env
-    from .config import PLATFORM_ROOT
-    env_path = PLATFORM_ROOT / ".env"
-    existing = ""
-    if env_path.exists():
-        existing = env_path.read_text(encoding="utf-8")
-
-    lines = existing.split("\n")
-    found = False
-    for i, line in enumerate(lines):
-        if line.startswith("GITEE_TOKEN="):
-            lines[i] = f"GITEE_TOKEN={token}"
-            found = True
-            break
-    if not found:
-        lines.append(f"GITEE_TOKEN={token}")
-
-    env_path.write_text("\n".join(lines), encoding="utf-8")
-    return {"success": True}
-
-
-@app.post("/api/onboarding/save-secret")
-async def save_secret_generic(body: dict):
-    """通用密钥保存接口"""
-    name = body.get("name", "").strip()
-    value = body.get("value", "").strip()
-    if not name or not value:
-        raise HTTPException(400, "name 和 value 不能为空")
-
-    from .config_db import set_secret
-    set_secret(name, value)
-    return {"success": True}
-
-
-@app.delete("/api/config/secrets/{name}")
-async def delete_secret_endpoint(name: str):
-    """删除密钥配置"""
-    from .config_db import delete_secret
-    deleted = delete_secret(name)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="密钥不存在")
-    return {"success": True}
-
-
-@app.get("/api/providers")
-async def get_providers():
-    """获取可用的 AI 模型提供商列表"""
-    from .config import PROVIDERS, get_config_value
-    current = get_config_value("ai.provider", "deepseek")
-    result = []
-    for pid, info in PROVIDERS.items():
-        result.append({
-            "id": pid,
-            "name": info["name"],
-            "needs_key": info["needs_key"],
-            "active": pid == current,
-        })
-    return {"providers": result, "current": current}
-
-
-# === 静态资源 ===
-app.mount("/css", StaticFiles(directory=FRONTEND_DIR / "css"), name="css")
-app.mount("/js", StaticFiles(directory=FRONTEND_DIR / "js"), name="js")
-app.mount("/img", StaticFiles(directory=FRONTEND_DIR / "img"), name="img")
-
-# 宠物资源（供主界面浮动宠物加载 spritesheet）
-_pets_dir = Path(__file__).parent.parent / "workspaces" / "desktop-pet" / "pets"
+# 宠物资源
+_pets_dir = FRONTEND_DIR.parent.parent / "workspaces" / "desktop-pet" / "pets"
 if _pets_dir.exists():
-    app.mount("/pets", StaticFiles(directory=_pets_dir), name="pet_assets")
-
-
-# === 工作区 API ===
-@app.get("/api/workspaces")
-async def get_workspaces():
-    """获取工作区列表"""
-    workspaces = manager.list_workspaces()
-    return {"workspaces": workspaces}
-
-
-@app.post("/api/workspaces/{workspace_id}/start")
-async def start_workspace(workspace_id: str):
-    """启动工作区"""
-    try:
-        ws = await manager.start_workspace(workspace_id)
-        return {"success": True, "workspace": ws.to_dict()}
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/api/workspaces/{workspace_id}/stop")
-async def stop_workspace(workspace_id: str):
-    """停止工作区"""
-    try:
-        ws = await manager.stop_workspace(workspace_id)
-        return {"success": True, "workspace": ws.to_dict()}
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-
-@app.post("/api/workspaces/{workspace_id}/hide")
-async def hide_workspace(workspace_id: str):
-    """隐藏工作区"""
-    try:
-        manager.hide_workspace(workspace_id)
-        return {"success": True}
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-
-@app.get("/api/workspaces/{workspace_id}/readme")
-async def get_workspace_readme(workspace_id: str):
-    """获取工作区的 README.md 内容"""
-    ws = manager.get_workspace(workspace_id)
-    if not ws:
-        raise HTTPException(404, "工作区不存在")
-    readme_path = ws.path / "README.md"
-    if not readme_path.exists():
-        return {"id": workspace_id, "content": f"# {ws.name}\n\n暂无说明文档。"}
-    content = readme_path.read_text(encoding="utf-8")
-    return {"id": workspace_id, "content": content}
-
-
-@app.post("/api/workspaces/{workspace_id}/unhide")
-async def unhide_workspace(workspace_id: str):
-    """取消隐藏工作区"""
-    try:
-        manager.unhide_workspace(workspace_id)
-        return {"success": True}
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-
-@app.post("/api/workspaces/refresh")
-async def refresh_workspaces():
-    """重新扫描工作区目录"""
-    manager.discover()
-    return {"success": True, "count": len(manager.workspaces)}
-
-
-@app.post("/api/workspaces/bind")
-async def bind_folder_as_workspace(body: dict):
-    """绑定本地文件夹为工作区"""
-    folder_path = body.get("path", "").strip()
-    name = body.get("name", "").strip()
-    icon = body.get("icon", "📁")
-
-    if not folder_path:
-        raise HTTPException(400, "path 不能为空")
-
-    folder = Path(folder_path)
-    if not folder.exists() or not folder.is_dir():
-        raise HTTPException(400, f"路径不存在或不是文件夹: {folder_path}")
-
-    # 用文件夹名生成 ID
-    if not name:
-        name = folder.name
-
-    ws_id = name.lower().replace(" ", "-").replace("_", "-")
-    # 去掉非法字符
-    ws_id = "".join(c for c in ws_id if c.isalnum() or c == "-")[:30]
-    if not ws_id:
-        ws_id = "bound-folder"
-
-    # 检查是否已存在
-    if ws_id in manager.workspaces:
-        raise HTTPException(409, f"工作区 ID 已存在: {ws_id}")
-
-    # 在 workspaces/ 下创建绑定目录（只含 workspace.json）
-    from .config import get_workspace_dir
-    ws_dir = get_workspace_dir() / ws_id
-    ws_dir.mkdir(exist_ok=True)
-
-    ws_data = {
-        "id": ws_id,
-        "name": name,
-        "icon": icon,
-        "color": "#8B5CF6",
-        "version": "1.0.0",
-        "description": f"绑定文件夹: {folder_path}",
-        "port": 0,
-        "entry": "",
-        "tags": ["本地文件夹"],
-        "start_mode": "manual",
-        "mode": "bound",
-        "bound_path": str(folder),
-        "source": "user-bound",
-    }
-
-    (ws_dir / "workspace.json").write_text(
-        json.dumps(ws_data, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-
-    # 重新发现工作区
-    manager.discover()
-    return {"success": True, "workspace": manager.workspaces[ws_id].to_dict()}
-
-
-@app.post("/api/workspaces/{workspace_id}/open-folder")
-async def open_workspace_folder(workspace_id: str):
-    """用系统资源管理器打开工作区文件夹"""
-    import subprocess as sp
-    import sys as _sys
-
-    ws = manager.get_workspace(workspace_id)
-    if not ws:
-        raise HTTPException(404, "工作区不存在")
-
-    # 确定要打开的路径
-    if ws.mode == "bound" and ws.bound_path:
-        target = Path(ws.bound_path)
-    else:
-        target = ws.path
-
-    if not target.exists():
-        raise HTTPException(400, f"路径不存在: {target}")
-
-    # 跨平台打开资源管理器
-    if _sys.platform == "win32":
-        sp.Popen(["explorer", str(target)])
-    elif _sys.platform == "darwin":
-        sp.Popen(["open", str(target)])
-    else:
-        sp.Popen(["xdg-open", str(target)])
-
-    return {"success": True, "path": str(target)}
-
-
-@app.post("/api/workspaces/reorder")
-async def reorder_workspaces(body: dict):
-    """更新工作区显示顺序"""
-    order = body.get("order", [])  # ["todo", "accobot", "forum"]
-    if not order:
-        raise HTTPException(400, "order 不能为空")
-
-    for i, ws_id in enumerate(order):
-        ws = manager.get_workspace(ws_id)
-        if ws:
-            # 更新 workspace.json 中的 sort_order
-            ws_json_path = ws.path / "workspace.json"
-            if ws_json_path.exists():
-                data = json.loads(ws_json_path.read_text(encoding="utf-8"))
-                data["sort_order"] = i
-                ws_json_path.write_text(
-                    json.dumps(data, ensure_ascii=False, indent=2),
-                    encoding="utf-8",
-                )
-
-    # 重新发现以更新内存中的顺序
-    manager.discover()
-    return {"success": True}
-
-
-# === 技能 API ===
-@app.get("/api/skills")
-async def get_skills():
-    """获取技能列表（从 skills/ 目录扫描）"""
-    from .skill_loader import discover_skills
-    skills = discover_skills()
-    result = [
-        {"id": s["id"], "name": s["name"], "icon": "📖", "status": "active"}
-        for s in skills
-    ]
-    return {"skills": result}
-
-
-@app.get("/api/skills/{skill_id}/readme")
-async def get_skill_readme(skill_id: str):
-    """获取技能的 SKILL.md 内容"""
-    from .skill_loader import load_skill
-    content = load_skill(skill_id)
-    if not content:
-        raise HTTPException(404, "技能不存在")
-    return {"id": skill_id, "content": content}
-
-
-@app.delete("/api/skills/{skill_id}")
-async def delete_skill(skill_id: str):
-    """删除技能（删除 SKILL.md 文件）"""
-    from .config import PLATFORM_ROOT
-    skill_dir = PLATFORM_ROOT / "skills" / skill_id
-    if not skill_dir.exists():
-        raise HTTPException(404, "技能不存在")
-    import shutil
-    shutil.rmtree(str(skill_dir))
-    return {"success": True}
-
-
-# === 工具 API ===
-@app.get("/api/tools")
-async def get_tools():
-    """获取已注册工具列表"""
-    from .tools.registry import registry
-    tools = registry.list_tools()
-    result = [
-        {"id": t["name"], "name": t["description"][:20], "icon": t["emoji"],
-         "status": "connected",
-         "description": t["description"]}
-        for t in tools
-    ]
-    return {"tools": result}
-
-
-
-# === 对话 API ===
-@app.get("/api/conversations")
-async def get_conversations_api():
-    """获取历史对话列表"""
-    conversations = list_conversations()
-    return {"conversations": conversations}
-
-
-@app.get("/api/conversations/{conv_id}")
-async def get_conversation_api(conv_id: str):
-    """获取单个会话详情"""
-    conv = get_conversation(conv_id)
-    if not conv:
-        raise HTTPException(status_code=404, detail="会话不存在")
-    return conv
-
-
-@app.delete("/api/conversations/{conv_id}")
-async def delete_conversation_api(conv_id: str):
-    """删除会话"""
-    if not delete_conversation(conv_id):
-        raise HTTPException(status_code=404, detail="会话不存在")
-    return {"success": True}
-
-
-@app.post("/api/conversations/{conv_id}/undo")
-async def undo_conversation_api(conv_id: str, body: dict = None):
-    """撤回最近 N 轮对话"""
-    n = 1
-    if body and "n" in body:
-        n = max(1, min(int(body["n"]), 10))  # 限制 1-10 轮
-    result = undo_messages(conv_id, n)
-    if result["undone"] == 0:
-        raise HTTPException(status_code=400, detail="没有可撤回的消息")
-    return {"success": True, **result}
-
-
-@app.post("/api/chat")
-async def chat_api(body: dict):
-    """发送消息并获取 AI 流式响应（SSE）"""
-    from starlette.responses import StreamingResponse
-
-    message = body.get("message", "").strip()
-    conv_id = body.get("conversation_id")
-
-    if not message:
-        raise HTTPException(status_code=400, detail="消息不能为空")
-
-    # 创建或获取会话
-    if not conv_id:
-        conv = create_conversation(title=message[:20])
-        conv_id = conv["id"]
-
-    # 保存用户消息
-    add_message(conv_id, "user", message)
-
-    # 获取会话历史作为上下文
-    conv_data = get_conversation(conv_id)
-    history = [
-        {"role": m["role"], "content": m["content"]}
-        for m in conv_data["messages"]
-        if m["role"] in ("user", "assistant")  # 过滤掉 tool_call 等非标准 role
-    ]
-
-    # 流式响应
-    async def generate():
-        full_response = ""
-
-        # 构建记忆上下文
-        memory_context = build_memory_context(message)
-
-        tool_calls_log = []  # 收集工具调用记录
-
-        async for chunk in agent_chat_stream(history, memory_context=memory_context, conversation_id=conv_id):
-            # 工具调用通知（特殊标记）
-            if chunk.startswith("[TOOL:"):
-                tool_name = chunk[6:-1]
-                tool_calls_log.append({"tool": tool_name, "status": "running"})
-                yield f"data: {json.dumps({'tool': tool_name, 'conversation_id': conv_id})}\n\n"
-                continue
-            if chunk.startswith("[TOOL_OK:"):
-                tool_name = chunk[9:-1]
-                if tool_calls_log and tool_calls_log[-1]["tool"] == tool_name:
-                    tool_calls_log[-1]["status"] = "ok"
-                yield f"data: {json.dumps({'tool_done': tool_name, 'status': 'ok', 'conversation_id': conv_id})}\n\n"
-                continue
-            if chunk.startswith("[TOOL_ERR:"):
-                parts = chunk[10:-1].split(":", 1)
-                tool_name = parts[0]
-                err_msg = parts[1] if len(parts) > 1 else ""
-                if tool_calls_log and tool_calls_log[-1]["tool"] == tool_name:
-                    tool_calls_log[-1]["status"] = "error"
-                    tool_calls_log[-1]["error"] = err_msg
-                yield f"data: {json.dumps({'tool_done': parts[0], 'status': 'error', 'error': err_msg, 'conversation_id': conv_id})}\n\n"
-                continue
-            if chunk.startswith("[USAGE:"):
-                # Token 使用量统计（#061）
-                try:
-                    usage_data = json.loads(chunk[7:-1])
-                    yield f"data: {json.dumps({'usage': usage_data, 'conversation_id': conv_id})}\n\n"
-                except (json.JSONDecodeError, IndexError):
-                    pass
-                continue
-            if chunk == "[COMPACT]":
-                yield f"data: {json.dumps({'compact': True, 'conversation_id': conv_id})}\n\n"
-                continue
-
-            full_response += chunk
-            yield f"data: {json.dumps({'chunk': chunk, 'conversation_id': conv_id})}\n\n"
-
-        # 保存工具调用记录到 conversation（作为 tool_call 类型消息）
-        if tool_calls_log:
-            add_message(conv_id, "tool_call", json.dumps(tool_calls_log, ensure_ascii=False))
-
-        # 清理 DeepSeek DSML 标记泄露
-        import re
-        full_response = re.sub(r'</?[|｜]\s*[|｜]?\s*DSML\s*[|｜]\s*[|｜]?[^>]*>', '', full_response)
-        full_response = re.sub(r'[|｜]\s*[|｜]?\s*tool_calls\s*>', '', full_response)
-        full_response = re.sub(r'[|｜]\s*[|｜]?\s*invoke[^>]*>', '', full_response)
-        full_response = re.sub(r'[|｜]\s*[|｜]?\s*parameter[^>]*>', '', full_response)
-        full_response = full_response.strip()
-
-        # 保存完整的 AI 回复
-        add_message(conv_id, "assistant", full_response)
-
-        # 如果是第一条消息，用内容更新标题
-        if len(history) <= 1:
-            title = message[:30] + ("..." if len(message) > 30 else "")
-            update_conversation_title(conv_id, title)
-
-        # 异步提取记忆（不阻塞响应）
-        import asyncio
-        all_messages = history + [{"role": "assistant", "content": full_response}]
-        asyncio.create_task(extract_memories(all_messages, conv_id))
-
-        yield f"data: {json.dumps({'done': True, 'conversation_id': conv_id})}\n\n"
-
-    return StreamingResponse(
-        generate(),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-    )
-
-
-# === 版本 API ===
-@app.get("/api/version")
-async def get_version():
-    """获取项目版本号和 Git 信息"""
-    import subprocess
-    from .config import PLATFORM_ROOT
-
-    # 从 pyproject.toml 读取版本
-    version = "unknown"
-    toml_path = PLATFORM_ROOT / "pyproject.toml"
-    if toml_path.exists():
-        for line in toml_path.read_text(encoding="utf-8").splitlines():
-            if line.strip().startswith("version"):
-                version = line.split('"')[1]
-                break
-
-    # 尝试获取 Git 信息
-    git_hash = None
-    git_time = None
-    try:
-        result = subprocess.run(
-            ["git", "log", "-1", "--format=%h|%ci"],
-            cwd=PLATFORM_ROOT, capture_output=True, text=True, timeout=5,
-        )
-        if result.returncode == 0:
-            parts = result.stdout.strip().split("|", 1)
-            git_hash = parts[0]
-            git_time = parts[1] if len(parts) > 1 else None
-    except Exception:
-        pass
-
-    return {
-        "version": version,
-        "git_hash": git_hash,
-        "git_time": git_time,
-    }
-
-
-# === 配置 API ===
-@app.get("/api/config")
-async def get_config():
-    """获取平台配置"""
-    config = load_config()
-    return {"config": config}
-
-
-@app.put("/api/config/{path:path}")
-async def update_config(path: str, body: dict):
-    """更新配置项"""
-    value = body.get("value")
-    if value is None:
-        raise HTTPException(status_code=400, detail="缺少 value 字段")
-    set_config_value(path, value)
-    return {"success": True, "path": path, "value": value}
-
-
-# === 记忆 API ===
-@app.get("/api/memory/profile")
-async def get_memory_profile():
-    """获取用户画像"""
-    from .memory_db import get_all_profiles
-    return {"profiles": get_all_profiles()}
-
-
-@app.get("/api/config/secrets-status")
-async def get_secrets_status():
-    """获取密钥配置状态（不返回值，只返回是否已配置）"""
-    from .config_db import get_secret
-    return {
-        "deepseek": bool(get_secret("DEEPSEEK_API_KEY")),
-        "zhipu": bool(get_secret("ZHIPU_API_KEY")),
-        "openai": bool(get_secret("OPENAI_API_KEY")),
-        "gitee": bool(get_secret("GITEE_TOKEN")),
-    }
-
-
-@app.get("/api/memory/knowledge")
-async def get_memory_knowledge(q: str = ""):
-    """搜索/获取知识库"""
-    from .memory_db import search_knowledge, get_recent_knowledge
-    if q:
-        return {"knowledge": search_knowledge(q)}
-    return {"knowledge": get_recent_knowledge()}
-
-
-@app.get("/api/memory/skills")
-async def get_skill_stats_api():
-    """获取工具使用统计"""
-    from .tool_log_db import get_tool_stats, get_stale_tools
-    return {"stats": get_tool_stats(), "stale": get_stale_tools()}
-
-
-# === 宠物 API（供主界面浮动宠物使用） ===
-@app.get("/api/pet/active")
-async def get_active_pet():
-    """获取当前活跃宠物的 spritesheet 信息（供主界面浮动宠物渲染）"""
-    from .config import PLATFORM_ROOT
-    import sqlite3
-
-    pet_db = PLATFORM_ROOT / "workspaces" / "desktop-pet" / "data.db"
-    if not pet_db.exists():
-        return {"pet": None}
-
-    try:
-        conn = sqlite3.connect(str(pet_db))
-        conn.row_factory = sqlite3.Row
-        row = conn.execute(
-            "SELECT id, name, display_name, local_path FROM pets WHERE is_active = 1 LIMIT 1"
-        ).fetchone()
-        conn.close()
-
-        if not row:
-            return {"pet": None}
-
-        # 构建 spritesheet URL（通过工作区静态文件服务）
-        name = row["name"]
-        return {
-            "pet": {
-                "id": row["id"],
-                "name": name,
-                "displayName": row["display_name"] or name,
-                "spritesheetUrl": f"/pets/{name}/spritesheet.webp",
-            }
-        }
-    except Exception:
-        return {"pet": None}
-
-
-# === Agent 成长 API（#069）===
-@app.post("/api/growth/run")
-async def api_growth_run():
-    """手动触发成长"""
-    from .growth import run_growth
-    result = run_growth()
-    return {"success": True, **result}
-
-
-@app.get("/api/growth/reports")
-async def api_growth_reports():
-    """获取成长报告"""
-    from .growth import get_growth_reports
-    return {"reports": get_growth_reports()}
-
-
-# === 定时任务 API（#067）===
-@app.get("/api/scheduler/tasks")
-async def list_scheduled_tasks():
-    """列出所有定时任务"""
-    from .scheduler import list_tasks
-    return {"tasks": list_tasks()}
-
-
-@app.post("/api/scheduler/tasks")
-async def create_scheduled_task(body: dict):
-    """创建定时任务"""
-    from .scheduler import create_task
-    name = body.get("name", "").strip()
-    task_type = body.get("task_type", "ai_prompt")
-    payload = body.get("payload", "").strip()
-    schedule = body.get("schedule", "24h")
-    description = body.get("description", "")
-
-    if not name or not payload:
-        raise HTTPException(400, "name 和 payload 不能为空")
-
-    task = create_task(name, task_type, payload, schedule, description)
-    return {"success": True, "task": task}
-
-
-@app.put("/api/scheduler/tasks/{task_id}")
-async def update_scheduled_task(task_id: int, body: dict):
-    """更新定时任务"""
-    from .scheduler import update_task
-    task = update_task(task_id, **body)
-    if not task:
-        raise HTTPException(404, "任务不存在")
-    return {"success": True, "task": task}
-
-
-@app.delete("/api/scheduler/tasks/{task_id}")
-async def delete_scheduled_task(task_id: int):
-    """删除定时任务"""
-    from .scheduler import delete_task
-    if not delete_task(task_id):
-        raise HTTPException(404, "任务不存在")
-    return {"success": True}
-
-
-@app.get("/api/scheduler/tasks/{task_id}/runs")
-async def get_task_run_history(task_id: int):
-    """获取任务执行历史"""
-    from .scheduler import get_task_runs
-    return {"runs": get_task_runs(task_id)}
+    app.mount("/pets", StaticFiles(directory=str(_pets_dir)), name="pet_assets")
+# 注册所有路由
+register_routers(app)
 
 
 if __name__ == "__main__":

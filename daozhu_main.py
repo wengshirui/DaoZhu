@@ -78,10 +78,12 @@ def start_dev():
 
 
 def main():
-    if "--shell" in sys.argv:
-        start_shell()
-    else:
-        start_dev()
+    start_shell()
+    # if "--shell" in sys.argv:
+    #     start_shell()
+    # else:
+    #     start_dev()
+
 
 
 if __name__ == "__main__":

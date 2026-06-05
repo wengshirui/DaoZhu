@@ -1,40 +1,216 @@
 {
   "version": 1,
-  "description": "岛主项目使用的 AI 技能索引。AI 编码助手根据任务类型自动加载对应 skill。",
+  "description": "岛主项目使用的 AI 技能索引。技能来源包括自建、anthropics/skills、Kiro 社区。",
   "skills": {
     "create-workspaces": {
       "source": "self",
       "sourceType": "local",
       "skillPath": "skills/create-workspaces/SKILL.md",
       "description": "创建新工作区。搜索开源项目 → 深入研究 → 复用代码 → 生成工作区文件。",
-      "triggerWords": ["建工作区", "新建", "创建", "建造", "搭建"]
+      "triggerWords": [
+        "建工作区",
+        "新建",
+        "创建",
+        "建造",
+        "搭建"
+      ]
     },
     "frontend-design": {
       "source": "anthropics/skills",
       "sourceType": "github",
       "skillPath": "skills/frontend-design/SKILL.md",
       "description": "创建高质量前端界面。避免千篇一律的 AI 美学，每个工作区有独特风格。",
-      "triggerWords": ["前端", "UI", "页面", "样式", "美化", "设计"]
+      "triggerWords": [
+        "前端",
+        "UI",
+        "页面",
+        "样式",
+        "美化",
+        "设计"
+      ]
     },
     "create-skill": {
       "source": "self",
       "sourceType": "local",
       "skillPath": "skills/create-skill/SKILL.md",
       "description": "元技能：搜索/安装/创建新的 skill 文件。",
-      "triggerWords": ["技能", "skill", "安装skill", "创建技能"]
+      "triggerWords": [
+        "技能",
+        "skill",
+        "安装skill",
+        "创建技能"
+      ]
     },
     "weather": {
       "source": "self",
       "sourceType": "local",
       "skillPath": "skills/weather/SKILL.md",
       "description": "查询城市实时天气，调用 wttr.in 公共 API。",
-      "triggerWords": ["天气", "温度", "weather"]
+      "triggerWords": [
+        "天气",
+        "温度",
+        "weather"
+      ]
+    },
+    "configure-mcp": {
+      "source": "kiro",
+      "sourceType": "local",
+      "skillPath": "skills/configure-mcp/SKILL.md",
+      "description": "搜索、评估和配置 MCP Server，自动写入 mcp.json 配置文件。",
+      "triggerWords": [
+        "配置mcp",
+        "添加mcp",
+        "安装mcp",
+        "mcp"
+      ]
+    },
+    "design-an-interface": {
+      "source": "kiro",
+      "sourceType": "local",
+      "skillPath": "skills/design-an-interface/SKILL.md",
+      "description": "使用并行子 Agent 生成多种截然不同的接口设计方案，对比后综合最佳方案。",
+      "triggerWords": [
+        "设计接口",
+        "接口设计",
+        "API设计",
+        "模块设计",
+        "设计方案"
+      ]
+    },
+    "edit-md": {
+      "source": "kiro",
+      "sourceType": "local",
+      "skillPath": "skills/edit-md/SKILL.md",
+      "description": "可靠地写入或编辑大型 Markdown 文件的分步策略，避免一次性写入失败。",
+      "triggerWords": [
+        "写文档",
+        "编辑md",
+        "markdown"
+      ]
+    },
+    "grill-me": {
+      "source": "kiro",
+      "sourceType": "local",
+      "skillPath": "skills/grill-me/SKILL.md",
+      "description": "对计划或设计进行严苛面试式拷问，直到达成共识，解决决策树每个分支。",
+      "triggerWords": [
+        "拷问",
+        "grill",
+        "评审",
+        "压力测试",
+        "计划审查"
+      ]
+    },
+    "guizang-ppt-skill": {
+      "source": "kiro",
+      "sourceType": "local",
+      "skillPath": "skills/guizang-ppt-skill/SKILL.md",
+      "description": "生成横向翻页网页 PPT（单 HTML 文件），含 WebGL 背景、杂志风/瑞士风两种风格模板。",
+      "triggerWords": [
+        "PPT",
+        "网页PPT",
+        "slides",
+        "演讲",
+        "演示",
+        "杂志风PPT",
+        "瑞士风PPT"
+      ]
+    },
+    "jira-worklog": {
+      "source": "kiro",
+      "sourceType": "local",
+      "skillPath": "skills/jira-worklog/SKILL.md",
+      "description": "快速批量记录 Jira Tempo 工时，支持 Module 属性管理。",
+      "triggerWords": [
+        "记工时",
+        "Jira",
+        "worklog",
+        "tempo",
+        "工时"
+      ]
+    },
+    "ppt-editor": {
+      "source": "kiro",
+      "sourceType": "local",
+      "skillPath": "skills/ppt-editor/SKILL.md",
+      "description": "使用 PowerPoint MCP 读取、编辑和制作 PPT 演示文稿（需 Windows + Office）。",
+      "triggerWords": [
+        "编辑PPT",
+        "修改PPT",
+        "制作PPT",
+        "PowerPoint"
+      ]
+    },
+    "processon-diagram-generator": {
+      "source": "kiro",
+      "sourceType": "local",
+      "skillPath": "skills/processon-diagram-generator/SKILL.md",
+      "description": "一键生成精美可编辑的流程图、泳道图、时序图、架构图、ER图等 ProcessOn 图表。",
+      "triggerWords": [
+        "流程图",
+        "泳道图",
+        "时序图",
+        "架构图",
+        "ER图",
+        "画图",
+        "diagram",
+        "processon"
+      ]
+    },
+    "to-issues": {
+      "source": "kiro",
+      "sourceType": "local",
+      "skillPath": "skills/to-issues/SKILL.md",
+      "description": "将计划/Spec/PRD 分解为可独立领取的 tracer-bullet 垂直切片 Issue。",
+      "triggerWords": [
+        "分解任务",
+        "拆解issue",
+        "分派任务",
+        "issue拆分"
+      ]
+    },
+    "to-prd": {
+      "source": "kiro",
+      "sourceType": "local",
+      "skillPath": "skills/to-prd/SKILL.md",
+      "description": "从当前对话上下文和代码库理解自动合成 PRD 文档，不提问直接输出。",
+      "triggerWords": [
+        "生成PRD",
+        "写PRD",
+        "产品文档",
+        "需求文档"
+      ]
+    },
+    "ubiquitous-language": {
+      "source": "kiro",
+      "sourceType": "local",
+      "skillPath": "skills/ubiquitous-language/SKILL.md",
+      "description": "提取 DDD 风格的统一语言术语表，标记歧义并存为 UBIQUITOUS_LANGUAGE.md。",
+      "triggerWords": [
+        "统一语言",
+        "术语",
+        "glossary",
+        "DDD",
+        "领域模型",
+        "术语表"
+      ]
     }
   },
   "usage": {
     "create-workspaces": "创建任何新工作区时必须加载，确保遵循开源复用流程",
     "frontend-design": "涉及前端 UI 开发时加载，指导视觉设计方向",
     "create-skill": "用户要求管理技能时加载",
-    "weather": "Agent 运行时自动可用，无需手动加载"
+    "weather": "Agent 运行时自动可用，无需手动加载",
+    "configure-mcp": "用户需要配置 MCP Server 时加载",
+    "design-an-interface": "设计模块接口时需要多方案对比时加载",
+    "edit-md": "需要写入或编辑大型 Markdown 文件时自动使用",
+    "grill-me": "用户要求对计划/设计进行严格审查时加载",
+    "guizang-ppt-skill": "用户需要创建网页 PPT 时加载",
+    "jira-worklog": "用户需要记录 Jira 工时时加载",
+    "ppt-editor": "用户需要编辑 PowerPoint 文件时加载",
+    "processon-diagram-generator": "用户需要绘制各种图表时加载",
+    "to-issues": "需要将计划分解为可执行 Issue 时加载",
+    "to-prd": "需要从对话生成正式 PRD 文档时加载",
+    "ubiquitous-language": "需要进行领域术语统一和建模时加载"
   }
 }

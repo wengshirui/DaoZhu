@@ -17,6 +17,7 @@ const App = {
       Chat.init();
       Panel.init();
       Panel.addLog('success', '所有模块初始化完成');
+    this._checkUpdate();
     } catch (err) {
       console.error('初始化失败:', err);
       this.showToast('页面初始化失败，请刷新重试');
@@ -329,7 +330,34 @@ const App = {
     }).catch(() => {});
   },
 
+  },
+
+  // === 更新检查 ===
+  _checkUpdate() {
+    fetch('/api/check-update')
+      .then(r => r.json())
+      .then(data => {
+        if (data.has_update) {
+          const el = document.getElementById('update-notification');
+          const link = document.getElementById('update-link');
+          if (el && link) {
+            link.textContent = `⬆️ 发现新版本 v${data.latest_version}`;
+            link.href = data.release_url || '#';
+            link.target = '_blank';
+            el.classList.remove('hidden');
+            Panel.addLog('info', `⬆️ 发现新版本 v${data.latest_version}，点击顶部按钮查看`);
+          }
+        } else if (data.error) {
+          Panel.addLog('warning', `更新检查: ${data.error}`);
+        } else {
+          Panel.addLog('info', `当前已是最新版本 v${data.current_version}`);
+        }
+      })
+      .catch(() => {});  // 静默失败
+  },
+
   // === 全局错误提示 ===
+  showToast
   showToast(message, duration = 3000) {
     let toast = document.querySelector('.error-toast');
     if (!toast) {

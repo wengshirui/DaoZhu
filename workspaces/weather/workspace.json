@@ -8,5 +8,6 @@
   "version": "1.0.0",
   "hidden": true,
   "start_mode": "manual",
-  "category": "system"
+  "category": "system",
+  "sort_order": 8
 }
