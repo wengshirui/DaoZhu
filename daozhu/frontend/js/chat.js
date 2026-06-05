@@ -271,17 +271,21 @@ const Chat = {
   _removeWelcome() {
     const welcome = document.getElementById('chat-welcome');
     if (welcome) welcome.remove();
-    const greeting = document.getElementById('greeting-message');
-    if (greeting) greeting.remove();
+    // 注意：不删除 greeting-message，它是持久化的管家问候
   },
 
   async _loadGreeting(conversationId) {
+    // 每次应用启动只问候一次（不是每次切对话都问候）
+    if (this._greetingShown) return;
+
     try {
       const params = conversationId ? `?conversation_id=${conversationId}` : '';
       const res = await fetch(`/api/greeting${params}`);
       if (!res.ok) return;
       const data = await res.json();
       if (!data.greeting) return;
+
+      this._greetingShown = true; // 标记已问候
 
       const container = document.getElementById('chat-messages');
       const existing = document.getElementById('greeting-message');
