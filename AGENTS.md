@@ -103,6 +103,13 @@
 3. **产物位置** — `src-tauri/target/release/bundle/`
 4. **剃刀原理** — 优先复用现有资源（如 favicon.ico），禁止无端新建文件
 
+**Release 打包安全（🔴 必须遵守）：**
+1. **禁止打包任何 `.db` 文件** — 包含用户聊天记录、API Key、待办数据
+2. **禁止打包 `.env`** — 包含 API 密钥
+3. **禁止打包 `config.json`** — 包含用户配置
+4. **验证方法** — 打包后用 zip 工具检查是否有 `.db/.env` 文件，有则立即停止发布
+5. **脚本位置** — `scripts/pack_release.py` 中 `_ignore_fn` 负责排除
+
 ---
 
 ## workspace.json 规范
@@ -162,6 +169,9 @@ ruff check . && ruff format .   # lint + format
 | Tauri window.open 无效 | 前端覆盖 `window.open`，调用 Rust IPC `open_external` |
 | Tauri 透明窗口有边框 | `.shadow(false)` + `.decorations(false)` |
 | Cargo 下载超时 | 配置 `HTTP_PROXY` / `HTTPS_PROXY` 环境变量 |
+| 🔴 **打包泄露用户数据** | `pack_release.py` 必须用 `_ignore_fn` 排除所有 `.db`/`.env`/`config.json`。`shutil.copytree` 默认复制一切！ |
+| 前端 JS 缓存（Tauri WebView） | 每次改 JS/CSS 后必须在 index.html 里升版本号（`?v=N`），或清除 WebView2 缓存 |
+| AI 对已上传文件调 read_file | 消息中明确标注"已解析，无需再用工具读取"，SYSTEM_PROMPT 加禁止规则 |
 
 ---
 
