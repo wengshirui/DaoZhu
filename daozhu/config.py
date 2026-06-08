@@ -25,7 +25,7 @@ DEFAULT_CONFIG = {
     "ai": {
         "provider": "deepseek",
         "model": "deepseek-v4-pro",
-        "base_url": "https://api.deepseek.com/v1",
+        "base_url": "https://api.deepseek.com",
         "thinking": False,
     },
     "display": {
@@ -42,7 +42,7 @@ DEFAULT_CONFIG = {
 PROVIDERS = {
     "deepseek": {
         "name": "DeepSeek",
-        "base_url": "https://api.deepseek.com/v1",
+        "base_url": "https://api.deepseek.com",
         "default_model": "deepseek-v4-pro",
         "key_name": "DEEPSEEK_API_KEY",
         "needs_key": True,
