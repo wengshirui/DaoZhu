@@ -126,6 +126,26 @@ def assemble_bundle():
     step("4. 组装发布包")
     BUNDLE_DIR.mkdir(parents=True, exist_ok=True)
 
+    # 敏感/用户数据排除列表
+    EXCLUDE_PATTERNS = {
+        ".env", "chat.db", "config.db", "memory.db", "growth.db",
+        "scheduler.db", "idle_work.db", "data.db", "prd.db",
+        ".window_state.json", "config.json",
+    }
+    EXCLUDE_DIRS = {"__pycache__", ".git", "node_modules", ".venv", "target"}
+
+    def _ignore_fn(directory, files):
+        """shutil.copytree ignore 回调：排除敏感文件和目录"""
+        ignored = set()
+        for f in files:
+            if f in EXCLUDE_PATTERNS:
+                ignored.add(f)
+            if f.endswith(".db"):
+                ignored.add(f)
+            if f in EXCLUDE_DIRS:
+                ignored.add(f)
+        return ignored
+
     # 复制 Tauri exe
     dest_exe = BUNDLE_DIR / "岛主DaoZhu.exe"
     shutil.copy2(TAURI_EXE, dest_exe)
@@ -135,14 +155,14 @@ def assemble_bundle():
     daozhu_dest = BUNDLE_DIR / "daozhu"
     if daozhu_dest.exists():
         shutil.rmtree(daozhu_dest)
-    shutil.copytree(ROOT / "daozhu", daozhu_dest)
+    shutil.copytree(ROOT / "daozhu", daozhu_dest, ignore=_ignore_fn)
     print(f"  ✓ 后端源码: daozhu/")
 
-    # 复制工作区（含默认宠物）
+    # 复制工作区（排除用户数据）
     ws_dest = BUNDLE_DIR / "workspaces"
     if ws_dest.exists():
         shutil.rmtree(ws_dest)
-    shutil.copytree(ROOT / "workspaces", ws_dest)
+    shutil.copytree(ROOT / "workspaces", ws_dest, ignore=_ignore_fn)
     print(f"  ✓ 工作区: workspaces/")
 
     # 复制技能
@@ -151,8 +171,14 @@ def assemble_bundle():
         skills_dest = BUNDLE_DIR / "skills"
         if skills_dest.exists():
             shutil.rmtree(skills_dest)
-        shutil.copytree(skills_src, skills_dest)
+        shutil.copytree(skills_src, skills_dest, ignore=_ignore_fn)
         print(f"  ✓ 技能: skills/")
+
+    # 确保不复制根目录的敏感文件
+    for sensitive in EXCLUDE_PATTERNS:
+        p = BUNDLE_DIR / sensitive
+        if p.exists():
+            p.unlink()
 
     # 生成 README.txt
     write_readme()
