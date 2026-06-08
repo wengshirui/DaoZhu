@@ -120,6 +120,20 @@ async def get_memory_profile():
     return {"profiles": get_all_profiles()}
 
 
+@router.get("/api/config/models")
+async def get_provider_models():
+    """获取所有 Provider 的可用模型列表"""
+    from daozhu.config import PROVIDERS
+    result = {}
+    for key, provider in PROVIDERS.items():
+        result[key] = {
+            "name": provider["name"],
+            "models": provider.get("models", [provider["default_model"]]),
+            "default_model": provider["default_model"],
+        }
+    return result
+
+
 @router.get("/api/config/secrets-status")
 async def get_secrets_status():
     """获取密钥配置状态（不返回值，只返回是否已配置）"""

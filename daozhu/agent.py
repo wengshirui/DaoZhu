@@ -88,6 +88,7 @@ async def agent_chat_stream(
     api_key = get_api_key(provider)
     base_url = get_provider_base_url(provider)
     protocol = get_provider_protocol(provider)
+    thinking_enabled = get_config_value("ai.thinking", False)
 
 
     if not api_key:
@@ -175,6 +176,9 @@ async def agent_chat_stream(
                 "messages": full_messages,
                 "max_tokens": 2048,
             }
+            # 深度思考模式（#075）
+            if thinking_enabled and "deepseek" in provider:
+                payload["max_tokens"] = 4096  # 思考模式输出更长
             if tool_schemas:
                 payload["tools"] = tool_schemas
                 payload["tool_choice"] = "auto"

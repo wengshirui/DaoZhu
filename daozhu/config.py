@@ -26,6 +26,7 @@ DEFAULT_CONFIG = {
         "provider": "deepseek",
         "model": "deepseek-chat",
         "base_url": "https://api.deepseek.com/v1",
+        "thinking": False,
     },
     "display": {
         "theme": "light",
@@ -45,6 +46,7 @@ PROVIDERS = {
         "default_model": "deepseek-chat",
         "key_name": "DEEPSEEK_API_KEY",
         "needs_key": True,
+        "models": ["deepseek-chat", "deepseek-reasoner"],
     },
     "zhipu": {
         "name": "智谱 AI",
@@ -53,6 +55,7 @@ PROVIDERS = {
         "key_name": "ZHIPU_API_KEY",
         "needs_key": True,
         "protocol": "anthropic",
+        "models": ["glm-5.1", "glm-4-plus", "glm-4-flash"],
     },
     "ollama": {
         "name": "Ollama (本地)",
@@ -60,6 +63,7 @@ PROVIDERS = {
         "default_model": "qwen2.5:7b",
         "key_name": None,
         "needs_key": False,
+        "models": ["qwen2.5:7b", "qwen2.5:14b", "llama3:8b", "deepseek-r1:7b"],
     },
     "openai": {
         "name": "OpenAI",
@@ -67,6 +71,7 @@ PROVIDERS = {
         "default_model": "gpt-4o-mini",
         "key_name": "OPENAI_API_KEY",
         "needs_key": True,
+        "models": ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"],
     },
 }
 

@@ -91,6 +91,20 @@ const App = {
             </select>
           </div>
 
+          <div>
+            <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🤖 模型</label>
+            <select id="settings-model" style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">💭 深度思考模式</label>
+            <select id="settings-thinking" style="width:100%;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:8px;font:inherit;background:var(--bg-primary)">
+              <option value="false">关闭（快速回复，省 token）</option>
+              <option value="true">开启（推理增强，适合复杂任务）</option>
+            </select>
+          </div>
+
           <div id="key-section-deepseek">
             <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:4px">🔑 DeepSeek API Key <span id="status-apikey" style="font-size:0.75rem"></span></label>
             <div style="display:flex;gap:8px">
@@ -181,6 +195,10 @@ const App = {
     const greetingEnabled = config?.greeting?.enabled !== false;
     document.getElementById('settings-greeting').value = greetingEnabled ? 'true' : 'false';
 
+    // 填充思考模式
+    const thinking = config?.ai?.thinking === true;
+    document.getElementById('settings-thinking').value = thinking ? 'true' : 'false';
+
     // 填充当前岛名
     fetch('/api/config').then(r => r.json()).then(data => {
       const name = data.config?.island_name;
@@ -207,6 +225,23 @@ const App = {
       const el = document.getElementById(`key-section-${s}`);
       if (el) el.style.display = s === provider ? 'block' : 'none';
     });
+
+    // 动态加载模型列表
+    fetch('/api/config/models').then(r => r.json()).then(data => {
+      const modelSelect = document.getElementById('settings-model');
+      if (!modelSelect || !data[provider]) return;
+      const models = data[provider].models || [];
+      modelSelect.innerHTML = models.map(m =>
+        `<option value="${m}">${m}</option>`
+      ).join('');
+      // 恢复当前选择
+      fetch('/api/config').then(r => r.json()).then(cfg => {
+        const currentModel = cfg.config?.ai?.model;
+        if (currentModel && models.includes(currentModel)) {
+          modelSelect.value = currentModel;
+        }
+      }).catch(() => {});
+    }).catch(() => {});
   },
 
   async _saveSettings() {
@@ -226,6 +261,24 @@ const App = {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ value: provider }),
+      });
+
+      // 保存模型
+      const model = document.getElementById('settings-model').value;
+      if (model) {
+        await fetch('/api/config/ai.model', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value: model }),
+        });
+      }
+
+      // 保存思考模式
+      const thinking = document.getElementById('settings-thinking').value === 'true';
+      await fetch('/api/config/ai.thinking', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: thinking }),
       });
 
       // 保存岛名
