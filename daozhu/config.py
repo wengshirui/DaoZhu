@@ -24,7 +24,7 @@ DEFAULT_CONFIG = {
     },
     "ai": {
         "provider": "deepseek",
-        "model": "deepseek-chat",
+        "model": "deepseek-v4-pro",
         "base_url": "https://api.deepseek.com/v1",
         "thinking": False,
     },
@@ -43,19 +43,19 @@ PROVIDERS = {
     "deepseek": {
         "name": "DeepSeek",
         "base_url": "https://api.deepseek.com/v1",
-        "default_model": "deepseek-chat",
+        "default_model": "deepseek-v4-pro",
         "key_name": "DEEPSEEK_API_KEY",
         "needs_key": True,
-        "models": ["deepseek-chat", "deepseek-reasoner"],
+        "models": ["deepseek-v4-pro", "deepseek-v4-flash", "deepseek-chat", "deepseek-reasoner"],
     },
     "zhipu": {
-        "name": "智谱 AI",
+        "name": "智谱 AI (Z.AI)",
         "base_url": "https://open.bigmodel.cn/api/anthropic",
-        "default_model": "glm-5.1",
+        "default_model": "glm-4.6",
         "key_name": "ZHIPU_API_KEY",
         "needs_key": True,
         "protocol": "anthropic",
-        "models": ["glm-5.1", "glm-4-plus", "glm-4-flash"],
+        "models": ["glm-4.6", "glm-4.5", "glm-4.5-air"],
     },
     "ollama": {
         "name": "Ollama (本地)",
@@ -68,10 +68,10 @@ PROVIDERS = {
     "openai": {
         "name": "OpenAI",
         "base_url": "https://api.openai.com/v1",
-        "default_model": "gpt-4o-mini",
+        "default_model": "gpt-4.1-mini",
         "key_name": "OPENAI_API_KEY",
         "needs_key": True,
-        "models": ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"],
+        "models": ["gpt-4.1-mini", "gpt-4.1", "gpt-4o", "o3", "o4-mini"],
     },
 }
 
