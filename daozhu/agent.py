@@ -339,11 +339,12 @@ async def agent_chat_stream(
 
                 else:
                     # 没有工具调用，输出最终响应
-                    # 如果之前有过工具调用，用质检角色生成最终回复
-                    if _had_tool_calls and protocol != "anthropic":
-                        # 构建工具结果摘要（#077 防幻觉）
-                        results_summary = "\n".join(_tool_exec_results) if _tool_exec_results else "无工具调用记录"
-                        honesty_prompt = f"""以下是你刚刚执行的工具调用结果：
+                    # 每次都过质检（#077 防幻觉：token 消耗是值得的）
+                    if protocol != "anthropic":
+                        # 构建质检上下文
+                        if _had_tool_calls and _tool_exec_results:
+                            results_summary = "\n".join(_tool_exec_results)
+                            honesty_prompt = f"""以下是你刚刚执行的工具调用结果：
 {results_summary}
 
 请在回复中如实描述每个工具的执行结果。
@@ -351,7 +352,13 @@ async def agent_chat_stream(
 - 失败的必须说明失败原因，绝对不要编造"已完成"
 - 权限被拒绝的必须告知用户
 """
-                        # 注入质检 prompt + 诚实校验，让 LLM 审查并给出最终回复
+                        else:
+                            honesty_prompt = """注意：本轮你没有调用任何工具。
+如果用户问的是需要查询才能得到的信息（如数量、状态、具体数据），
+你必须诚实说"我需要先查一下"或调用工具获取，绝对不要凭记忆编造数字。
+如果你的回答中包含具体数字或统计，请确认这些数字来自工具调用结果而非猜测。
+"""
+                        # 注入质检 prompt，让 LLM 审查并给出最终回复
                         review_messages = full_messages + [
                             message,
                             {"role": "system", "content": REVIEWER_PROMPT + "\n\n" + honesty_prompt},
@@ -366,7 +373,7 @@ async def agent_chat_stream(
                         except Exception:
                             pass  # 质检失败，回退到原始回复
 
-                    # 直接流式输出
+                    # Anthropic 或质检失败时：直接流式输出
                     final_content = message.get("content", "")
                     if final_content:
                         try:
