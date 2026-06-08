@@ -227,7 +227,7 @@ const App = {
     });
 
     // 动态加载模型列表
-    fetch('/api/config/models').then(r => r.json()).then(data => {
+    fetch('/api/providers/models').then(r => r.json()).then(data => {
       const modelSelect = document.getElementById('settings-model');
       if (!modelSelect || !data[provider]) return;
       const models = data[provider].models || [];

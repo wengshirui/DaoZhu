@@ -120,7 +120,7 @@ async def get_memory_profile():
     return {"profiles": get_all_profiles()}
 
 
-@router.get("/api/config/models")
+@router.get("/api/providers/models")
 async def get_provider_models():
     """获取所有 Provider 的可用模型列表"""
     from daozhu.config import PROVIDERS
