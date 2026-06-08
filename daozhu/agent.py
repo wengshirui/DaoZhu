@@ -111,6 +111,17 @@ SYSTEM_PROMPT = """你是岛主平台的岛管理员——用户的 AI 伙伴。
 - 调用工具必须提供所有 required 参数
 - 超出能力范围直接说"我做不到"，不要乱试
 - 🔴 如果用户消息中已经包含"文件内容（已解析，无需再用工具读取）"，直接使用消息中的内容，绝对不要再调 read_file 工具去读取
+
+## 诚实与透明（🔴 最高优先级，不可违反）
+
+诚实是伙伴关系的基石。比做错更糟糕的是说谎。
+1. 工具调用成功 → 如实告知结果
+2. 工具调用失败 → 明确说"XX 失败了：原因"，不编造、不美化、不模糊
+3. 没有执行操作 → 绝不说"我已经做了"，可以说"我还没做"或"需要我做吗"
+4. 权限被拒绝 → 告知用户"该操作被安全规则拒绝"，不换个说法暗示已执行
+5. 不确定是否成功 → 说"我不确定是否成功，建议你检查一下"
+6. 连续失败 → 主动告知困难："这个操作我试了几次没成功，原因是 XX"
+违反以上任何一条都是在背叛用户的信任。
 """
 
 REVIEWER_PROMPT = """你是质检员。检查上面的执行结果是否满足用户的原始请求。
@@ -218,6 +229,7 @@ async def agent_chat_stream(
     iteration = 0
     _consecutive_failures = {}  # 追踪连续失败次数
     _had_tool_calls = False  # 追踪是否有过工具调用
+    _tool_exec_results = []  # 收集工具执行结果摘要（#077 防幻觉）
     _usage_total = {"prompt_tokens": 0, "completion_tokens": 0, "cache_hit_tokens": 0}
 
     while iteration < MAX_ITERATIONS:
@@ -298,6 +310,7 @@ async def agent_chat_stream(
                             }, ensure_ascii=False)
                             yield f"[TOOL:{tool_name}]"
                             yield f"[TOOL_ERR:{tool_name}:权限拒绝]"
+                            _tool_exec_results.append(f"🚫 {tool_name}: 权限拒绝（安全规则禁止）")
                             if protocol == "anthropic":
                                 full_messages.append({
                                     "role": "user",
@@ -364,15 +377,18 @@ async def agent_chat_stream(
                         except (json.JSONDecodeError, TypeError):
                             _consecutive_failures[tool_name] = 0
 
-                        # 推送工具结果状态
+                        # 推送工具结果状态 + 收集结果摘要（#077）
                         try:
                             r = json.loads(result)
                             if isinstance(r, dict) and r.get("error"):
                                 yield f"[TOOL_ERR:{tool_name}:{r['error'][:50]}]"
+                                _tool_exec_results.append(f"❌ {tool_name}: 失败 - {r['error'][:60]}")
                             else:
                                 yield f"[TOOL_OK:{tool_name}]"
+                                _tool_exec_results.append(f"✅ {tool_name}: 成功")
                         except (json.JSONDecodeError, TypeError):
                             yield f"[TOOL_OK:{tool_name}]"
+                            _tool_exec_results.append(f"✅ {tool_name}: 成功")
 
                         # 添加工具结果到消息
                         if protocol == "anthropic":
@@ -404,10 +420,20 @@ async def agent_chat_stream(
                     # 没有工具调用，输出最终响应
                     # 如果之前有过工具调用，用质检角色生成最终回复
                     if _had_tool_calls and protocol != "anthropic":
-                        # 注入质检 prompt，让 LLM 审查并给出最终回复
+                        # 构建工具结果摘要（#077 防幻觉）
+                        results_summary = "\n".join(_tool_exec_results) if _tool_exec_results else "无工具调用记录"
+                        honesty_prompt = f"""以下是你刚刚执行的工具调用结果：
+{results_summary}
+
+请在回复中如实描述每个工具的执行结果。
+- 成功的可以简洁确认
+- 失败的必须说明失败原因，绝对不要编造"已完成"
+- 权限被拒绝的必须告知用户
+"""
+                        # 注入质检 prompt + 诚实校验，让 LLM 审查并给出最终回复
                         review_messages = full_messages + [
                             message,
-                            {"role": "system", "content": REVIEWER_PROMPT},
+                            {"role": "system", "content": REVIEWER_PROMPT + "\n\n" + honesty_prompt},
                         ]
                         try:
                             async for chunk in _stream_final_response(

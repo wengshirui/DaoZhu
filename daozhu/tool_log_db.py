@@ -119,3 +119,30 @@ def cleanup_old_logs(days: int = 90):
     )
     db.commit()
     db.close()
+
+
+def log_suspected_hallucination(
+    conversation_id: str,
+    tool_name: str,
+    actual_result: str,
+    llm_claim: str = "",
+):
+    """
+    记录可疑幻觉（#077）：工具失败但 LLM 声称成功。
+    复用 tool_logs 表，用特殊 tool_name 前缀标记。
+    """
+    db = _get_db()
+    db.execute(
+        """INSERT INTO tool_logs
+           (conversation_id, tool_name, args, result, success, duration_ms, error)
+           VALUES (?, ?, ?, ?, 0, 0, ?)""",
+        (
+            conversation_id,
+            f"[HALLUCINATION]{tool_name}",
+            json.dumps({"llm_claim": llm_claim[:200]}, ensure_ascii=False),
+            actual_result[:500],
+            "LLM声称成功但工具实际失败",
+        ),
+    )
+    db.commit()
+    db.close()
