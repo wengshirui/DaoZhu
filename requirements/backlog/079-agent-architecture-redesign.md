@@ -345,3 +345,83 @@ daozhu/
 | Anthropic 防幻觉 | "If you can't verify it, don't ship it" | 设计原则 |
 | RP-ReAct | 工具输出只传摘要，不全量回传 | Stage 3 只看摘要 |
 | Karpathy "LLM as Compiler" | LLM 产出结构化 artifact，runtime 执行 | Stage 2 结构化输出 |
+
+
+---
+
+## hermes-agent 架构深度学习（代码级分析）
+
+### 文件分解策略（God-file Decomposition）
+
+hermes-agent 把 12k+ 行的 `run_agent.py` 拆成了独立模块：
+
+| 模块 | 职责 | 设计特点 |
+|------|------|---------|
+| `conversation_loop.py` | 主循环编排 | 只做流程控制，不做具体逻辑 |
+| `turn_context.py` | 每轮开始的准备工作（TurnContext dataclass） | 准备和执行彻底分离 |
+| `turn_finalizer.py` | 每轮结束的后置处理 | 验证+保存+hook+诊断 |
+| `tool_executor.py` | 工具调用执行 | 并发/顺序两种模式 |
+| `tool_guardrails.py` | 循环检测/阻断控制器 | **纯函数无副作用**，只返回 Decision |
+| `turn_retry_state.py` | 重试状态 dataclass | 一次性守卫，清晰可测 |
+| `prompt_builder.py` | 三层 prompt 构建 | stable/context/volatile |
+| `background_review.py` | 异步后台分析 | 不阻塞主循环 |
+| `tool_result_classification.py` | 工具结果判定 | **代码判定**成功/失败 |
+
+### 关键设计原则
+
+**1. Guardrail 是"顾问"不是"执行者"**
+```python
+decision = controller.after_call(tool_name, args, result, failed=is_error)
+# decision.action: "allow" | "warn" | "block" | "halt"
+# 调用方根据 decision 决定行为——guardrail 本身不执行任何操作
+```
+
+**2. TurnContext 模式 — 准备和执行彻底分离**
+```python
+_ctx = build_turn_context(agent, user_message, ...)  # 所有准备
+# 主循环只消费 _ctx 的字段
+```
+
+**3. TurnFinalizer 模式 — 后置处理集中管理**
+- 文件变异验证器（代码追加真实状态）
+- 轮次完成解释器（异常退出解释）
+- 插件 hook（transform / post_llm_call）
+- 诊断日志
+
+**4. 工具结果由代码判定，不让 LLM 重新解释**
+```python
+# tool_result_classification.py
+def file_mutation_result_landed(tool_name, result) -> bool:
+    """代码判定文件是否真的写成功了"""
+```
+
+**5. 后置验证器 = 代码级事实覆盖**
+```python
+# turn_finalizer 中
+if _failed and agent._file_mutation_verifier_enabled():
+    footer = agent._format_file_mutation_failure_footer(_failed)
+    final_response = final_response + "\n\n" + footer
+# 不管模型说了什么，代码追加真实状态
+```
+
+### hermes 没有做但岛主可以超越的
+
+1. **没有独立"输出生成"阶段** — 同一 LLM 循环结束直接回答（可能编造）
+2. **没有 Reflect-Refine 循环** — 验证器只追加，不让模型修正
+3. **没有意图路由** — 所有请求走完整循环（浪费 token）
+
+### 岛主 079 应该从 hermes 学什么
+
+| 学什么 | 为什么 |
+|--------|--------|
+| God-file 拆分方式 | 按职责拆模块，每个可独立测试 |
+| TurnContext 数据类 | 准备和执行分离，状态不散落 |
+| Guardrail 纯函数 | 只返回建议，调用方决定行动 |
+| 代码级结果判定 | 不让 LLM 重新解释工具结果 |
+| 后置验证追加事实 | 最后防线，不信任 LLM |
+
+| 不学什么 | 为什么 |
+|----------|--------|
+| 同一 LLM 直接回答 | 这是幻觉根因 |
+| 只追加不修正 | 浪费了一次让模型改正的机会 |
+| 12k 行主文件拆分方式 | 岛主从一开始就应该小文件 |
