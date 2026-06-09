@@ -192,7 +192,7 @@ async def _task_check_todos() -> Optional[str]:
     from datetime import date
 
     try:
-        async with httpx.AsyncClient(timeout=3.0) as client:
+        async with httpx.AsyncClient(timeout=3.0, proxy=None) as client:
             resp = await client.get("http://localhost:7801/api/tasks/", params={"today": "true"})
             if resp.status_code != 200:
                 return None

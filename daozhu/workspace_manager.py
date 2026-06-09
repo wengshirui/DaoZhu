@@ -251,7 +251,8 @@ class WorkspaceManager:
         start = time.time()
         url = f"http://127.0.0.1:{ws.port}/"
 
-        async with httpx.AsyncClient() as client:
+        # 禁用代理直连本地（修复代理环境下启动超时）
+        async with httpx.AsyncClient(proxy=None) as client:
             while time.time() - start < timeout:
                 try:
                     resp = await client.get(url, timeout=2)
@@ -326,7 +327,7 @@ class WorkspaceManager:
 
     async def health_check(self) -> None:
         """对所有运行中的工作区执行健康检查"""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(proxy=None) as client:
             for ws in self.workspaces.values():
                 if ws.status != WorkspaceStatus.RUNNING:
                     continue

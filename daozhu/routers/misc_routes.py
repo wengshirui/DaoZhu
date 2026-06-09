@@ -381,7 +381,7 @@ async def get_greeting(conversation_id: str = None):
     # 获取待办数据（降级处理）
     todo_summary = ""
     try:
-        async with httpx.AsyncClient(timeout=3.0) as client:
+        async with httpx.AsyncClient(timeout=3.0, proxy=None) as client:
             resp = await client.get("http://localhost:7801/api/tasks/", params={"today": "true"})
             if resp.status_code == 200:
                 data = resp.json()
