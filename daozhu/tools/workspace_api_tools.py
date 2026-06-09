@@ -5,7 +5,7 @@
 """
 
 import json
-import httpx
+import urllib.error
 
 from .registry import registry
 
@@ -28,6 +28,7 @@ async def call_workspace_api_tool(
     body: str = "",
 ) -> str:
     """调用工作区的 API 接口"""
+    import urllib.request
     from ..workspace_manager import manager
 
     ws = manager.get_workspace(workspace_id)
@@ -44,36 +45,27 @@ async def call_workspace_api_tool(
     url = f"http://127.0.0.1:{ws.port}/api{path}"
 
     try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            if method.upper() == "GET":
-                resp = await client.get(url)
-            elif method.upper() == "POST":
-                resp = await client.post(
-                    url,
-                    content=body if body else None,
-                    headers={"Content-Type": "application/json"} if body else {},
-                )
-            elif method.upper() == "PUT":
-                resp = await client.put(
-                    url,
-                    content=body if body else None,
-                    headers={"Content-Type": "application/json"} if body else {},
-                )
-            elif method.upper() == "DELETE":
-                resp = await client.delete(url)
-            else:
-                return json.dumps({"error": f"不支持的方法: {method}"}, ensure_ascii=False)
+        headers = {}
+        data = None
+        if body and method.upper() in ("POST", "PUT"):
+            headers["Content-Type"] = "application/json"
+            data = body.encode("utf-8")
 
-            if resp.status_code >= 400:
+        req = urllib.request.Request(url, data=data, headers=headers, method=method.upper())
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            resp_body = resp.read().decode("utf-8")
+            if resp.status >= 400:
                 return json.dumps({
-                    "error": f"API 返回 {resp.status_code}",
-                    "detail": resp.text[:500],
+                    "error": f"API 返回 {resp.status}",
+                    "detail": resp_body[:500],
                 }, ensure_ascii=False)
+            return resp_body
 
-            return resp.text
-
-    except httpx.ConnectError:
-        return json.dumps({"error": "无法连接到工作区服务"}, ensure_ascii=False)
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode("utf-8", errors="replace")[:500] if hasattr(e, "read") else ""
+        return json.dumps({"error": f"API 返回 {e.code}", "detail": error_body}, ensure_ascii=False)
+    except urllib.error.URLError as e:
+        return json.dumps({"error": f"无法连接到工作区服务: {e.reason}"}, ensure_ascii=False)
     except Exception as e:
         return json.dumps({"error": str(e)}, ensure_ascii=False)
 
