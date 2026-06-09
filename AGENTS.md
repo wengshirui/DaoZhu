@@ -169,6 +169,8 @@ ruff check . && ruff format .   # lint + format
 | Tauri window.open 无效 | 前端覆盖 `window.open`，调用 Rust IPC `open_external` |
 | Tauri 透明窗口有边框 | `.shadow(false)` + `.decorations(false)` |
 | Cargo 下载超时 | 配置 `HTTP_PROXY` / `HTTPS_PROXY` 环境变量 |
+| SQLite WAL 锁（工作区打不开） | 强杀进程后 `.db-shm/.db-wal` 残留导致锁冲突。删掉这两个文件即可恢复 |
+| Clash 代理导致本地连接 502 | `app.py` 顶部 `os.environ.setdefault("NO_PROXY", "127.0.0.1,localhost")`；Tauri 用 `.no_proxy()` |
 | 🔴 **打包泄露用户数据** | `pack_release.py` 必须用 `_ignore_fn` 排除所有 `.db`/`.env`/`config.json`。`shutil.copytree` 默认复制一切！ |
 | 前端 JS 缓存（Tauri WebView） | 每次改 JS/CSS 后必须在 index.html 里升版本号（`?v=N`），或清除 WebView2 缓存 |
 | AI 对已上传文件调 read_file | 消息中明确标注"已解析，无需再用工具读取"，SYSTEM_PROMPT 加禁止规则 |
