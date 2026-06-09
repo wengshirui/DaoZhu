@@ -14,16 +14,27 @@ from pathlib import Path
 
 from fastapi import FastAPI
 
-# === 日志配置 ===
+# === 日志配置（按日期分文件）===
+from logging.handlers import TimedRotatingFileHandler
+
 LOG_DIR = Path(__file__).parent.parent / "logs"
 LOG_DIR.mkdir(exist_ok=True)
+
+_log_handler = TimedRotatingFileHandler(
+    LOG_DIR / "daozhu.log",
+    when="midnight",
+    interval=1,
+    backupCount=30,  # 保留 30 天
+    encoding="utf-8",
+)
+_log_handler.suffix = "%Y-%m-%d"
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[
-        logging.FileHandler(LOG_DIR / "daozhu.log", encoding="utf-8", mode="a"),
-        logging.StreamHandler(),  # 同时输出到控制台
+        _log_handler,
+        logging.StreamHandler(),
     ],
 )
 logger = logging.getLogger("daozhu")
