@@ -125,6 +125,7 @@ fn wait_for_backend(port: u16, timeout_secs: u64) -> bool {
     let client = reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(2))
         .redirect(reqwest::redirect::Policy::none())
+        .no_proxy()
         .build()
         .unwrap();
 
