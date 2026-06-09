@@ -55,6 +55,72 @@ def _build_stats_context() -> str:
         return "[以下是资源使用情况，在合适时机自然地提出优化建议：]\n" + "\n".join(parts)
     return ""
 
+
+def _get_workspace_api_hint(ws_id: str, ws_path) -> str:
+    """
+    从工作区的路由文件中提取 API 端点摘要。
+    让 AI 知道确切的 API 路径，避免猜测导致的幻觉。
+    """
+    from pathlib import Path
+    import re
+
+    routes_dir = Path(ws_path) / "routes"
+    if not routes_dir.exists():
+        routes_file = Path(ws_path) / "routes.py"
+        if routes_file.exists():
+            return _extract_routes_from_file(routes_file, "/")
+        return ""
+
+    # 解析 __init__.py 获取 prefix 映射
+    init_file = routes_dir / "__init__.py"
+    prefix_map = {}  # filename_stem → prefix
+    if init_file.exists():
+        try:
+            content = init_file.read_text(encoding="utf-8")
+            # 匹配 router.include_router(xxx_router, prefix="/tasks")
+            for m in re.finditer(r'include_router\(\s*(\w+)_router.*?prefix\s*=\s*["\']([^"\']+)', content):
+                prefix_map[m.group(1)] = m.group(2)
+        except Exception:
+            pass
+
+    hints = []
+    for py_file in sorted(routes_dir.glob("*.py")):
+        if py_file.name == "__init__.py":
+            continue
+        stem = py_file.stem
+        prefix = prefix_map.get(stem, f"/{stem}")
+        extracted = _extract_routes_from_file(py_file, prefix)
+        if extracted:
+            hints.append(extracted)
+
+    return "\n".join(hints) if hints else ""
+
+
+def _extract_routes_from_file(filepath, prefix: str = "") -> str:
+    """从 Python 路由文件中提取 API 端点"""
+    import re
+    try:
+        content = filepath.read_text(encoding="utf-8")
+    except Exception:
+        return ""
+
+    pattern = r'@router\.(get|post|put|delete)\s*\(\s*["\']([^"\']+)["\']'
+    matches = re.findall(pattern, content)
+    if not matches:
+        return ""
+
+    lines = []
+    for method, path in matches[:10]:
+        full_path = prefix.rstrip("/") + path if path != "/" else prefix
+        # 提取 docstring
+        func_pattern = rf'@router\.{method}\s*\(\s*["\']({re.escape(path)})["\'].*?\n\s*(?:async\s+)?def\s+\w+.*?\n\s*"""([^"]*?)"""'
+        doc_match = re.search(func_pattern, content, re.DOTALL)
+        desc = doc_match.group(2).strip().split('\n')[0] if doc_match else ""
+        desc_str = f" — {desc}" if desc else ""
+        lines.append(f"    {method.upper()} {full_path}{desc_str}")
+
+    return "\n".join(lines)
+
 # === 系统提示词（从 prompts.py 导入）===
 from .prompts import SYSTEM_PROMPT, REVIEWER_PROMPT
 
@@ -108,15 +174,19 @@ async def agent_chat_stream(
     if skills_summary:
         context_parts.append(skills_summary)
 
-    # 动态注入工作区列表
+    # 动态注入工作区列表 + API 路由提示（防幻觉：让 AI 知道确切路径）
     from .workspace_manager import manager
     ws_lines = []
     for ws in manager.workspaces.values():
         if ws.hidden:
             continue
-        ws_lines.append(f"  - {ws.id}: {ws.name}（端口 {ws.port}）")
+        api_hint = _get_workspace_api_hint(ws.id, ws.path)
+        if api_hint:
+            ws_lines.append(f"  [{ws.id}] {ws.name}（端口 {ws.port}）\n{api_hint}")
+        else:
+            ws_lines.append(f"  [{ws.id}] {ws.name}（端口 {ws.port}）")
     if ws_lines:
-        context_parts.append("[当前可用工作区（用 call_workspace_api 操作）：]\n" + "\n".join(ws_lines))
+        context_parts.append("[可用工作区 — 用 call_workspace_api 操作，必须使用下面列出的精确路径：]\n" + "\n".join(ws_lines))
 
     # 注入使用统计（触发优化建议）
     stats_context = _build_stats_context()

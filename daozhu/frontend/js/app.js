@@ -226,14 +226,17 @@ const App = {
       if (el) el.style.display = s === provider ? 'block' : 'none';
     });
 
-    // 动态加载模型列表
-    fetch('/api/providers/models').then(r => r.json()).then(data => {
-      const modelSelect = document.getElementById('settings-model');
-      if (!modelSelect || !data[provider]) return;
-      const models = data[provider].models || [];
-      modelSelect.innerHTML = models.map(m =>
-        `<option value="${m}">${m}</option>`
-      ).join('');
+    // 模型列表（与后端 PROVIDERS 同步）
+    const modelMap = {
+      deepseek: ['deepseek-v4-pro', 'deepseek-v4-flash', 'deepseek-chat', 'deepseek-reasoner'],
+      zhipu: ['glm-4.6', 'glm-4.5', 'glm-4.5-air'],
+      ollama: ['qwen2.5:7b', 'qwen2.5:14b', 'llama3:8b', 'deepseek-r1:7b'],
+      openai: ['gpt-4.1-mini', 'gpt-4.1', 'gpt-4o', 'o3', 'o4-mini'],
+    };
+    const models = modelMap[provider] || [];
+    const modelSelect = document.getElementById('settings-model');
+    if (modelSelect) {
+      modelSelect.innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
       // 恢复当前选择
       fetch('/api/config').then(r => r.json()).then(cfg => {
         const currentModel = cfg.config?.ai?.model;
@@ -241,7 +244,7 @@ const App = {
           modelSelect.value = currentModel;
         }
       }).catch(() => {});
-    }).catch(() => {});
+    }
   },
 
   async _saveSettings() {
