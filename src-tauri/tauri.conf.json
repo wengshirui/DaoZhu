@@ -1,6 +1,6 @@
 {
   "productName": "DaoZhu",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "identifier": "com.daozhu.app",
   "build": {
     "frontendDist": "http://localhost:7788",

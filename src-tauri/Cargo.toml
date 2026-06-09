@@ -1,6 +1,6 @@
 [package]
 name = "daozhu"
-version = "1.0.2"
+version = "1.0.3"
 description = "岛主 DaoZhu — 你的 AI 数字小岛"
 authors = ["wengshirui"]
 license = "MIT"
