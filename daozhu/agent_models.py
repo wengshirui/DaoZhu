@@ -37,18 +37,19 @@ class ExecutionRecord:
         return sum(1 for tc in self.tool_calls if not tc.success)
 
     def summary_text(self) -> str:
-        """生成结构化摘要（供 responder 使用）"""
+        """生成结构化摘要（供 responder 使用，包含实际返回数据）"""
         if not self.tool_calls:
             return "本轮未执行任何工具调用。"
 
         lines = []
         for tc in self.tool_calls:
-            status = "✅ 成功" if tc.success else f"❌ 失败: {tc.error}"
-            # 截取 result 前 200 字符
-            result_preview = tc.result[:200] if tc.result else ""
-            lines.append(f"- {tc.tool_name}: {status}")
-            if result_preview and tc.success:
-                lines.append(f"  返回: {result_preview}")
+            if tc.success:
+                # 截取结果前 500 字符给 responder 参考
+                result_preview = tc.result[:500] if tc.result else "（无返回数据）"
+                lines.append(f"✅ {tc.tool_name} — 成功")
+                lines.append(f"   返回数据: {result_preview}")
+            else:
+                lines.append(f"❌ {tc.tool_name} — 失败: {tc.error}")
         return "\n".join(lines)
 
     def numbers_in_results(self) -> set[int]:

@@ -222,6 +222,7 @@ async def agent_chat_stream(
     _consecutive_failures = {}  # 追踪连续失败次数
     _had_tool_calls = False  # 追踪是否有过工具调用
     _tool_exec_results = []  # 收集工具执行结果摘要（#077 防幻觉）
+    _tool_full_results = []  # 收集完整工具返回数据（#079 给 responder 用）
     _usage_total = {"prompt_tokens": 0, "completion_tokens": 0, "cache_hit_tokens": 0}
 
     while iteration < MAX_ITERATIONS:
@@ -378,12 +379,15 @@ async def agent_chat_stream(
                             if isinstance(r, dict) and r.get("error"):
                                 yield f"[TOOL_ERR:{tool_name}:{r['error'][:50]}]"
                                 _tool_exec_results.append(f"❌ {tool_name}: 失败 - {r['error'][:60]}")
+                                _tool_full_results.append({"name": tool_name, "success": False, "error": r["error"][:200], "result": ""})
                             else:
                                 yield f"[TOOL_OK:{tool_name}]"
                                 _tool_exec_results.append(f"✅ {tool_name}: 成功")
+                                _tool_full_results.append({"name": tool_name, "success": True, "error": "", "result": result[:2000]})
                         except (json.JSONDecodeError, TypeError):
                             yield f"[TOOL_OK:{tool_name}]"
                             _tool_exec_results.append(f"✅ {tool_name}: 成功")
+                            _tool_full_results.append({"name": tool_name, "success": True, "error": "", "result": result[:2000]})
 
                         # 添加工具结果到消息
                         if protocol == "anthropic":
@@ -421,23 +425,15 @@ async def agent_chat_stream(
                         from .agent_models import ExecutionRecord, ToolCall
                         from .agent_responder import generate_response
 
-                        # 构建 ExecutionRecord
+                        # 构建 ExecutionRecord（包含完整工具返回数据）
                         exec_record = ExecutionRecord(had_tool_calls=True)
-                        for summary_line in _tool_exec_results:
-                            tc = ToolCall(tool_name="unknown")
-                            if summary_line.startswith("✅"):
-                                tc.tool_name = summary_line.split(":")[0].replace("✅ ", "").strip()
-                                tc.success = True
-                                tc.result = summary_line
-                            elif summary_line.startswith("❌"):
-                                parts = summary_line.split(":", 1)
-                                tc.tool_name = parts[0].replace("❌ ", "").strip()
-                                tc.success = False
-                                tc.error = parts[1].strip() if len(parts) > 1 else "未知错误"
-                            elif summary_line.startswith("🚫"):
-                                tc.tool_name = summary_line.split(":")[0].replace("🚫 ", "").strip()
-                                tc.success = False
-                                tc.error = "权限拒绝"
+                        for item in _tool_full_results:
+                            tc = ToolCall(
+                                tool_name=item["name"],
+                                success=item["success"],
+                                error=item.get("error", ""),
+                                result=item.get("result", ""),
+                            )
                             exec_record.tool_calls.append(tc)
 
                         # 提取用户原始问题（从 messages 找最后一个 user）
