@@ -381,23 +381,24 @@ async def get_greeting(conversation_id: str = None):
     # 获取待办数据（降级处理）
     todo_summary = ""
     try:
-        async with httpx.AsyncClient(timeout=3.0, proxy=None) as client:
-            resp = await client.get("http://localhost:7801/api/tasks/", params={"today": "true"})
-            if resp.status_code == 200:
-                data = resp.json()
-                tasks = data.get("tasks", [])
-                active = [t for t in tasks if t.get("status") != "done"]
-                overdue = [t for t in active if t.get("due_date") and t["due_date"] <= date.today().isoformat()]
-                high_priority = [t for t in active if t.get("priority") == "high"]
+        import urllib.request as _urlreq
+        _resp = _urlreq.urlopen("http://127.0.0.1:7801/api/tasks/?today=true", timeout=3)
+        if _resp.status == 200:
+            import json as _json
+            data = _json.loads(_resp.read())
+            tasks = data.get("tasks", [])
+            active = [t for t in tasks if t.get("status") != "done"]
+            overdue = [t for t in active if t.get("due_date") and t["due_date"] <= date.today().isoformat()]
+            high_priority = [t for t in active if t.get("priority") == "high"]
 
-                if overdue:
-                    todo_summary = f"你有 {len(overdue)} 个待办已到期，需要优先处理。"
-                elif high_priority:
-                    todo_summary = f"今天有 {len(high_priority)} 个高优先级待办。"
-                elif active:
-                    todo_summary = f"今天有 {len(active)} 个待办事项。"
-                else:
-                    todo_summary = "今天的待办都完成了，做得不错。"
+            if overdue:
+                todo_summary = f"你有 {len(overdue)} 个待办已到期，需要优先处理。"
+            elif high_priority:
+                todo_summary = f"今天有 {len(high_priority)} 个高优先级待办。"
+            elif active:
+                todo_summary = f"今天有 {len(active)} 个待办事项。"
+            else:
+                todo_summary = "今天的待办都完成了，做得不错。"
     except Exception:
         todo_summary = ""
 

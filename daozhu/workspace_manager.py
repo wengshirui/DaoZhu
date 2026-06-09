@@ -248,24 +248,23 @@ class WorkspaceManager:
 
     async def _wait_for_ready(self, ws: WorkspaceInfo, timeout: int = 15):
         """等待工作区 HTTP 服务就绪"""
+        import urllib.request
         start = time.time()
         url = f"http://127.0.0.1:{ws.port}/"
 
-        # 禁用代理直连本地（修复代理环境下启动超时）
-        async with httpx.AsyncClient(proxy=None) as client:
-            while time.time() - start < timeout:
-                try:
-                    resp = await client.get(url, timeout=2)
-                    if resp.status_code < 500:
-                        return
-                except (httpx.ConnectError, httpx.ReadTimeout):
-                    pass
+        while time.time() - start < timeout:
+            try:
+                r = urllib.request.urlopen(url, timeout=2)
+                if r.status < 500:
+                    return
+            except Exception:
+                pass
 
-                # 检查进程是否已退出
-                if ws.process and ws.process.poll() is not None:
-                    raise RuntimeError("进程已退出")
+            # 检查进程是否已退出
+            if ws.process and ws.process.poll() is not None:
+                raise RuntimeError("进程已退出")
 
-                await asyncio.sleep(0.5)
+            await asyncio.sleep(0.5)
 
         raise TimeoutError(f"工作区 {ws.id} 启动超时 ({timeout}s)")
 
@@ -327,28 +326,26 @@ class WorkspaceManager:
 
     async def health_check(self) -> None:
         """对所有运行中的工作区执行健康检查"""
-        async with httpx.AsyncClient(proxy=None) as client:
-            for ws in self.workspaces.values():
-                if ws.status != WorkspaceStatus.RUNNING:
-                    continue
-                await self._check_one(ws, client)
+        for ws in self.workspaces.values():
+            if ws.status != WorkspaceStatus.RUNNING:
+                continue
+            await self._check_one(ws)
 
-    async def _check_one(self, ws: WorkspaceInfo, client: httpx.AsyncClient):
+    async def _check_one(self, ws: WorkspaceInfo):
         """检查单个工作区健康状态"""
+        import urllib.request
+
         # 检查进程是否存活
         if ws.process and ws.process.poll() is not None:
             await self._handle_crash(ws)
             return
 
-        # HTTP 健康检查
+        # HTTP 健康检查（用 urllib 避免 Clash/代理兼容问题）
         try:
-            resp = await client.get(
-                f"http://127.0.0.1:{ws.port}/",
-                timeout=5,
-            )
-            if resp.status_code >= 500:
+            r = urllib.request.urlopen(f"http://127.0.0.1:{ws.port}/", timeout=5)
+            if r.status >= 500:
                 await self._handle_crash(ws)
-        except (httpx.ConnectError, httpx.ReadTimeout):
+        except Exception:
             await self._handle_crash(ws)
 
         ws.last_health_check = time.time()
