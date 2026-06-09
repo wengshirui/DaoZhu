@@ -204,3 +204,112 @@ if __name__ == "__main__":
     # 确保测试目录存在
     TEST_DIR.mkdir(parents=True, exist_ok=True)
     run_verification()
+
+
+# === 对接 Agent API 做完整测试 ===
+
+import httpx
+import asyncio
+import json
+import sys
+
+
+async def ask_agent(question: str, timeout: float = 60.0) -> str:
+    """调 /api/chat 发问题，收集流式回复（用 urllib 避免代理问题）"""
+    import urllib.request
+
+    data = json.dumps({"message": question, "conversation_id": None}).encode()
+    req = urllib.request.Request(
+        "http://127.0.0.1:7788/api/chat",
+        data=data,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            if resp.status != 200:
+                return f"[HTTP ERROR {resp.status}]"
+            body = resp.read().decode("utf-8")
+    except Exception as e:
+        return f"[ERROR: {e}]"
+
+    # 解析 SSE 流
+    full_text = ""
+    for line in body.split("\n"):
+        if not line.startswith("data: "):
+            continue
+        try:
+            chunk_data = json.loads(line[6:])
+            if chunk_data.get("chunk"):
+                full_text += chunk_data["chunk"]
+        except (json.JSONDecodeError, KeyError):
+            pass
+    return full_text.strip()
+
+
+def run_agent_test():
+    """对接 agent 做完整准确性测试"""
+    print("\n" + "=" * 60)
+    print("  岛主 Agent 准确性测试 — Agent 对接测试")
+    print("=" * 60 + "\n")
+
+    passed = 0
+    failed = 0
+    skipped = 0
+
+    for case in CASES:
+        # 跳过"创建文件"用例（需要特殊处理）
+        if case.id == "create_file":
+            skipped += 1
+            print(f"  ⏭️  [{case.id}] 跳过（需要文件操作验证）\n")
+            continue
+
+        # 获取真实答案
+        try:
+            truth = case.verify()
+        except Exception as e:
+            skipped += 1
+            print(f"  ⏭️  [{case.id}] 验真失败: {e}\n")
+            continue
+
+        # 问 agent
+        print(f"  🔄 [{case.id}] 问: {case.question}")
+        print(f"     真实答案: {truth}")
+
+        try:
+            response = asyncio.run(ask_agent(case.question))
+        except Exception as e:
+            failed += 1
+            print(f"     ❌ Agent 调用失败: {e}\n")
+            continue
+
+        # 截取回复前 100 字符显示
+        resp_preview = response[:100].replace("\n", " ")
+        print(f"     Agent 回答: {resp_preview}...")
+
+        # 比对
+        is_correct = case.match(response, truth)
+        if is_correct:
+            passed += 1
+            print(f"     ✅ 正确\n")
+        else:
+            failed += 1
+            print(f"     ❌ 幻觉！真实={truth}, 回复中未找到\n")
+
+    print("=" * 60)
+    total = passed + failed
+    rate = (passed / total * 100) if total > 0 else 0
+    print(f"  结果: {passed}/{total} 正确 ({rate:.0f}%)")
+    print(f"  通过: {passed}  幻觉: {failed}  跳过: {skipped}")
+    print("=" * 60 + "\n")
+
+    return {"passed": passed, "failed": failed, "skipped": skipped}
+
+
+if __name__ == "__main__":
+    TEST_DIR.mkdir(parents=True, exist_ok=True)
+
+    if "--test" in sys.argv:
+        run_agent_test()
+    else:
+        run_verification()
