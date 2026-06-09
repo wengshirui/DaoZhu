@@ -41,41 +41,46 @@ async def generate_response(
     """
     基于执行记录生成回复 + 验证修正。
 
-    Args:
-        user_question: 用户原始消息
-        record: 工具执行的结构化记录
-        final_content: LLM 在工具循环中最后生成的文本（如有）
-
-    Returns:
-        验证通过的最终回复
+    策略：
+    - 如果 LLM 循环已给出 final_content（有实质内容）→ 直接验证它
+    - 如果 final_content 为空/太短 → 用 responder 基于 ExecutionRecord 生成
     """
-    # 如果没有工具调用且有直接回复，走快速路径（纯对话不需要 responder）
+    # 纯对话（无工具调用）→ 快速路径
     if not record.had_tool_calls and final_content:
         return final_content
 
-    # 如果有工具调用，用独立 responder 生成回复
-    if record.had_tool_calls:
-        prompt = RESPONDER_PROMPT.format(
-            question=user_question[:200],
-            execution_summary=record.summary_text(),
+    if not record.had_tool_calls:
+        return final_content or "我需要更多信息才能帮你。能具体说说想做什么吗？"
+
+    # 有工具调用：判断是否已有实质回复
+    has_substantial_content = final_content and len(final_content.strip()) > 20
+
+    if has_substantial_content:
+        # LLM 循环已给出回复 → 只做验证（不重新生成）
+        verified = await verify_and_refine(
+            output=final_content.strip(),
+            record=record,
+            user_question=user_question,
+            llm_call_fn=lambda p: call_llm_simple(p, max_tokens=300),
         )
-        response = await call_llm_simple(prompt, max_tokens=300)
+        return verified
 
-        if response:
-            # 通过验证器
-            verified = await verify_and_refine(
-                output=response.strip(),
-                record=record,
-                user_question=user_question,
-                llm_call_fn=lambda p: call_llm_simple(p, max_tokens=300),
-            )
-            return verified
-        else:
-            # LLM 调用失败，用 final_content 或兜底
-            if final_content:
-                return final_content
-            from .agent_verifier import generate_safe_fallback
-            return generate_safe_fallback(record)
+    # final_content 为空或太短 → 用 responder 基于执行结果生成
+    prompt = RESPONDER_PROMPT.format(
+        question=user_question[:200],
+        execution_summary=record.summary_text(),
+    )
+    response = await call_llm_simple(prompt, max_tokens=500)
 
-    # 无工具调用也无 final_content（不应该发生）
-    return final_content or "我需要更多信息才能帮你。能具体说说想做什么吗？"
+    if response:
+        verified = await verify_and_refine(
+            output=response.strip(),
+            record=record,
+            user_question=user_question,
+            llm_call_fn=lambda p: call_llm_simple(p, max_tokens=300),
+        )
+        return verified
+    else:
+        # LLM 调用失败 → 代码兜底
+        from .agent_verifier import generate_safe_fallback
+        return generate_safe_fallback(record)
