@@ -28,7 +28,9 @@ async def call_workspace_api_tool(
     body: str = "",
 ) -> str:
     """调用工作区的 API 接口"""
+    import logging
     import urllib.request
+    _log = logging.getLogger("daozhu.tool.workspace_api")
     from ..workspace_manager import manager
 
     ws = manager.get_workspace(workspace_id)
@@ -43,6 +45,7 @@ async def call_workspace_api_tool(
             return json.dumps({"error": f"启动工作区失败: {e}"}, ensure_ascii=False)
 
     url = f"http://127.0.0.1:{ws.port}/api{path}"
+    _log.info(f"{method.upper()} {url} (ws={workspace_id}, port={ws.port})")
 
     try:
         headers = {}

@@ -8,10 +8,25 @@ import os
 # 确保本地连接不走系统代理（修复 Clash/代理环境下 httpx 502 问题）
 os.environ.setdefault("NO_PROXY", "127.0.0.1,localhost")
 
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+
+# === 日志配置 ===
+LOG_DIR = Path(__file__).parent.parent / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_DIR / "daozhu.log", encoding="utf-8", mode="a"),
+        logging.StreamHandler(),  # 同时输出到控制台
+    ],
+)
+logger = logging.getLogger("daozhu")
 from fastapi.staticfiles import StaticFiles
 
 from .config import get_config_value
@@ -64,6 +79,8 @@ def _mount_lightweight_workspaces(the_app: FastAPI):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """平台生命周期：启动时发现工作区，关闭时清理"""
+    logger.info("=" * 40)
+    logger.info("岛主 DaoZhu 启动中...")
     init_chat_db()
     init_memory_db()
     from .config_db import init_config_db

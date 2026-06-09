@@ -182,6 +182,9 @@ class WorkspaceManager:
 
     async def start_workspace(self, workspace_id: str) -> WorkspaceInfo:
         """启动工作区"""
+        import logging
+        _log = logging.getLogger("daozhu.workspace")
+
         ws = self.workspaces.get(workspace_id)
         if not ws:
             raise ValueError(f"工作区不存在: {workspace_id}")
@@ -192,19 +195,30 @@ class WorkspaceManager:
         # 轻量模式：标记为运行中即可（已挂载到主进程）
         if ws.mode == "lightweight":
             ws.status = WorkspaceStatus.RUNNING
+            _log.info(f"工作区 {workspace_id} (lightweight) 标记为运行中")
             return ws
 
         ws.status = WorkspaceStatus.STARTING
         ws.port = self._allocate_port(ws)
+        _log.info(f"启动工作区 {workspace_id}，端口 {ws.port}...")
 
         try:
             ws.process = self._spawn_process(ws)
-            # 等待启动完成
             await self._wait_for_ready(ws, timeout=15)
             ws.status = WorkspaceStatus.RUNNING
             ws.restart_count = 0
+            _log.info(f"工作区 {workspace_id} 启动成功 (port={ws.port}, pid={ws.process.pid})")
         except Exception as e:
             ws.status = WorkspaceStatus.CRASHED
+            _log.error(f"工作区 {workspace_id} 启动失败: {e}")
+            # 尝试读子进程 stderr
+            if ws.process and ws.process.stderr:
+                try:
+                    err = ws.process.stderr.read(500)
+                    if err:
+                        _log.error(f"  子进程 stderr: {err.decode('utf-8', errors='replace')[:300]}")
+                except Exception:
+                    pass
             raise RuntimeError(f"启动失败: {e}")
 
         return ws
