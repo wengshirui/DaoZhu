@@ -4,6 +4,10 @@
 路由按功能拆分到 routers/ 目录下。
 """
 
+import os
+# 确保本地连接不走系统代理（修复 Clash/代理环境下 httpx 502 问题）
+os.environ.setdefault("NO_PROXY", "127.0.0.1,localhost")
+
 from contextlib import asynccontextmanager
 from pathlib import Path
 
