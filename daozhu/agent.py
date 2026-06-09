@@ -225,6 +225,10 @@ async def agent_chat_stream(
     _tool_full_results = []  # 收集完整工具返回数据（#079 给 responder 用）
     _usage_total = {"prompt_tokens": 0, "completion_tokens": 0, "cache_hit_tokens": 0}
 
+    # Guardrail 控制器（#079 Phase 3）
+    from .agent_guardrails import ToolGuardrailController
+    _guardrails = ToolGuardrailController()
+
     while iteration < MAX_ITERATIONS:
         iteration += 1
 
@@ -319,6 +323,19 @@ async def agent_chat_stream(
                         # 通知前端（通过 yield 特殊标记）
                         yield f"[TOOL:{tool_name}]"
 
+                        # Guardrail 前置检查（#079）
+                        _guard_decision = _guardrails.before_call(tool_name, tool_args)
+                        if _guard_decision.should_block:
+                            result = json.dumps({"error": _guard_decision.message}, ensure_ascii=False)
+                            yield f"[TOOL_ERR:{tool_name}:{_guard_decision.message[:50]}]"
+                            _tool_exec_results.append(f"🛑 {tool_name}: 被阻断 - {_guard_decision.message[:60]}")
+                            _tool_full_results.append({"name": tool_name, "success": False, "error": _guard_decision.message, "result": ""})
+                            if protocol == "anthropic":
+                                full_messages.append({"role": "user", "content": [{"type": "tool_result", "tool_use_id": tool_call["id"], "content": result}]})
+                            else:
+                                full_messages.append({"role": "tool", "tool_call_id": tool_call["id"], "content": result})
+                            continue
+
                         # 执行工具（计时）
                         import time as _time
                         _t0 = _time.time()
@@ -388,6 +405,15 @@ async def agent_chat_stream(
                             yield f"[TOOL_OK:{tool_name}]"
                             _tool_exec_results.append(f"✅ {tool_name}: 成功")
                             _tool_full_results.append({"name": tool_name, "success": True, "error": "", "result": result[:2000]})
+
+                        # Guardrail 后置记录（#079）
+                        _is_failed = not _tool_full_results[-1]["success"] if _tool_full_results else False
+                        _guard_after = _guardrails.after_call(tool_name, tool_args, result or "", failed=_is_failed)
+                        if _guard_after.action == "warn":
+                            # 注入警告到工具结果消息中
+                            warn_suffix = f"\n\n[⚠️ Guardrail: {_guard_after.message}]"
+                            if protocol != "anthropic" and full_messages and full_messages[-1].get("role") == "tool":
+                                full_messages[-1]["content"] = full_messages[-1].get("content", "") + warn_suffix
 
                         # 添加工具结果到消息
                         if protocol == "anthropic":
