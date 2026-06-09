@@ -1,0 +1,65 @@
+"""
+岛主 DaoZhu — Agent 数据模型（#079）
+定义 Pipeline 各阶段间传递的结构化数据。
+"""
+
+from dataclasses import dataclass, field
+from typing import Optional
+
+
+@dataclass
+class ToolCall:
+    """单次工具调用记录"""
+    tool_name: str
+    args: dict = field(default_factory=dict)
+    result: str = ""
+    success: bool = True
+    error: str = ""
+    duration_ms: int = 0
+
+
+@dataclass
+class ExecutionRecord:
+    """一轮对话中所有工具执行的结构化记录"""
+    tool_calls: list[ToolCall] = field(default_factory=list)
+    had_tool_calls: bool = False
+
+    @property
+    def errors(self) -> list[str]:
+        return [tc.error for tc in self.tool_calls if not tc.success and tc.error]
+
+    @property
+    def success_count(self) -> int:
+        return sum(1 for tc in self.tool_calls if tc.success)
+
+    @property
+    def failure_count(self) -> int:
+        return sum(1 for tc in self.tool_calls if not tc.success)
+
+    def summary_text(self) -> str:
+        """生成结构化摘要（供 responder 使用）"""
+        if not self.tool_calls:
+            return "本轮未执行任何工具调用。"
+
+        lines = []
+        for tc in self.tool_calls:
+            status = "✅ 成功" if tc.success else f"❌ 失败: {tc.error}"
+            # 截取 result 前 200 字符
+            result_preview = tc.result[:200] if tc.result else ""
+            lines.append(f"- {tc.tool_name}: {status}")
+            if result_preview and tc.success:
+                lines.append(f"  返回: {result_preview}")
+        return "\n".join(lines)
+
+    def numbers_in_results(self) -> set[int]:
+        """提取所有工具返回中的数字（供验证器比对）"""
+        import re
+        numbers = set()
+        for tc in self.tool_calls:
+            if tc.success and tc.result:
+                # 提取所有整数
+                for match in re.finditer(r'\b(\d+)\b', tc.result):
+                    n = int(match.group(1))
+                    if 2 <= n <= 100000:  # 过滤掉 0/1 和超大数
+                        numbers.add(n)
+        return numbers

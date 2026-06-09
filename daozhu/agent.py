@@ -413,43 +413,60 @@ async def agent_chat_stream(
 
                 else:
                     # 没有工具调用，输出最终响应
-                    # 每次都过质检（#077 防幻觉：token 消耗是值得的）
-                    if protocol != "anthropic":
-                        # 构建质检上下文
-                        if _had_tool_calls and _tool_exec_results:
-                            results_summary = "\n".join(_tool_exec_results)
-                            honesty_prompt = f"""以下是你刚刚执行的工具调用结果：
-{results_summary}
+                    final_content = message.get("content", "")
 
-请在回复中如实描述每个工具的执行结果。
-- 成功的可以简洁确认
-- 失败的必须说明失败原因，绝对不要编造"已完成"
-- 权限被拒绝的必须告知用户
-"""
-                        else:
-                            honesty_prompt = """你没有调用任何工具。
-如果用户问的是需要查询才能回答的问题（数量、状态、具体数据），
-你必须说"我帮你查一下"然后调用工具，或者说"我目前没有这个信息"。
-绝对不要凭猜测给出具体数字。
-直接输出给用户的回复，不要提及质检或验证过程。
-"""
-                        # 注入质检 prompt，让 LLM 审查并给出最终回复
-                        review_messages = full_messages + [
-                            message,
-                            {"role": "system", "content": REVIEWER_PROMPT + "\n\n" + honesty_prompt},
-                        ]
+                    # === #079 Pipeline Stage 3+4: 独立输出生成 + 验证 ===
+                    if _had_tool_calls:
+                        # 有工具调用 → 用独立 responder 基于 ExecutionRecord 生成
+                        from .agent_models import ExecutionRecord, ToolCall
+                        from .agent_responder import generate_response
+
+                        # 构建 ExecutionRecord
+                        exec_record = ExecutionRecord(had_tool_calls=True)
+                        for summary_line in _tool_exec_results:
+                            tc = ToolCall(tool_name="unknown")
+                            if summary_line.startswith("✅"):
+                                tc.tool_name = summary_line.split(":")[0].replace("✅ ", "").strip()
+                                tc.success = True
+                                tc.result = summary_line
+                            elif summary_line.startswith("❌"):
+                                parts = summary_line.split(":", 1)
+                                tc.tool_name = parts[0].replace("❌ ", "").strip()
+                                tc.success = False
+                                tc.error = parts[1].strip() if len(parts) > 1 else "未知错误"
+                            elif summary_line.startswith("🚫"):
+                                tc.tool_name = summary_line.split(":")[0].replace("🚫 ", "").strip()
+                                tc.success = False
+                                tc.error = "权限拒绝"
+                            exec_record.tool_calls.append(tc)
+
+                        # 提取用户原始问题（从 messages 找最后一个 user）
+                        user_q = ""
+                        for m in reversed(full_messages):
+                            if m.get("role") == "user":
+                                content = m.get("content", "")
+                                if isinstance(content, str):
+                                    user_q = content[:200]
+                                break
+
+                        # 调用独立 responder + verifier
                         try:
-                            async for chunk in _stream_final_response(
-                                base_url, headers, model, review_messages, protocol
-                            ):
-                                yield chunk
+                            verified_response = await generate_response(
+                                user_question=user_q,
+                                record=exec_record,
+                                final_content=final_content,
+                            )
+                            yield verified_response
                             yield f"[USAGE:{json.dumps(_usage_total)}]"
                             return
-                        except Exception:
-                            pass  # 质检失败，回退到原始回复
+                        except Exception as e:
+                            # responder 失败，fallback 到 final_content
+                            if final_content:
+                                yield final_content
+                                yield f"[USAGE:{json.dumps(_usage_total)}]"
+                                return
 
-                    # Anthropic 或质检失败时：直接流式输出
-                    final_content = message.get("content", "")
+                    # 无工具调用 → 直接输出（纯对话）
                     if final_content:
                         try:
                             streamed = False
