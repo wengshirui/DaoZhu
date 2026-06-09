@@ -1,4 +1,7 @@
 {
+  "ai": {
+    "thinking": true
+  },
   "onboarding_skipped": true,
   "island_name": "桃花岛"
 }
