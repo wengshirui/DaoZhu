@@ -132,7 +132,7 @@ def assemble_bundle():
         "scheduler.db", "idle_work.db", "data.db", "prd.db",
         ".window_state.json", "config.json",
     }
-    EXCLUDE_DIRS = {"__pycache__", ".git", "node_modules", ".venv", "target"}
+    EXCLUDE_DIRS = {"__pycache__", ".git", "node_modules", ".venv", "target", "logs"}
 
     def _ignore_fn(directory, files):
         """shutil.copytree ignore 回调：排除敏感文件和目录"""
