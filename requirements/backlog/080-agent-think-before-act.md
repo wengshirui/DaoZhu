@@ -1,9 +1,17 @@
-# 080 — Agent 思维方式重塑：从"回答问题"到"解决问题"
+# 080 — Agent 思维重塑 Phase 1：意图识别 + 规划
 
 > 状态: 📋 待开发
 > 优先级: P0
-> T-shirt Size: XL
+> T-shirt Size: M
 > 录入日期: 2026-06-09
+> 拆分说明: 原 XL 需求拆为 080（意图+规划）+ 081（执行+验证）
+
+---
+
+## Phase 1 范围：意图识别 + 规划
+
+本阶段只做**执行前**的部分——让 agent 先想清楚再动手。
+执行阶段（目标驱动循环 + 验证 + 补充执行）放到 #081。
 
 ---
 
@@ -234,20 +242,18 @@ response = inform_user(results, intent)
 
 ---
 
-## 验收标准
+## 验收标准（Phase 1 范围）
 
 | # | AC |
 |---|-----|
-| 1 | 用户问模糊问题时（"看看情况"），agent 先追问或基于 profile 推断具体需求，不直接乱调工具 |
-| 2 | 每次工具调用前，agent 有明确的计划（可在日志中看到"要做 X 因为需要 Y"） |
-| 3 | 执行完后验证数据完整性：返回的数字能对得上，声称的操作确实执行了 |
-| 4 | 验证不通过时自动补充执行（如"只拿到了待办数量但没拿到分布，再查一下优先级"） |
-| 5 | 回复的组织方式考虑用户角色（PM 看汇总表格，开发看具体列表） |
-| 6 | 简单问题（"今天几号"）不走完整 5 步，有快速路径 |
-| 7 | 每个阶段有独立的日志记录，可追溯 agent 的"思考过程" |
-| 8 | **没有直接工具时，agent 能想到替代方案**（如用 terminal 跑脚本获取时间），而不是编造或放弃 |
-| 9 | **agent 的目标是"做成事"而不是"说了话"** — "帮我整理文件"时真的动手改文件，不是给建议 |
-| 10 | 规划阶段输出 fallback 路径 — 主路径走不通时自动切换替代方案，最多重试 2 次 |
+| 1 | 用户发消息后，agent 先做一次意图分析（不直接调工具），日志可见分析结果 |
+| 2 | 意图分为 3 类：`simple_chat`（纯对话）/ `needs_action`（需要工具）/ `ambiguous`（需追问） |
+| 3 | `simple_chat` 不给 LLM 工具 schema → 不会出现乱调工具的情况 |
+| 4 | `ambiguous` 时 agent 追问 1 次确认意图，而不是猜测后直接行动 |
+| 5 | `needs_action` 时生成结构化计划（goal + steps + fallback），注入到执行上下文中 |
+| 6 | 计划中包含 fallback 路径——"如果 X 不行就试 Y" |
+| 7 | 简单对话（"你好"、"谢谢"）延迟 < 当前（不能因为加了意图分析就变慢） |
+| 8 | 意图分析 + 规划总耗费 < 200 tokens（轻量，不拖慢整体响应） |
 
 ---
 
@@ -259,28 +265,96 @@ response = inform_user(results, intent)
 - ✅ guardrails（执行保护）
 - ✅ 文件分离（模块化）
 
-080 要做的是 079 **没做到的部分**：
-- ❌ 理解层（Intent 识别 + 追问 + 定义"解决"标准）
-- ❌ 规划层（结构化执行计划 + 替代方案 + fallback）
-- ❌ 执行目标转变（从"拿数据回答"变成"做事解决问题"）
-- ❌ 验证→补充执行的循环（判断标准是"问题解决了"不是"回复没幻觉"）
-- ❌ 创造力（工具组合 + 间接路径 + terminal 后备）
-- ❌ 快速路径（简单问题跳过完整流程）
+080 Phase 1 新增：
+- ❌→✅ 意图识别（Intent 分类器）
+- ❌→✅ 规划层（结构化执行计划 + fallback）
+- ❌→✅ 快速路径（simple_chat 跳过工具）
 
-080 是在 079 基础上的升级，不是重写。079 的模块继续复用：
-- verifier → 升级为 solved_when 检查器
-- responder → 降级为简单"告知"层（输出不再是目标，解决才是）
-- guardrails → 继续保护执行阶段
+留给 081 Phase 2：
+- ❌ 执行目标转变（从"拿数据回答"变成"做事解决问题"）
+- ❌ 验证→补充执行的循环（判断"问题解决了"不是"回复没幻觉"）
+- ❌ 创造力（工具组合 + 间接路径 + terminal 后备）
 
 ---
 
-## 风险
+## 技术设计（Phase 1 精简版）
 
-1. **多次 LLM 调用增加延迟和成本** — 简单问题走快速路径缓解
-2. **规划阶段 LLM 可能输出不稳定的计划** — 计划格式用 structured output 约束
-3. **追问太多烦用户** — 基于 profile 推断，只在真正歧义时追问（最多 1 次）
-4. **"解决问题"边界模糊** — 需要明确哪些问题 agent 有能力解决、哪些应该诚实说做不到
-5. **过度行动风险** — agent 太积极动手可能改错东西。删除/修改操作必须保留确认机制
+### 改动点：agent.py 的 while 循环前加两步
+
+```python
+# === NEW: Phase 1 — 意图识别 ===
+intent = await classify_intent(user_message)
+# intent = { type: "simple_chat"|"needs_action"|"ambiguous",
+#             goal: "...", solved_when: "..." }
+
+if intent["type"] == "ambiguous":
+    yield "追问消息"
+    return
+
+if intent["type"] == "simple_chat":
+    # 不给工具，纯对话
+    yield from stream_response(messages, tools=None)
+    return
+
+# === NEW: Phase 1 — 规划 ===
+plan = await make_plan(intent, available_tools)
+# plan = { goal: "...", steps: [...], fallback: "..." }
+# 注入到 system message 中，引导执行阶段
+
+# === EXISTING: 执行循环（不改动，但执行时 LLM 能看到 plan）===
+while iteration < MAX:
+    ...
+```
+
+### 新增文件
+
+| 文件 | 职责 | 大小 |
+|------|------|------|
+| `agent_intent.py` | Intent 分类器（一次 LLM call） | ~80 行 |
+| `agent_planner.py` | 计划生成器（一次 LLM call） | ~100 行 |
+
+### Intent 分类器设计
+
+```python
+INTENT_PROMPT = """分析用户消息，输出 JSON：
+{
+  "type": "simple_chat" | "needs_action" | "ambiguous",
+  "goal": "用户想要达成什么（一句话）",
+  "solved_when": "怎样才算解决了（一句话）",
+  "clarification": "如果 ambiguous，要追问什么（可选）"
+}
+
+规则：
+- 纯聊天/闲聊/感谢/打招呼 → simple_chat
+- 需要查数据/做操作/调工具 → needs_action
+- 说了要做什么但缺关键信息 → ambiguous
+"""
+```
+
+### 计划生成器设计
+
+```python
+PLAN_PROMPT = """基于用户意图和可用工具，输出执行计划 JSON：
+{
+  "goal": "...",
+  "steps": ["步骤1", "步骤2"],
+  "fallback": "如果主路径失败的替代方案",
+  "tools_needed": ["tool_name_1", "tool_name_2"]
+}
+
+可用工具：{tool_names}
+用户意图：{intent.goal}
+解决标准：{intent.solved_when}
+"""
+```
+
+---
+
+## 风险（Phase 1）
+
+1. **增加 1-2 次 LLM 调用的延迟** — 用轻量 prompt + 限制 max_tokens=150 缓解
+2. **分类器误判** — simple_chat 误判为 needs_action 无害（多给了工具而已）；needs_action 误判为 simple_chat 有害（该调工具没调）→ 倾向于让 needs_action 成为默认
+3. **规划生成不稳定** — 用 JSON mode + 简单 schema 约束
 
 ---
 
@@ -289,13 +363,13 @@ response = inform_user(results, intent)
 | 来源 | 学什么 |
 |------|--------|
 | Kiro Spec-Driven | 先理解后执行，意图结构化 |
-| Codex Task-Oriented | 执行后验证，不通过不算完 |
+| Codex Task-Oriented | 执行后验证，不通过不算完 → 081 |
 | Claude Code 5-Step | PLAN→REVIEW→EXECUTE→VERIFY→COMMIT |
-| Hermes-Agent | terminal 是万能后备、工具组合、delegate_task |
+| Hermes-Agent | terminal 是万能后备、工具组合 → 081 |
 | 岛主思想基石 | 用户是谁→想干什么→怎么帮他 |
 
 ---
 
 ## 一句话总结
 
-> **agent 的目标不是"给用户一个回复"，是"把用户的问题解决掉"。回复只是告知结果的最后一步。**
+> **在 agent 动手之前加一道"想"——分析意图、制定计划、区分快慢路径。**
