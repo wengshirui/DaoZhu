@@ -84,17 +84,28 @@ async def agent_chat_stream(
     full_messages.extend(messages)
 
     # === #080 Phase 1: 意图识别 + 规划 ===
-    # 提取用户最新消息用于意图分析
+    # 提取用户最新消息 + 近几轮上下文（让意图分类器理解指代）
     _user_msg = ""
+    _recent_context = ""
     for m in reversed(messages):
-        if m.get("role") == "user":
+        if m.get("role") == "user" and not _user_msg:
             content = m.get("content", "")
             if isinstance(content, str):
                 _user_msg = content
             break
 
-    # 意图分类（轻量 LLM call）
-    _intent = await classify_intent(_user_msg)
+    # 收集最近 3 轮对话作为上下文（帮助理解"那些"、"这个"等指代）
+    _context_turns = []
+    for m in messages[-6:]:  # 最近 6 条消息（约 3 轮）
+        role = m.get("role", "")
+        content = m.get("content", "")
+        if role in ("user", "assistant") and isinstance(content, str) and content:
+            _context_turns.append(f"{role}: {content[:100]}")
+    if len(_context_turns) > 1:
+        _recent_context = "\n".join(_context_turns[:-1])  # 排除最新这条
+
+    # 意图分类（轻量 LLM call，含上下文）
+    _intent = await classify_intent(_user_msg, _recent_context)
 
     if _intent["type"] == "ambiguous":
         # 追问用户，不执行任何工具

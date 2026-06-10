@@ -22,16 +22,22 @@ INTENT_PROMPT = """分析用户的消息，判断意图类型。只输出 JSON�
 - needs_action: 需要调用工具才能完成（查待办、建工作区、搜索、操作文件等）
 - ambiguous: 用户想做某事但缺少关键信息（如"帮我建个工作区"没说什么类型）
 
+注意：用户消息可能包含指代词（"那些"、"这个"、"继续"），结合对话上下文理解。
+
+{context_block}用户消息：{message}
+
 输出格式（严格 JSON）：
-{{"type": "simple_chat|needs_action|ambiguous", "goal": "用户想达成什么（一句话）", "solved_when": "怎样才算解决了（一句话，needs_action时必填）", "clarification": "要追问什么（ambiguous时必填，否则空字符串）"}}
-
-用户消息：{message}"""
+{{"type": "simple_chat|needs_action|ambiguous", "goal": "用户想达成什么（一句话，结合上下文理解指代）", "solved_when": "怎样才算解决了（一句话，needs_action时必填）", "clarification": "要追问什么（ambiguous时必填，否则空字符串）"}}"""
 
 
-async def classify_intent(user_message: str) -> dict:
+async def classify_intent(user_message: str, recent_context: str = "") -> dict:
     """
     分析用户意图。返回结构化 intent 字典。
     失败时默认返回 needs_action（宁可多给工具，不可漏掉）。
+
+    Args:
+        user_message: 用户最新消息
+        recent_context: 最近几轮对话（帮助理解指代词）
     """
     # 快速规则：极短消息直接判定
     stripped = user_message.strip()
@@ -46,8 +52,16 @@ async def classify_intent(user_message: str) -> dict:
             "clarification": "",
         }
 
+    # 构建 context block
+    context_block = ""
+    if recent_context:
+        context_block = f"对话上下文（最近几轮）：\n{recent_context}\n\n"
+
     # LLM 分类
-    prompt = INTENT_PROMPT.format(message=user_message[:300])
+    prompt = INTENT_PROMPT.format(
+        message=user_message[:300],
+        context_block=context_block,
+    )
     raw = await call_llm_simple(prompt, max_tokens=150)
 
     if not raw:
