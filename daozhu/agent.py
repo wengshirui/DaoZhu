@@ -35,6 +35,10 @@ from .agent_context import build_dynamic_context
 # === 系统提示词（从 prompts.py 导入）===
 from .prompts import SYSTEM_PROMPT, REVIEWER_PROMPT
 
+# === 意图识别 + 规划（#080）===
+from .agent_intent import classify_intent
+from .agent_planner import make_plan, format_plan_for_context
+
 
 # === Anthropic 协议（从 agent_protocol.py 导入）===
 from .agent_protocol import (
@@ -43,6 +47,9 @@ from .agent_protocol import (
     convert_messages_for_anthropic as _convert_messages_for_anthropic,
     parse_anthropic_response as _parse_anthropic_response,
 )
+
+# === 流式输出（从 agent_stream.py 导入）===
+from .agent_stream import stream_final_response as _stream_final_response
 
 
 async def agent_chat_stream(
@@ -90,6 +97,48 @@ async def agent_chat_stream(
             "content": "\n\n".join(context_parts),
         })
     full_messages.extend(messages)
+
+    # === #080 Phase 1: 意图识别 + 规划 ===
+    # 提取用户最新消息用于意图分析
+    _user_msg = ""
+    for m in reversed(messages):
+        if m.get("role") == "user":
+            content = m.get("content", "")
+            if isinstance(content, str):
+                _user_msg = content
+            break
+
+    # 意图分类（轻量 LLM call）
+    _intent = await classify_intent(_user_msg)
+
+    if _intent["type"] == "ambiguous":
+        # 追问用户，不执行任何工具
+        clarification = _intent.get("clarification", "能说得更具体一些吗？")
+        yield clarification
+        return
+
+    if _intent["type"] == "simple_chat":
+        # 纯对话：不给工具，直接流式对话
+        try:
+            async for chunk in _stream_final_response(
+                base_url, headers, model, full_messages, protocol
+            ):
+                yield chunk
+        except Exception:
+            yield "你好！有什么我可以帮你的吗？"
+        return
+
+    # needs_action: 生成执行计划
+    _plan = await make_plan(_intent)
+
+    # 将计划注入到上下文中，引导 LLM 有目的地执行
+    plan_text = format_plan_for_context(_plan)
+    full_messages.append({
+        "role": "system",
+        "content": plan_text,
+    })
+
+    # === 继续原有执行流程 ===
 
     # 获取工具 schema
     tool_schemas = registry.get_schemas()
@@ -441,77 +490,3 @@ async def agent_chat_stream(
         pass
 
     yield "⚠️ 执行步骤较多，已暂停。你可以告诉我接下来要做什么，我继续执行。"
-
-
-async def _stream_final_response(
-    base_url: str, headers: dict, model: str, messages: list[dict], protocol: str = "openai"
-) -> AsyncGenerator[str, None]:
-    """流式输出最终响应（无工具调用时）"""
-    if protocol == "anthropic":
-        sys_text, anthro_msgs = _convert_messages_for_anthropic(messages)
-        payload = {
-            "model": model,
-            "messages": anthro_msgs,
-            "max_tokens": 2048,
-            "stream": True,
-        }
-        if sys_text:
-            payload["system"] = sys_text
-        endpoint = f"{base_url}/v1/messages"
-    else:
-        payload = {
-            "model": model,
-            "messages": messages,
-            "stream": True,
-            "max_tokens": 2048,
-        }
-        endpoint = f"{base_url}/chat/completions"
-
-    try:
-        async with httpx.AsyncClient(timeout=60) as client:
-            async with client.stream(
-                "POST", endpoint,
-                headers=headers, json=payload,
-            ) as response:
-                if response.status_code != 200:
-                    yield "⚠️ 流式响应失败"
-                    return
-
-                if protocol == "anthropic":
-                    # Anthropic SSE: event: xxx\ndata: {json}\n\n
-                    current_event = ""
-                    async for line in response.aiter_lines():
-                        if line.startswith("event: "):
-                            current_event = line[7:].strip()
-                        elif line.startswith("data: "):
-                            if current_event == "content_block_delta":
-                                try:
-                                    chunk = json.loads(line[6:])
-                                    delta = chunk.get("delta", {})
-                                    if delta.get("type") == "text_delta":
-                                        text = delta.get("text", "")
-                                        if text:
-                                            yield text
-                                except json.JSONDecodeError:
-                                    pass
-                            elif current_event == "message_stop":
-                                break
-                        elif line == "":
-                            current_event = ""
-                else:
-                    # OpenAI SSE: data: {json}
-                    async for line in response.aiter_lines():
-                        if not line.startswith("data: "):
-                            continue
-                        data = line[6:]
-                        if data == "[DONE]":
-                            break
-                        try:
-                            chunk = json.loads(data)
-                            content = chunk["choices"][0].get("delta", {}).get("content", "")
-                            if content:
-                                yield content
-                        except (json.JSONDecodeError, KeyError, IndexError):
-                            continue
-    except Exception as e:
-        yield f"⚠️ 流式输出错误: {str(e)}"
