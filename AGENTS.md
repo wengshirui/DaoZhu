@@ -145,10 +145,118 @@ python daozhu_main.py
 cargo tauri dev                 # 壳 + 后端联调
 cargo tauri build               # 正式打包
 
+# 打包发版
+python scripts/pack_release.py           # 仅打包 zip
+python scripts/publish_release.py v1.0.4 # 打包 + 上传 Gitee Release
+
+# 测试
+python tests/run_test.py        # 随机 3 题 agent 准确性测试
+python tests/run_test.py --all  # 全部问题
+python tests/run_test.py --verify  # 只验真（不调 agent）
+
 # 其他
-pytest tests/ -v                # 测试
+pytest tests/ -v                # 单元测试
 ruff check . && ruff format .   # lint + format
 ```
+
+---
+
+## 目录结构说明
+
+| 目录/文件 | 用途 |
+|-----------|------|
+| `daozhu/` | 后端核心代码（FastAPI + Agent） |
+| `daozhu/frontend/` | 前端静态文件（HTML/CSS/JS） |
+| `daozhu/tools/` | 工具注册和实现 |
+| `daozhu/routers/` | FastAPI 路由 |
+| `workspaces/` | 各工作区（todo/desktop-pet 等） |
+| `scripts/` | 打包发版脚本（pack_release / publish_release） |
+| `requirements/` | 需求管理（plan.md + backlog/ + requirements.db） |
+| `tests/` | 测试（questions.py 题库 + run_test.py 运行器） |
+| `src-tauri/` | Tauri 客户端壳（Rust） |
+| `skills/` | AI 技能定义 |
+| `logs/` | 运行日志（按日期轮转，.gitignore 已排除） |
+
+---
+
+## Agent 架构（v1.0.4）
+
+```
+用户消息
+    ↓
+[意图识别] agent_intent.py — 分类: simple_chat / needs_action / ambiguous
+    ├── simple_chat → 直接对话（不给工具）
+    ├── ambiguous → 追问 1 次
+    └── needs_action ↓
+[规划] agent_planner.py — 生成 goal + steps + fallback
+    ↓
+[执行循环] agent.py while loop — LLM + tool_calls
+    ↓
+[目标验证] agent_solver.py — solved_when 满足了吗？
+    ├── 未满足 → 注入 fallback hint → 重试 1 次
+    └── 满足 ↓
+[输出生成] agent_responder.py — 基于 ExecutionRecord 生成回复
+    ↓
+[事实验证] agent_verifier.py — 代码级比对数字/成功声明
+    ↓
+最终回复
+```
+
+### 关键模块
+
+| 文件 | 职责 | 行数限制 |
+|------|------|---------|
+| `agent.py` | 主循环入口，消息路由 | ≤ 500 |
+| `agent_intent.py` | 意图分类（3 类） | ~90 |
+| `agent_planner.py` | 执行计划生成 | ~100 |
+| `agent_solver.py` | 目标验证（solved_when） | ~90 |
+| `agent_responder.py` | 独立回复生成 | ~80 |
+| `agent_verifier.py` | 事实核查（数字/成功声明） | ~100 |
+| `agent_guardrails.py` | 循环检测/工具阻断 | ~80 |
+| `agent_stream.py` | 流式响应辅助 | ~85 |
+| `agent_context.py` | 动态上下文构建 | ~60 |
+| `agent_protocol.py` | Anthropic 协议适配 | ~80 |
+| `prompts.py` | 所有 prompt 集中管理 | ~110 |
+
+### 意图分类器注意事项
+
+- 接收 `recent_context`（最近 3 轮对话）以理解指代词（"那些"、"这个"）
+- 极短消息（≤4 字符常用问候）用规则直接命中，不调 LLM
+- 失败时默认 `needs_action`（宁可多给工具，不可漏掉）
+
+---
+
+## 需求管理流程
+
+详见 `requirements/AGENTS.md`。核心流程：
+
+| 状态 | 存储位置 |
+|------|---------|
+| 待开发 | `requirements/backlog/*.md` + DB 元数据 |
+| 已完成 | **仅 DB**（description 字段存完整 md 内容） |
+| 已取消 | **仅 DB** |
+
+**完成需求流程：**
+1. `UPDATE requirements SET status='done', description='md全文' WHERE id=?`
+2. 删除 `backlog/*.md` 文件
+3. 更新 `requirements/plan.md`
+
+**发版流程：**
+1. 更新 `scripts/pack_release.py` 中 VERSION
+2. 更新 `requirements/plan.md` 版本号 + 发布说明
+3. `python scripts/publish_release.py v{X.Y.Z}`（自动打包+上传 Gitee）
+4. git tag + push --tags
+
+---
+
+## 发版脚本说明
+
+| 脚本 | 用途 |
+|------|------|
+| `scripts/pack_release.py` | 构建 Tauri exe + 嵌入式 Python + 依赖 → zip |
+| `scripts/publish_release.py` | 调用 pack → 创建 Gitee Release → 上传 zip 附件 |
+
+`publish_release.py` 需要 `config.db` 中配置 `GITEE_TOKEN`（通过 app 设置页面配置）。
 
 ---
 
