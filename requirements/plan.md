@@ -20,19 +20,28 @@
 
 | 优先级 | ID | 需求 | Size | 备注 |
 |--------|-----|------|------|------|
-| P0 | 080 | Agent 意图识别 + 规划 | M | Phase 1：先想再做 |
-| P0 | 081 | Agent 目标驱动执行 | L | Phase 2：依赖 080 |
 | P1 | 066 | Gitee 生态架构 | L | 独立于 agent，可并行 |
 | P1 | 076 | 窗口默认尺寸优化 | XS | Tauri 侧，可并行 |
-| 搁置 | 063 | 智能模型路由 | M | 依赖 080 完成后再考虑 |
+| 搁置 | 063 | 智能模型路由 | M | agent 架构稳定后再考虑 |
 | 搁置 | 074 | Codex CLI 集成 | L | 低优先级 |
 
 ---
 
 ## 已完成（查 DB: `SELECT * FROM requirements WHERE status='done'`）
 
-v1.0.3 归档的需求（073/075/077/078/079）已写入 requirements.db，
-完整内容在 `description` 字段中可检索。
+v1.0.3 及之前的归档需求已写入 requirements.db，完整内容在 `description` 字段中可检索。
+
+---
+
+## v1.0.4 发布说明
+
+- #080 Agent 意图识别 + 规划（先想再做，3类分流）
+- #081 Agent 目标驱动执行（verify_solved + fallback 重试）
+- SYSTEM_PROMPT 重写：从"回答问题"到"解决问题"思维方式
+- 意图分类融入对话上下文（解决指代词"那些/这个"理解问题）
+- 移除内部信号输出给用户（[INTENT]/[PLAN]/[COMPACT]）
+- agent_stream.py 分离（控制文件大小 ≤ 500 行）
+- .gitignore 添加 .db-shm/.db-wal（SQLite WAL 残留）
 
 ---
 
