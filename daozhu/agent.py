@@ -26,29 +26,20 @@ from .tools import workspace_api_tools  # noqa: F401
 from .tools import web_search_tool  # noqa: F401
 from .tools import browser_tool  # noqa: F401
 
-MAX_ITERATIONS = 10  # 工具调用最大循环次数
+MAX_ITERATIONS = 10
 
-
-# === Context 构建（从 agent_context.py 导入）===
+# 模块导入
 from .agent_context import build_dynamic_context
-
-# === 系统提示词（从 prompts.py 导入）===
 from .prompts import SYSTEM_PROMPT, REVIEWER_PROMPT
-
-# === 意图识别 + 规划（#080）===
 from .agent_intent import classify_intent
 from .agent_planner import make_plan, format_plan_for_context
-
-
-# === Anthropic 协议（从 agent_protocol.py 导入）===
+from .agent_solver import verify_solved, build_retry_hint
 from .agent_protocol import (
     build_anthropic_headers as _build_anthropic_headers,
     convert_openai_tools_to_anthropic as _convert_openai_tools_to_anthropic,
     convert_messages_for_anthropic as _convert_messages_for_anthropic,
     parse_anthropic_response as _parse_anthropic_response,
 )
-
-# === 流式输出（从 agent_stream.py 导入）===
 from .agent_stream import stream_final_response as _stream_final_response
 
 
@@ -74,22 +65,16 @@ async def agent_chat_stream(
     protocol = get_provider_protocol(provider)
     thinking_enabled = get_config_value("ai.thinking", False)
 
-
     if not api_key:
         yield "⚠️ 未配置 AI API Key。请在 .env 文件中设置 DEEPSEEK_API_KEY 或 OPENAI_API_KEY。"
         return
 
-    # === 前缀缓存优化（参考 Reasonix）===
-    # DeepSeek 自动缓存请求前缀（system prompt + tools schema）
-    # 只要每轮的前 N 个 token 完全一致，就命中缓存（输入费用降 90%）
-    # 因此 system prompt 只放固定内容，动态内容移到 messages 中
-    system_content = SYSTEM_PROMPT  # 固定不变的核心指令
+    # === 前缀缓存优化 ===
+    # system prompt 固定不变以命中 DeepSeek 缓存，动态内容移到 messages
+    system_content = SYSTEM_PROMPT
 
-    # 动态上下文（工作区列表 + API hint + 记忆 + 统计）
+    # 动态上下文（工作区列表 + 记忆 + 统计）
     context_parts = build_dynamic_context(memory_context)
-
-    # 构建完整消息列表：
-    # [system(固定)] + [context(动态环境信息)] + [对话历史]
     full_messages = [{"role": "system", "content": system_content}]
     if context_parts:
         full_messages.append({
@@ -153,13 +138,14 @@ async def agent_chat_stream(
         }
 
     iteration = 0
-    _consecutive_failures = {}  # 追踪连续失败次数
-    _had_tool_calls = False  # 追踪是否有过工具调用
-    _tool_exec_results = []  # 收集工具执行结果摘要（#077 防幻觉）
-    _tool_full_results = []  # 收集完整工具返回数据（#079 给 responder 用）
+    _consecutive_failures = {}
+    _had_tool_calls = False
+    _tool_exec_results = []
+    _tool_full_results = []
     _usage_total = {"prompt_tokens": 0, "completion_tokens": 0, "cache_hit_tokens": 0}
+    _retry_attempted = False  # #081: fallback 重试标记
 
-    # Guardrail 控制器（#079 Phase 3）
+    # Guardrail 控制器
     from .agent_guardrails import ToolGuardrailController
     _guardrails = ToolGuardrailController()
 
@@ -234,7 +220,7 @@ async def agent_chat_stream(
                         except json.JSONDecodeError:
                             tool_args = {}
 
-                        # === Permission Gate（#060）===
+                        # Permission Gate
                         from .permission import check_permission
                         permission = check_permission(tool_name, tool_args)
                         if permission == "deny":
@@ -257,7 +243,7 @@ async def agent_chat_stream(
                         # 通知前端（通过 yield 特殊标记）
                         yield f"[TOOL:{tool_name}]"
 
-                        # Guardrail 前置检查（#079）
+                        # Guardrail 前置检查
                         _guard_decision = _guardrails.before_call(tool_name, tool_args)
                         if _guard_decision.should_block:
                             result = json.dumps({"error": _guard_decision.message}, ensure_ascii=False)
@@ -324,7 +310,7 @@ async def agent_chat_stream(
                         except (json.JSONDecodeError, TypeError):
                             _consecutive_failures[tool_name] = 0
 
-                        # 推送工具结果状态 + 收集结果摘要（#077）
+                        # 推送工具结果 + 收集摘要
                         try:
                             r = json.loads(result)
                             if isinstance(r, dict) and r.get("error"):
@@ -340,7 +326,7 @@ async def agent_chat_stream(
                             _tool_exec_results.append(f"✅ {tool_name}: 成功")
                             _tool_full_results.append({"name": tool_name, "success": True, "error": "", "result": result[:2000]})
 
-                        # Guardrail 后置记录（#079）
+                        # Guardrail 后置记录
                         _is_failed = not _tool_full_results[-1]["success"] if _tool_full_results else False
                         _guard_after = _guardrails.after_call(tool_name, tool_args, result or "", failed=_is_failed)
                         if _guard_after.action == "warn":
@@ -367,10 +353,9 @@ async def agent_chat_stream(
                             })
 
                     # 继续循环，让 LLM 处理工具结果
-                    # === 会话压缩检测（#059）===
+                    # 会话压缩检测
                     from .compaction import should_compact, compact_messages
                     if should_compact(full_messages):
-                        yield "[COMPACT]"
                         full_messages = await compact_messages(full_messages, conversation_id)
 
                     continue
@@ -379,13 +364,12 @@ async def agent_chat_stream(
                     # 没有工具调用，输出最终响应
                     final_content = message.get("content", "")
 
-                    # === #079 Pipeline Stage 3+4: 独立输出生成 + 验证 ===
+                    # === #081: 目标驱动验证 ===
                     if _had_tool_calls:
-                        # 有工具调用 → 用独立 responder 基于 ExecutionRecord 生成
                         from .agent_models import ExecutionRecord, ToolCall
                         from .agent_responder import generate_response
 
-                        # 构建 ExecutionRecord（包含完整工具返回数据）
+                        # 构建 ExecutionRecord
                         exec_record = ExecutionRecord(had_tool_calls=True)
                         for item in _tool_full_results:
                             tc = ToolCall(
@@ -396,16 +380,33 @@ async def agent_chat_stream(
                             )
                             exec_record.tool_calls.append(tc)
 
-                        # 提取用户原始问题（从 messages 找最后一个 user）
+                        # 目标验证：问题解决了吗？（#081）
+                        _solved_when = _intent.get("solved_when", "")
+                        _is_solved = await verify_solved(exec_record, _solved_when)
+
+                        if not _is_solved and not _retry_attempted:
+                            # 未解决 + 还没重试过 → 注入 fallback 提示，继续循环
+                            _retry_attempted = True
+                            retry_hint = build_retry_hint(_plan, exec_record)
+                            full_messages.append({
+                                "role": "user",
+                                "content": retry_hint,
+                            })
+                            logger.info("[Solver] 目标未达成，触发重试")
+                            # 重置工具结果以收集重试结果
+                            _tool_full_results = []
+                            _tool_exec_results = []
+                            continue  # 回到 while 循环重试
+
+                        # 已解决或已重试过 → 生成最终回复
                         user_q = ""
                         for m in reversed(full_messages):
                             if m.get("role") == "user":
                                 content = m.get("content", "")
-                                if isinstance(content, str):
+                                if isinstance(content, str) and not content.startswith("[系统提示"):
                                     user_q = content[:200]
-                                break
+                                    break
 
-                        # 调用独立 responder + verifier
                         try:
                             verified_response = await generate_response(
                                 user_question=user_q,
@@ -415,8 +416,7 @@ async def agent_chat_stream(
                             yield verified_response
                             yield f"[USAGE:{json.dumps(_usage_total)}]"
                             return
-                        except Exception as e:
-                            # responder 失败，fallback 到 final_content
+                        except Exception:
                             if final_content:
                                 yield final_content
                                 yield f"[USAGE:{json.dumps(_usage_total)}]"
