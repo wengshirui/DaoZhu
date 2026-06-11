@@ -119,6 +119,21 @@ async def chat_api(body: dict):
             if chunk == "[COMPACT]":
                 yield f"data: {json.dumps({'compact': True, 'conversation_id': conv_id})}\n\n"
                 continue
+            if chunk.startswith("[PROGRESS:"):
+                # 进展度量标记（#082 AC6）: [PROGRESS:2/3:描述]
+                inner = chunk[10:-1]  # "2/3:描述"
+                parts = inner.split(":", 2)
+                if len(parts) >= 2:
+                    progress_parts = parts[0].split("/")
+                    progress_data = {
+                        "progress": True,
+                        "current": int(progress_parts[0]) if progress_parts[0].isdigit() else 0,
+                        "total": int(progress_parts[1]) if len(progress_parts) > 1 and progress_parts[1].isdigit() else 0,
+                        "description": parts[1] if len(parts) > 1 else "",
+                        "conversation_id": conv_id,
+                    }
+                    yield f"data: {json.dumps(progress_data, ensure_ascii=False)}\n\n"
+                continue
 
             full_response += chunk
             yield f"data: {json.dumps({'chunk': chunk, 'conversation_id': conv_id})}\n\n"

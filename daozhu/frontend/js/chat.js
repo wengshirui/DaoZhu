@@ -128,6 +128,7 @@ const Chat = {
             const data = JSON.parse(line.slice(6));
             if (data.tool) { this._handleToolStart(data); continue; }
             if (data.tool_done) { this._handleToolDone(data); continue; }
+            if (data.progress) { this._handleProgress(data); continue; }
             if (data.chunk) {
               this._hideTyping();
               this._closeToolPanel();
@@ -195,6 +196,28 @@ const Chat = {
     }
     const icon = data.status === 'ok' ? '✅' : '❌';
     Panel.addLog(data.status === 'ok' ? 'success' : 'error', `${icon} ${data.tool_done} ${data.error || '完成'}`);
+  },
+
+  // === 进展度量展示（#082 AC6）===
+  _handleProgress(data) {
+    if (!this._toolPanel) return;
+    const header = this._toolPanel.querySelector('.tool-panel__title');
+    if (header && data.total > 0) {
+      header.textContent = `⚡ 执行中 (${data.current}/${data.total})`;
+    }
+    // 更新进度条（如有）
+    let bar = this._toolPanel.querySelector('.tool-panel__progress');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.className = 'tool-panel__progress';
+      bar.innerHTML = '<div class="tool-panel__progress-fill"></div><span class="tool-panel__progress-text"></span>';
+      const header_el = this._toolPanel.querySelector('.tool-panel__header');
+      if (header_el) header_el.after(bar);
+    }
+    const pct = data.total > 0 ? Math.round((data.current / data.total) * 100) : 0;
+    bar.querySelector('.tool-panel__progress-fill').style.width = `${pct}%`;
+    bar.querySelector('.tool-panel__progress-text').textContent = data.description || `${data.current}/${data.total}`;
+    Panel.addLog('info', `📊 进展: ${data.current}/${data.total} ${data.description || ''}`);
   },
 
   _closeToolPanel() {
