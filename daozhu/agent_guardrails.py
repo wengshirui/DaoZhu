@@ -1,5 +1,5 @@
 """
-岛主 DaoZhu — Agent Guardrail 控制器（#079 Phase 3）
+岛主 DaoZhu — Agent Guardrail 控制器（#082 工程控制论升级）
 参考 hermes-agent tool_guardrails.py 设计。
 纯函数模块，只返回 Decision，不执行任何副作用。
 
@@ -7,12 +7,39 @@
 - 检测同一工具同参数连续失败 → 阻断
 - 检测幂等工具重复相同结果 → 警告
 - 连续失败达上限 → 注入恢复提示
+- 相关性门控：检查工具是否在 plan.tools_needed 中（#082）
+- 进展趋势检测：progress_score 序列的升/平/降（#082）
+- 递进式响应：warn → 重规划 → 加速消耗（#082）
 """
 
 import hashlib
 import json
+import logging
 from dataclasses import dataclass, field
 from typing import Optional
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class GuardrailDecision:
+    """Guardrail 返回的决策"""
+    action: str = "allow"  # allow | warn | block
+    message: str = ""
+    tool_name: str = ""
+    count: int = 0
+
+    @property
+    def should_block(self) -> bool:
+        return self.action == "block"
+
+
+@dataclass
+class TrendDecision:
+    """进展趋势检测的决策"""
+    action: str = "ok"  # ok | warn | replan | accelerate
+    stall_count: int = 0
+    message: str = ""
 
 
 @dataclass
@@ -115,3 +142,116 @@ class ToolGuardrailController:
         """生成调用签名（tool_name + 参数的稳定 hash）"""
         canonical = json.dumps(args, sort_keys=True, ensure_ascii=False, default=str)
         return f"{tool_name}:{hashlib.md5(canonical.encode()).hexdigest()[:12]}"
+
+
+# ─── 相关性门控（#082 AC10/AC11）──────────────────────────────
+
+class RelevanceGate:
+    """检查工具调用是否在计划内（对偶控制：不阻断但施加 warn 代价）"""
+
+    def __init__(self):
+        self._accepted_tools: set[str] = set()  # 探索成功后接纳的工具
+
+    def reset(self):
+        self._accepted_tools.clear()
+
+    def check(self, tool_name: str, plan_tools: list[str]) -> GuardrailDecision:
+        """
+        检查工具是否在计划中。
+
+        AC10: 不在 plan.tools_needed 中 → warn 但不阻断
+        AC11: 计划外工具成功且 score 涨了 → 接纳，不再重复 warn
+        """
+        if not plan_tools:
+            return GuardrailDecision(tool_name=tool_name)
+
+        if tool_name in plan_tools:
+            return GuardrailDecision(tool_name=tool_name)
+
+        if tool_name in self._accepted_tools:
+            return GuardrailDecision(tool_name=tool_name)
+
+        return GuardrailDecision(
+            action="warn",
+            message=f"{tool_name} 不在执行计划中，请确认是否有必要调用。",
+            tool_name=tool_name,
+        )
+
+    def accept_tool(self, tool_name: str):
+        """探索成功 → 接纳该工具，后续不再 warn"""
+        self._accepted_tools.add(tool_name)
+
+
+# ─── 进展趋势检测（#082 AC7/AC8）─────────────────────────────
+
+class ProgressTrend:
+    """
+    纯代码追踪 progress_score 序列，检测趋势。
+
+    职责（设计决策 D5）：
+    - solver 输出 score（位置）
+    - 本模块看趋势（速度/方向）
+    - 递进式响应（D8）：1轮不涨→warn，2轮→replan，3轮→accelerate
+    """
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self._scores: list[float] = []
+        self._stall_count: int = 0
+
+    @property
+    def scores(self) -> list[float]:
+        return self._scores.copy()
+
+    @property
+    def stall_count(self) -> int:
+        return self._stall_count
+
+    def record(self, score: float) -> TrendDecision:
+        """
+        记录新的 progress_score 并返回趋势决策。
+
+        递进式响应（AC8）：
+        - 1轮不涨 → warn
+        - 2轮不涨 → replan
+        - 3轮不涨 → accelerate
+        """
+        self._scores.append(score)
+
+        # 至少需要 2 个数据点才能判趋势
+        if len(self._scores) < 2:
+            return TrendDecision(action="ok")
+
+        prev = self._scores[-2]
+        curr = self._scores[-1]
+
+        # 判断是否有进展（允许微小浮动）
+        improved = curr > prev + 0.01
+
+        if improved:
+            self._stall_count = 0
+            return TrendDecision(action="ok")
+
+        # 没有进展
+        self._stall_count += 1
+
+        if self._stall_count >= 3:
+            return TrendDecision(
+                action="accelerate",
+                stall_count=self._stall_count,
+                message=f"连续 {self._stall_count} 轮无进展，加速消耗 budget 准备中止。",
+            )
+        elif self._stall_count >= 2:
+            return TrendDecision(
+                action="replan",
+                stall_count=self._stall_count,
+                message=f"连续 {self._stall_count} 轮无进展，触发重规划。",
+            )
+        else:
+            return TrendDecision(
+                action="warn",
+                stall_count=self._stall_count,
+                message="本轮未取得进展，请换个方法或检查当前策略。",
+            )

@@ -14,6 +14,7 @@ from .config import get_config_value, get_api_key
 from .tools.registry import registry
 from .memory_service import build_memory_context
 from .config import get_provider_protocol, get_provider_base_url, get_provider_model
+from .chat_service import call_llm_simple
 from .tool_log_db import log_tool_call
 
 logger = logging.getLogger(__name__)
@@ -26,14 +27,18 @@ from .tools import workspace_api_tools  # noqa: F401
 from .tools import web_search_tool  # noqa: F401
 from .tools import browser_tool  # noqa: F401
 
-MAX_ITERATIONS = 10
+MAX_ITERATIONS = 99
 
 # 模块导入
 from .agent_context import build_dynamic_context
 from .prompts import SYSTEM_PROMPT, REVIEWER_PROMPT
 from .agent_intent import classify_intent
-from .agent_planner import make_plan, format_plan_for_context
-from .agent_solver import verify_solved, build_retry_hint
+from .agent_planner import make_plan, format_plan_for_context, replan
+from .agent_solver import (
+    verify_solved, build_retry_hint,
+    evaluate_gate, evaluate_progress,
+    GateResult, ProgressResult,
+)
 from .agent_protocol import (
     build_anthropic_headers as _build_anthropic_headers,
     convert_openai_tools_to_anthropic as _convert_openai_tools_to_anthropic,
@@ -114,15 +119,62 @@ async def agent_chat_stream(
         return
 
     if _intent["type"] == "simple_chat":
-        # 纯对话：不给工具，直接流式对话
+        # 纯对话：不给工具，直接流式对话 → 过统一输出闸门（#082 AC1/AC2）
         try:
+            # 构建 headers（simple_chat 也需要）
+            if protocol == "anthropic":
+                headers = _build_anthropic_headers(api_key)
+            else:
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                }
+
+            # 先获取完整回复（需要过闸门评估）
+            response_text = ""
             async for chunk in _stream_final_response(
                 base_url, headers, model, full_messages, protocol
             ):
-                yield chunk
+                response_text += chunk
+
+            if not response_text:
+                response_text = "你好！有什么我可以帮你的吗？"
+
+            # 统一输出闸门（AC1）
+            gate_result = await evaluate_gate(
+                user_question=_user_msg,
+                response=response_text,
+                intent_type="simple_chat",
+            )
+
+            if gate_result.needs_escalation:
+                # 误分类自修正（AC1）：切换到 needs_action
+                logger.info("[Gate] simple_chat 需要升级到 needs_action")
+                _intent["type"] = "needs_action"
+                _intent["goal"] = _intent.get("goal", _user_msg[:80])
+                _intent["solved_when"] = "完成用户请求"
+                # 不 return，继续往下走 needs_action 路径
+            elif not gate_result.quality_ok:
+                # 质量不足 → Reflect-Refine（AC2）
+                from .agent_verifier import verify_and_refine
+                from .agent_models import ExecutionRecord
+                empty_record = ExecutionRecord(had_tool_calls=False)
+                refined = await verify_and_refine(
+                    output=response_text,
+                    record=empty_record,
+                    user_question=_user_msg,
+                    llm_call_fn=lambda p: call_llm_simple(p, max_tokens=300),
+                )
+                yield refined
+                return
+            else:
+                # 通过闸门 → 直接输出
+                yield response_text
+                return
+
         except Exception:
             yield "你好！有什么我可以帮你的吗？"
-        return
+            return
 
     # needs_action: 生成执行计划
     _plan = await make_plan(_intent)
@@ -157,8 +209,11 @@ async def agent_chat_stream(
     _retry_attempted = False  # #081: fallback 重试标记
 
     # Guardrail 控制器
-    from .agent_guardrails import ToolGuardrailController
+    from .agent_guardrails import ToolGuardrailController, ProgressTrend, RelevanceGate
     _guardrails = ToolGuardrailController()
+    _progress_trend = ProgressTrend()
+    _relevance_gate = RelevanceGate()
+    _budget_multiplier = 1  # 加速消耗时增大
 
     while iteration < MAX_ITERATIONS:
         iteration += 1
@@ -267,6 +322,12 @@ async def agent_chat_stream(
                                 full_messages.append({"role": "tool", "tool_call_id": tool_call["id"], "content": result})
                             continue
 
+                        # 相关性门控（#082 AC10）
+                        _rel_decision = _relevance_gate.check(tool_name, _plan.get("tools_needed", []))
+                        if _rel_decision.action == "warn":
+                            logger.info(f"[Relevance] {_rel_decision.message}")
+                            # 不阻断，但在工具结果中附加 warn（让 LLM 知道）
+
                         # 执行工具（计时）
                         import time as _time
                         _t0 = _time.time()
@@ -368,6 +429,87 @@ async def agent_chat_stream(
                     from .compaction import should_compact, compact_messages
                     if should_compact(full_messages):
                         full_messages = await compact_messages(full_messages, conversation_id)
+
+                    # ─── #082: 每轮进展评估 + 趋势检测 ───
+                    if _tool_full_results:
+                        from .agent_models import ExecutionRecord as _ER, ToolCall as _TC
+                        _iter_record = _ER(had_tool_calls=True)
+                        for _item in _tool_full_results:
+                            _iter_record.tool_calls.append(_TC(
+                                tool_name=_item["name"],
+                                success=_item["success"],
+                                error=_item.get("error", ""),
+                                result=_item.get("result", ""),
+                            ))
+
+                        # 进展评估（AC4/AC5）
+                        _progress = await evaluate_progress(
+                            plan=_plan,
+                            record=_iter_record,
+                            tools_needed=_plan.get("tools_needed", []),
+                        )
+
+                        if not _progress.evaluation_failed:
+                            # 推送前端进展标记（AC6）
+                            _total_steps = len(_plan.get("steps", []))
+                            _completed_count = len(_progress.completed)
+                            _desc = _progress.completed[-1] if _progress.completed else "执行中"
+                            if _total_steps > 0:
+                                yield f"[PROGRESS:{_completed_count}/{_total_steps}:{_desc[:30]}]"
+
+                            # 趋势检测（AC7/AC8）
+                            _trend = _progress_trend.record(_progress.score)
+
+                            if _trend.action == "warn":
+                                # 1轮不涨 → 注入 warn
+                                full_messages.append({
+                                    "role": "user",
+                                    "content": f"[系统提示：{_trend.message}]",
+                                })
+                                logger.info(f"[Trend] warn: {_trend.message}")
+
+                            elif _trend.action == "replan":
+                                # 2轮不涨 → 重规划（AC9）
+                                _failed = [tc.tool_name for tc in _iter_record.tool_calls if not tc.success]
+                                _errors = _iter_record.errors[:2]
+                                _new_plan = await replan(
+                                    original_plan=_plan,
+                                    completed_steps=_progress.completed,
+                                    failed_tools=_failed,
+                                    errors=_errors,
+                                )
+                                if _new_plan is not _plan:
+                                    _plan = _new_plan
+                                    plan_text = format_plan_for_context(_plan)
+                                    full_messages.append({
+                                        "role": "system",
+                                        "content": f"[重规划] {plan_text}",
+                                    })
+                                    logger.info("[Trend] 重规划完成，注入新 plan")
+
+                            elif _trend.action == "accelerate":
+                                # 3轮不涨 → 加速消耗
+                                _budget_multiplier = 3
+                                full_messages.append({
+                                    "role": "user",
+                                    "content": "[系统提示：长时间无进展，请尽快总结已完成的工作或切换策略。]",
+                                })
+                                logger.info("[Trend] 加速消耗 budget")
+
+                        # 接纳计划外工具（AC11）
+                        if _progress.score > (_progress_trend.scores[-2] if len(_progress_trend.scores) > 1 else 0):
+                            for _item in _tool_full_results:
+                                if _item["success"] and _item["name"] not in _plan.get("tools_needed", []):
+                                    _relevance_gate.accept_tool(_item["name"])
+
+                    # 日志记录（AC13）
+                    logger.info(
+                        f"[Loop] iteration={iteration}, scores={_progress_trend.scores[-3:]}, "
+                        f"stall={_progress_trend.stall_count}, multiplier={_budget_multiplier}"
+                    )
+
+                    # 加速消耗 budget（AC8 递进响应）
+                    iteration += (_budget_multiplier - 1)  # 额外消耗
 
                     continue
 
