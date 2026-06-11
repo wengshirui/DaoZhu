@@ -15,7 +15,6 @@ from .tools.registry import registry
 from .memory_service import build_memory_context
 from .config import get_provider_protocol, get_provider_base_url, get_provider_model
 from .chat_service import call_llm_simple
-from .tool_log_db import log_tool_call
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +30,7 @@ MAX_ITERATIONS = 99
 
 # 模块导入
 from .agent_context import build_dynamic_context
-from .prompts import SYSTEM_PROMPT, REVIEWER_PROMPT
+from .prompts import SYSTEM_PROMPT
 from .agent_intent import classify_intent
 from .agent_planner import make_plan, format_plan_for_context, replan
 from .agent_solver import (
@@ -75,7 +74,6 @@ async def agent_chat_stream(
         return
 
     # === 前缀缓存优化 ===
-    # system prompt 固定不变以命中 DeepSeek 缓存，动态内容移到 messages
     system_content = SYSTEM_PROMPT
 
     # 动态上下文（工作区列表 + 记忆 + 统计）
@@ -88,8 +86,7 @@ async def agent_chat_stream(
         })
     full_messages.extend(messages)
 
-    # === #080 Phase 1: 意图识别 + 规划 ===
-    # 提取用户最新消息 + 近几轮上下文（让意图分类器理解指代）
+    # === 意图识别 + 规划 ===
     _user_msg = ""
     _recent_context = ""
     for m in reversed(messages):
@@ -99,7 +96,7 @@ async def agent_chat_stream(
                 _user_msg = content
             break
 
-    # 收集最近 3 轮对话作为上下文（帮助理解"那些"、"这个"等指代）
+    # 收集最近 3 轮对话作为上下文
     _context_turns = []
     for m in messages[-6:]:  # 最近 6 条消息（约 3 轮）
         role = m.get("role", "")
@@ -109,11 +106,11 @@ async def agent_chat_stream(
     if len(_context_turns) > 1:
         _recent_context = "\n".join(_context_turns[:-1])  # 排除最新这条
 
-    # 意图分类（轻量 LLM call，含上下文）
+    # 意图分类
     _intent = await classify_intent(_user_msg, _recent_context)
 
     if _intent["type"] == "ambiguous":
-        # 追问用户，不执行任何工具
+        # 追问用户
         clarification = _intent.get("clarification", "能说得更具体一些吗？")
         yield clarification
         return
@@ -186,11 +183,8 @@ async def agent_chat_stream(
         "content": plan_text,
     })
 
-    # === 继续原有执行流程 ===
-
-    # 获取工具 schema
+    # === 继续执行流程 ===
     tool_schemas = registry.get_schemas()
-
     # 根据协议构建 headers
     if protocol == "anthropic":
         headers = _build_anthropic_headers(api_key)
@@ -278,6 +272,7 @@ async def agent_chat_stream(
                     full_messages.append(message)
 
                     # 执行每个工具调用
+                    from .agent_executor import execute_tool
                     for tool_call in tool_calls:
                         func = tool_call["function"]
                         tool_name = func["name"]
@@ -286,136 +281,44 @@ async def agent_chat_stream(
                         except json.JSONDecodeError:
                             tool_args = {}
 
-                        # Permission Gate
-                        from .permission import check_permission
-                        permission = check_permission(tool_name, tool_args)
-                        if permission == "deny":
-                            result = json.dumps({
-                                "error": f"权限拒绝: 工具 {tool_name} 的此调用被安全规则禁止。",
-                                "permission": "denied",
-                            }, ensure_ascii=False)
-                            yield f"[TOOL:{tool_name}]"
-                            yield f"[TOOL_ERR:{tool_name}:权限拒绝]"
-                            _tool_exec_results.append(f"🚫 {tool_name}: 权限拒绝（安全规则禁止）")
-                            if protocol == "anthropic":
-                                full_messages.append({
-                                    "role": "user",
-                                    "content": [{"type": "tool_result", "tool_use_id": tool_call["id"], "content": result}],
-                                })
-                            else:
-                                full_messages.append({"role": "tool", "tool_call_id": tool_call["id"], "content": result})
-                            continue
+                        # 执行工具（含权限/guardrails/日志/失败检测）
+                        exec_result, result, markers = await execute_tool(
+                            tool_name=tool_name,
+                            tool_args=tool_args,
+                            tool_call_id=tool_call["id"],
+                            plan_tools=_plan.get("tools_needed", []),
+                            guardrails=_guardrails,
+                            relevance_gate=_relevance_gate,
+                            consecutive_failures=_consecutive_failures,
+                            protocol=protocol,
+                        )
 
-                        # 通知前端（通过 yield 特殊标记）
-                        yield f"[TOOL:{tool_name}]"
+                        # 推送前端标记
+                        for marker in markers:
+                            yield marker
 
-                        # Guardrail 前置检查
-                        _guard_decision = _guardrails.before_call(tool_name, tool_args)
-                        if _guard_decision.should_block:
-                            result = json.dumps({"error": _guard_decision.message}, ensure_ascii=False)
-                            yield f"[TOOL_ERR:{tool_name}:{_guard_decision.message[:50]}]"
-                            _tool_exec_results.append(f"🛑 {tool_name}: 被阻断 - {_guard_decision.message[:60]}")
-                            _tool_full_results.append({"name": tool_name, "success": False, "error": _guard_decision.message, "result": ""})
-                            if protocol == "anthropic":
-                                full_messages.append({"role": "user", "content": [{"type": "tool_result", "tool_use_id": tool_call["id"], "content": result}]})
-                            else:
-                                full_messages.append({"role": "tool", "tool_call_id": tool_call["id"], "content": result})
-                            continue
-
-                        # 相关性门控（#082 AC10）
-                        _rel_decision = _relevance_gate.check(tool_name, _plan.get("tools_needed", []))
-                        if _rel_decision.action == "warn":
-                            logger.info(f"[Relevance] {_rel_decision.message}")
-                            # 不阻断，但在工具结果中附加 warn（让 LLM 知道）
-
-                        # 执行工具（计时）
-                        import time as _time
-                        _t0 = _time.time()
-                        result = await registry.dispatch(tool_name, tool_args)
-                        _duration_ms = int((_time.time() - _t0) * 1000)
-
-                        # 记录到日志
-                        _tool_success = True
-                        _tool_error = None
-                        try:
-                            r = json.loads(result)
-                            if isinstance(r, dict) and r.get("error"):
-                                _tool_success = False
-                                _tool_error = r["error"][:200]
-                        except (json.JSONDecodeError, TypeError):
-                            pass
-
-                        try:
-                            log_tool_call(
-                                tool_name=tool_name,
-                                args=tool_args,
-                                result=result[:3000] if result else "",
-                                success=_tool_success,
-                                duration_ms=_duration_ms,
-                                error=_tool_error,
-                            )
-                        except Exception:
-                            pass  # 日志记录不应阻塞主流程
-
-                        # 连续失败检测
-                        try:
-                            r = json.loads(result)
-                            if isinstance(r, dict) and r.get("error"):
-                                _consecutive_failures[tool_name] = _consecutive_failures.get(tool_name, 0) + 1
-
-                                # 自我优化：记录失败教训到 knowledge
-                                from .memory_db import add_knowledge
-                                add_knowledge(
-                                    category="tool_failure",
-                                    title=f"{tool_name} 调用失败",
-                                    content=f"错误: {r['error'][:100]}",
-                                    keywords=tool_name,
-                                )
-
-                                if _consecutive_failures[tool_name] >= 2:
-                                    result = json.dumps({
-                                        "error": r["error"],
-                                        "hint": f"工具 {tool_name} 已连续失败 {_consecutive_failures[tool_name]} 次。请换一种方式完成任务，或直接告诉用户当前遇到的问题。"
-                                    }, ensure_ascii=False)
-                            else:
-                                _consecutive_failures[tool_name] = 0
-                        except (json.JSONDecodeError, TypeError):
-                            _consecutive_failures[tool_name] = 0
-
-                        # 推送工具结果 + 收集摘要
-                        try:
-                            r = json.loads(result)
-                            if isinstance(r, dict) and r.get("error"):
-                                yield f"[TOOL_ERR:{tool_name}:{r['error'][:50]}]"
-                                _tool_exec_results.append(f"❌ {tool_name}: 失败 - {r['error'][:60]}")
-                                _tool_full_results.append({"name": tool_name, "success": False, "error": r["error"][:200], "result": ""})
-                            else:
-                                yield f"[TOOL_OK:{tool_name}]"
-                                _tool_exec_results.append(f"✅ {tool_name}: 成功")
-                                _tool_full_results.append({"name": tool_name, "success": True, "error": "", "result": result[:2000]})
-                        except (json.JSONDecodeError, TypeError):
-                            yield f"[TOOL_OK:{tool_name}]"
+                        # 收集结果摘要
+                        if exec_result.denied:
+                            _tool_exec_results.append(f"🚫 {tool_name}: 权限拒绝")
+                        elif exec_result.blocked:
+                            _tool_exec_results.append(f"🛑 {tool_name}: 被阻断")
+                        elif exec_result.success:
                             _tool_exec_results.append(f"✅ {tool_name}: 成功")
-                            _tool_full_results.append({"name": tool_name, "success": True, "error": "", "result": result[:2000]})
+                        else:
+                            _tool_exec_results.append(f"❌ {tool_name}: 失败")
 
-                        # Guardrail 后置记录
-                        _is_failed = not _tool_full_results[-1]["success"] if _tool_full_results else False
-                        _guard_after = _guardrails.after_call(tool_name, tool_args, result or "", failed=_is_failed)
-                        if _guard_after.action == "warn":
-                            # 注入警告到工具结果消息中
-                            warn_suffix = f"\n\n[⚠️ Guardrail: {_guard_after.message}]"
-                            if protocol != "anthropic" and full_messages and full_messages[-1].get("role") == "tool":
-                                full_messages[-1]["content"] = full_messages[-1].get("content", "") + warn_suffix
+                        _tool_full_results.append({
+                            "name": tool_name,
+                            "success": exec_result.success,
+                            "error": exec_result.error,
+                            "result": exec_result.result,
+                        })
 
                         # 添加工具结果到消息
                         if protocol == "anthropic":
                             full_messages.append({
                                 "role": "user",
-                                "content": [{
-                                    "type": "tool_result",
-                                    "tool_use_id": tool_call["id"],
-                                    "content": result,
-                                }],
+                                "content": [{"type": "tool_result", "tool_use_id": tool_call["id"], "content": result}],
                             })
                         else:
                             full_messages.append({
@@ -430,77 +333,30 @@ async def agent_chat_stream(
                     if should_compact(full_messages):
                         full_messages = await compact_messages(full_messages, conversation_id)
 
-                    # ─── #082: 每轮进展评估 + 趋势检测 ───
-                    if _tool_full_results:
-                        from .agent_models import ExecutionRecord as _ER, ToolCall as _TC
-                        _iter_record = _ER(had_tool_calls=True)
-                        for _item in _tool_full_results:
-                            _iter_record.tool_calls.append(_TC(
-                                tool_name=_item["name"],
-                                success=_item["success"],
-                                error=_item.get("error", ""),
-                                result=_item.get("result", ""),
-                            ))
+                    # ─── #082: 每轮控制论回调（进展评估 + 趋势 + 递进响应）───
+                    from .agent_solver import post_iteration_evaluate
+                    _feedback = await post_iteration_evaluate(
+                        plan=_plan,
+                        tool_results=_tool_full_results,
+                        progress_trend=_progress_trend,
+                        relevance_gate=_relevance_gate,
+                    )
 
-                        # 进展评估（AC4/AC5）
-                        _progress = await evaluate_progress(
-                            plan=_plan,
-                            record=_iter_record,
-                            tools_needed=_plan.get("tools_needed", []),
-                        )
+                    # 推送前端标记
+                    for _marker in _feedback.yield_markers:
+                        yield _marker
 
-                        if not _progress.evaluation_failed:
-                            # 推送前端进展标记（AC6）
-                            _total_steps = len(_plan.get("steps", []))
-                            _completed_count = len(_progress.completed)
-                            _desc = _progress.completed[-1] if _progress.completed else "执行中"
-                            if _total_steps > 0:
-                                yield f"[PROGRESS:{_completed_count}/{_total_steps}:{_desc[:30]}]"
+                    # 注入消息
+                    for _msg in _feedback.inject_messages:
+                        full_messages.append(_msg)
 
-                            # 趋势检测（AC7/AC8）
-                            _trend = _progress_trend.record(_progress.score)
+                    # 重规划
+                    if _feedback.new_plan:
+                        _plan = _feedback.new_plan
+                        logger.info("[Trend] 重规划完成")
 
-                            if _trend.action == "warn":
-                                # 1轮不涨 → 注入 warn
-                                full_messages.append({
-                                    "role": "user",
-                                    "content": f"[系统提示：{_trend.message}]",
-                                })
-                                logger.info(f"[Trend] warn: {_trend.message}")
-
-                            elif _trend.action == "replan":
-                                # 2轮不涨 → 重规划（AC9）
-                                _failed = [tc.tool_name for tc in _iter_record.tool_calls if not tc.success]
-                                _errors = _iter_record.errors[:2]
-                                _new_plan = await replan(
-                                    original_plan=_plan,
-                                    completed_steps=_progress.completed,
-                                    failed_tools=_failed,
-                                    errors=_errors,
-                                )
-                                if _new_plan is not _plan:
-                                    _plan = _new_plan
-                                    plan_text = format_plan_for_context(_plan)
-                                    full_messages.append({
-                                        "role": "system",
-                                        "content": f"[重规划] {plan_text}",
-                                    })
-                                    logger.info("[Trend] 重规划完成，注入新 plan")
-
-                            elif _trend.action == "accelerate":
-                                # 3轮不涨 → 加速消耗
-                                _budget_multiplier = 3
-                                full_messages.append({
-                                    "role": "user",
-                                    "content": "[系统提示：长时间无进展，请尽快总结已完成的工作或切换策略。]",
-                                })
-                                logger.info("[Trend] 加速消耗 budget")
-
-                        # 接纳计划外工具（AC11）
-                        if _progress.score > (_progress_trend.scores[-2] if len(_progress_trend.scores) > 1 else 0):
-                            for _item in _tool_full_results:
-                                if _item["success"] and _item["name"] not in _plan.get("tools_needed", []):
-                                    _relevance_gate.accept_tool(_item["name"])
+                    # 加速消耗
+                    _budget_multiplier = _feedback.budget_multiplier
 
                     # 日志记录（AC13）
                     logger.info(
@@ -508,8 +364,8 @@ async def agent_chat_stream(
                         f"stall={_progress_trend.stall_count}, multiplier={_budget_multiplier}"
                     )
 
-                    # 加速消耗 budget（AC8 递进响应）
-                    iteration += (_budget_multiplier - 1)  # 额外消耗
+                    # 加速消耗 budget（AC8）
+                    iteration += (_budget_multiplier - 1)
 
                     continue
 

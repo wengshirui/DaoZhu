@@ -327,3 +327,108 @@ def build_retry_hint(plan: dict, record: ExecutionRecord) -> str:
         )
 
     return "\n".join(hint_parts)
+
+
+# ─── 每轮循环后的控制论回调（#082 整合）─────────────────────
+
+@dataclass
+class IterationFeedback:
+    """每轮迭代结束后的控制反馈"""
+    progress: ProgressResult
+    yield_markers: list[str] = field(default_factory=list)
+    inject_messages: list[dict] = field(default_factory=list)
+    new_plan: Optional[dict] = None
+    budget_multiplier: int = 1
+
+
+async def post_iteration_evaluate(
+    plan: dict,
+    tool_results: list[dict],
+    progress_trend,  # ProgressTrend instance
+    relevance_gate,  # RelevanceGate instance
+) -> IterationFeedback:
+    """
+    每轮工具调用完成后的统一控制论回调。
+    整合：进展评估 + 前端标记 + 趋势检测 + 递进响应 + 工具接纳。
+
+    Returns:
+        IterationFeedback — 含需要 yield 的标记和需要注入的消息
+    """
+    from .agent_planner import replan
+
+    feedback = IterationFeedback(progress=ProgressResult())
+
+    if not tool_results:
+        return feedback
+
+    # 构建本轮 ExecutionRecord
+    record = ExecutionRecord(had_tool_calls=True)
+    for item in tool_results:
+        from .agent_models import ToolCall as _TC
+        record.tool_calls.append(_TC(
+            tool_name=item["name"],
+            success=item["success"],
+            error=item.get("error", ""),
+            result=item.get("result", ""),
+        ))
+
+    # 进展评估（AC4/AC5）
+    progress = await evaluate_progress(
+        plan=plan,
+        record=record,
+        tools_needed=plan.get("tools_needed", []),
+    )
+    feedback.progress = progress
+
+    if progress.evaluation_failed:
+        return feedback
+
+    # 推送前端进展标记（AC6）
+    total_steps = len(plan.get("steps", []))
+    completed_count = len(progress.completed)
+    desc = progress.completed[-1] if progress.completed else "执行中"
+    if total_steps > 0:
+        feedback.yield_markers.append(
+            f"[PROGRESS:{completed_count}/{total_steps}:{desc[:30]}]"
+        )
+
+    # 趋势检测（AC7/AC8）
+    trend = progress_trend.record(progress.score)
+
+    if trend.action == "warn":
+        feedback.inject_messages.append({
+            "role": "user",
+            "content": f"[系统提示：{trend.message}]",
+        })
+    elif trend.action == "replan":
+        failed = [tc.tool_name for tc in record.tool_calls if not tc.success]
+        errors = record.errors[:2]
+        new_plan = await replan(
+            original_plan=plan,
+            completed_steps=progress.completed,
+            failed_tools=failed,
+            errors=errors,
+        )
+        if new_plan is not plan:
+            feedback.new_plan = new_plan
+            from .agent_planner import format_plan_for_context
+            plan_text = format_plan_for_context(new_plan)
+            feedback.inject_messages.append({
+                "role": "system",
+                "content": f"[重规划] {plan_text}",
+            })
+    elif trend.action == "accelerate":
+        feedback.budget_multiplier = 3
+        feedback.inject_messages.append({
+            "role": "user",
+            "content": "[系统提示：长时间无进展，请尽快总结已完成的工作或切换策略。]",
+        })
+
+    # 接纳计划外工具（AC11）
+    prev_score = progress_trend.scores[-2] if len(progress_trend.scores) > 1 else 0
+    if progress.score > prev_score:
+        for item in tool_results:
+            if item["success"] and item["name"] not in plan.get("tools_needed", []):
+                relevance_gate.accept_tool(item["name"])
+
+    return feedback
