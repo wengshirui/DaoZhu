@@ -254,3 +254,10 @@
 - 智谱 GLM API Key（bigmodel.cn，高级模式必须）
 - Pixelle-Video（参考代码和提示词，不引入为运行时依赖）
 - #082 Agent 自动控制系统（已完成，导演 LLM 复用 agent 架构）
+
+
+## 待后续迭代：
+
+前端三级模式 UI 切换 + Key 配置面板
+Stage 3 完整实现（Playwright 录制火柴人动画帧，当前用静态图占位）
+BGM 按氛围标签分类元数据
