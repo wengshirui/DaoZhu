@@ -60,63 +60,70 @@
 
 ## 验收标准
 
-### 双模式
+### 三级模式切换
 
-1. **AC1**: 用户未配置 GLM API Key 时，工作区默认运行简单模式（当前 SVG 无声 HTML），无报错
-2. **AC2**: 用户在工作区设置中配置 GLM API Key 后，界面出现"高级模式"开关
-3. **AC3**: 简单模式生成速度保持不变（< 10 秒），用户可快速预览剧情效果
+1. **AC1**: 未配任何 Key → 简单模式（SVG 无声 HTML），零成本秒出
+2. **AC2**: 配置 Pexels Key → 解锁中级模式（动态视频背景 + Edge-TTS 免费配音）
+3. **AC3**: 配置 GLM Key → 解锁高级模式（AI 生成插图 + GLM-TTS 零样本配音）
+4. **AC4**: 简单模式生成速度保持不变（< 10 秒），用户可快速预览剧情效果
 
-### GLM-Image 场景图
+### Pexels 动态背景视频（中级模式）
 
-4. **AC4**: 高级模式下，每个场景调用 GLM-Image 生成背景插图，替代 CSS 渐变背景
-5. **AC5**: 场景描述 prompt 由导演 LLM 根据剧本自动生成（参考 Pixelle-Video 的 prompt 设计）
-6. **AC6**: GLM-Image API 调用失败时，降级到 Pexels 搜索或简单模式的 SVG 背景，不阻塞流程
+5. **AC5**: 按场景关键词调用 Pexels Video API 搜索 1080p+ 免费视频片段
+6. **AC6**: 每帧背景视频时长与 TTS 配音时长对齐（裁剪或循环播放）
+7. **AC7**: 支持 API Key 轮换（多 Key 配置防限流，参考 MoneyPrinterTurbo）
+8. **AC8**: 下载的视频缓存到本地（URL hash 命名），避免重复下载
+9. **AC9**: Pexels 搜索无结果时降级到 SVG 背景，不阻塞
 
-### Pexels 素材源（中级模式）
+### GLM-Image 场景图（高级模式）
 
-7. **AC7-new**: 支持 Pexels API 搜索场景背景视频片段（免费、无版权、1080p+），按场景关键词匹配
-8. **AC8-new**: 未配置 GLM Key 但配置了 Pexels Key 时，自动使用 Pexels 视频作为动态背景
-9. **AC9-new**: 每帧分镜的背景视频时长与 TTS 配音时长对齐（裁剪或循环），Pexels 搜索无结果时降级到 SVG
+10. **AC10**: 每个场景调用 GLM-Image 生成背景插图，替代 CSS 渐变背景
+11. **AC11**: 场景描述 prompt 由导演 LLM 根据剧本自动生成
+12. **AC12**: GLM-Image 失败时降级到 Pexels 视频 → SVG（三级降级链）
 
+### TTS 配音
 
-### GLM-TTS 角色配音
-
-7. **AC7**: 导演 LLM 分析剧本后，为每个角色分配性别和声色参数（输出结构化 JSON）
-8. **AC8**: 每段角色对话调用 GLM-TTS 生成语音 mp3，音色与角色配置一致
-9. **AC9**: 旁白/叙述使用默认中性音色，区别于角色对话
-10. **AC10**: GLM-TTS 调用失败时，该段对话静音处理，不阻塞整体流程
+13. **AC13**: 中级模式使用 Edge-TTS（免费微软语音），无需任何 Key
+14. **AC14**: 高级模式使用 GLM-TTS（零样本克隆，情感可控）
+15. **AC15**: 导演 LLM 分析剧本后为每角色分配性别/声色（结构化 JSON）
+16. **AC16**: 旁白使用默认中性音色，区别于角色对话
+17. **AC17**: TTS 调用失败时该段静音处理（生成等时长静音 mp3），不阻塞
 
 ### BGM 背景音乐
 
-11. **AC11**: 工作区内置 ≥ 5 首免费 BGM（欢快/悲伤/紧张/温馨/史诗），按场景氛围自动选择
-12. **AC12**: 导演 LLM 为每个场景标注氛围标签，BGM 据此切换或淡入淡出
-13. **AC13**: BGM 音量自动压低（-6dB）当角色配音播放时，配音结束后恢复
+18. **AC18**: 工作区内置 29 首免费 BGM，按氛围标签分类（欢快/悲伤/紧张/温馨/史诗）
+19. **AC19**: 导演 LLM 为每场景标注氛围标签，BGM 据此自动匹配
+20. **AC20**: BGM 音量自动压低（-6dB）当配音播放时（ducking），配音结束恢复
+21. **AC21**: BGM 循环播放至视频结束，最后 3 秒淡出
+
+### 字幕
+
+22. **AC22**: MP4 输出包含硬编码字幕，对话/旁白与配音时间同步
+23. **AC23**: 字幕使用内置微软雅黑字体，底部居中，半透明黑底白字
+24. **AC24**: Edge-TTS 模式通过 WordBoundary 事件获取逐词时间戳生成精确字幕
 
 ### 视频合成
 
-14. **AC14**: 最终调用 ffmpeg 合成：动画画面 + 角色配音 + BGM → MP4 文件
-15. **AC15**: 合成的 MP4 支持多种分辨率：竖屏 1080×1920（社交平台首选）、横屏 1920×1080、方形 1080×1080，用户可选
-16. **AC16**: 整体生成时间 ≤ 5 分钟（30 秒剧本基准）
+25. **AC25**: ffmpeg 合成：逐帧视频片段拼接 + 配音对齐 + BGM 混音 + 字幕烧录 → MP4
+26. **AC26**: 支持三种分辨率：竖屏 1080×1920、横屏 1920×1080、方形 1080×1080
+27. **AC27**: 视频编码优先 h264_nvenc（GPU 加速），不可用时回退 libx264
+28. **AC28**: 整体生成时间 ≤ 5 分钟（30 秒剧本基准）
 
-### 字幕系统（参考 MoneyPrinterTurbo）
+### 阶段可停（stop_at）
 
-19. **AC19**: MP4 输出包含硬编码字幕，对话/旁白文字与配音时间同步
-20. **AC20**: 字幕使用工作区内置中文字体（微软雅黑），位置在底部居中
+29. **AC29**: 用户可停在"分镜预览"阶段（只看剧本+角色配置，不花 API 额度）
+30. **AC30**: 确认分镜后继续生成，支持从断点恢复（分镜 JSON 持久化到文件）
 
-### 阶段可停（stop_at 设计）
+### 进度与状态管理
 
-21. **AC21**: 用户可选择只生成分镜（预览剧本 + 角色配置），确认后再继续资产生成
-22. **AC22**: 分镜预览阶段不消耗 GLM API 额度（只用主 LLM 分析）
-
-### TTS 降级方案
-
-23. **AC23**: 默认 TTS 使用 Edge-TTS（免费），GLM-TTS 作为高级选项（声色更自然、可克隆）
-24. **AC24**: 未配置 GLM Key 时用 Edge-TTS 生成配音（不是静音），配了 Key 后切换到 GLM-TTS
+31. **AC31**: 每个阶段更新进度百分比（5%→20%→50%→80%→100%），前端可展示进度条
+32. **AC32**: 任何阶段失败 → 状态标记为 FAILED + 错误原因，已完成的资产保留不删除
 
 ### 错误路径
 
-25. **AC25**: ffmpeg 未安装时，提示用户安装地址，不崩溃
-26. **AC26**: 网络中断导致 GLM API 全部失败时，整体降级到 Edge-TTS + 简单模式输出
+33. **AC33**: ffmpeg 未安装时提示安装地址，不崩溃
+34. **AC34**: 网络中断导致所有 API 失败 → 整体降级到简单模式输出 HTML
+35. **AC35**: 单帧资产失败不影响其他帧（帧级隔离，参考 Pixelle-Video 设计）
 
 
 ---
@@ -199,13 +206,26 @@
 
 | 参考源 | 复用内容 |
 |--------|---------|
+| **MoneyPrinterTurbo** task.py | Pipeline 状态机 + stop_at 阶段可停 + 进度百分比更新 |
+| **MoneyPrinterTurbo** material.py | Pexels Video API 集成：搜索→筛选分辨率→下载→URL hash 缓存 |
+| **MoneyPrinterTurbo** voice.py | Edge-TTS 封装：SubMaker 字幕时间戳 + 超时重试 + 静音兜底 |
+| **MoneyPrinterTurbo** video.py | ffmpeg 合成：concat demuxer + BGM ducking + 字幕烧录 + codec fallback |
+| **MoneyPrinterTurbo** llm.py | LLM 搜索词生成 prompt 设计 + JSON 解析容错 |
 | Pixelle-Video pipeline 架构 | 文案→配图规划→逐帧处理→视频合成的阶段化设计 |
-| Pixelle-Video prompts/ | 场景描述 prompt 模板、脚本分割方式 |
-| Pixelle-Video services/tts_service.py | TTS 调用封装模式 |
-| Pixelle-Video services/video.py | ffmpeg 合成流程（concat + BGM + audio merge） |
-| Pixelle-Video bgm/ | BGM 库组织方式（按氛围标签） |
-| GLM-Image API | 场景图生成（bigmodel.cn） |
+| Pixelle-Video storyboard.py | 分镜数据结构（Frame + progress tracking） |
+| Pixelle-Video services/video.py | ffmpeg-python 合成流程（concat + BGM loop + fade） |
+| GLM-Image API | 场景图生成（bigmodel.cn OpenAI 兼容格式） |
 | GLM-TTS API | 角色配音（零样本克隆、情感可控） |
+
+### 从 MoneyPrinterTurbo 学到的关键模式
+
+1. **API Key 轮换** — 多 Key 配置 + 线程安全计数器轮换，防限流
+2. **视频缓存** — URL hash 命名本地文件，存在则跳过下载
+3. **TTS 超时保护** — Edge-TTS 用 daemon 线程 + Queue 做超时控制（30s）
+4. **静音兜底** — TTS 完全失败时用 ffmpeg `anullsrc` 生成等时长静音 mp3
+5. **编码器回退** — 优先 h264_nvenc → 失败则 libx264，运行时禁用失败编码器
+6. **进度状态机** — 每阶段更新 progress%，状态只有 PROCESSING/COMPLETE/FAILED
+7. **字幕时间戳** — Edge-TTS 的 WordBoundary 事件提供逐词时间，字幕精度极高
 
 ---
 
