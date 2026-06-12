@@ -24,9 +24,9 @@
 
 ### In Scope
 
-- **三级模式设计**：简单模式（SVG 无声，零成本）→ 中级模式（Pexels 图 + Edge-TTS，免费）→ 高级模式（GLM-Image + GLM-TTS，付费最优质）
-- **GLM-Image 场景图生成**：高级模式下为每个场景生成 AI 背景插图
-- **Pexels 场景图搜索**：中级模式下按关键词搜索免费高清背景图
+- **三级模式设计**：简单模式（SVG 无声，零成本）→ 中级模式（Pexels 视频 + Edge-TTS，免费）→ 高级模式（GLM-Image + GLM-TTS，付费最优质）
+- **GLM-Image 场景图生成**：高级模式下为每个场景生成 AI 背景插图（风格统一）
+- **Pexels 动态背景视频**：中级模式下按关键词搜索免费高清视频片段作为动态背景
 - **GLM-TTS 角色配音**：高级模式，导演配置角色性别/声色，零样本语音克隆
 - **Edge-TTS 基础配音**：中级模式，免费微软语音（无需 Key）
 - **BGM 背景音乐**：预置免费 BGM 库 + 按场景氛围标签自动匹配（参考 Pixelle-Video）
@@ -74,9 +74,9 @@
 
 ### Pexels 素材源（中级模式）
 
-7. **AC7-new**: 支持 Pexels API 搜索场景背景图（免费、无版权），按场景关键词搜索匹配
-8. **AC8-new**: 未配置 GLM Key 但配置了 Pexels Key 时，自动使用 Pexels 作为场景图来源
-9. **AC9-new**: Pexels 搜索无结果时，降级到 SVG 简单背景
+7. **AC7-new**: 支持 Pexels API 搜索场景背景视频片段（免费、无版权、1080p+），按场景关键词匹配
+8. **AC8-new**: 未配置 GLM Key 但配置了 Pexels Key 时，自动使用 Pexels 视频作为动态背景
+9. **AC9-new**: 每帧分镜的背景视频时长与 TTS 配音时长对齐（裁剪或循环），Pexels 搜索无结果时降级到 SVG
 
 
 ### GLM-TTS 角色配音
