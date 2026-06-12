@@ -24,9 +24,11 @@
 
 ### In Scope
 
-- **双模式设计**：简单模式（当前 SVG+无声，零成本预览）+ 高级模式（AI 画图+配音+BGM）
+- **三级模式设计**：简单模式（SVG 无声，零成本）→ 中级模式（Pexels 图 + Edge-TTS，免费）→ 高级模式（GLM-Image + GLM-TTS，付费最优质）
 - **GLM-Image 场景图生成**：高级模式下为每个场景生成 AI 背景插图
-- **GLM-TTS 角色配音**：导演（主 LLM）配置角色性别/声色，对话时合成语音
+- **Pexels 场景图搜索**：中级模式下按关键词搜索免费高清背景图
+- **GLM-TTS 角色配音**：高级模式，导演配置角色性别/声色，零样本语音克隆
+- **Edge-TTS 基础配音**：中级模式，免费微软语音（无需 Key）
 - **BGM 背景音乐**：预置免费 BGM 库 + 按场景氛围标签自动匹配（参考 Pixelle-Video）
 - **MP4 视频导出**：ffmpeg 合成动画画面 + 配音 + BGM → MP4
 - **工作区级 Key 配置**：高级模式需要在工作区设置中配置 GLM API Key
@@ -68,7 +70,13 @@
 
 4. **AC4**: 高级模式下，每个场景调用 GLM-Image 生成背景插图，替代 CSS 渐变背景
 5. **AC5**: 场景描述 prompt 由导演 LLM 根据剧本自动生成（参考 Pixelle-Video 的 prompt 设计）
-6. **AC6**: GLM-Image API 调用失败时，降级到简单模式的 SVG 背景，不阻塞流程
+6. **AC6**: GLM-Image API 调用失败时，降级到 Pexels 搜索或简单模式的 SVG 背景，不阻塞流程
+
+### Pexels 素材源（中级模式）
+
+7. **AC7-new**: 支持 Pexels API 搜索场景背景图（免费、无版权），按场景关键词搜索匹配
+8. **AC8-new**: 未配置 GLM Key 但配置了 Pexels Key 时，自动使用 Pexels 作为场景图来源
+9. **AC9-new**: Pexels 搜索无结果时，降级到 SVG 简单背景
 
 
 ### GLM-TTS 角色配音
@@ -90,10 +98,25 @@
 15. **AC15**: 合成的 MP4 支持多种分辨率：竖屏 1080×1920（社交平台首选）、横屏 1920×1080、方形 1080×1080，用户可选
 16. **AC16**: 整体生成时间 ≤ 5 分钟（30 秒剧本基准）
 
+### 字幕系统（参考 MoneyPrinterTurbo）
+
+19. **AC19**: MP4 输出包含硬编码字幕，对话/旁白文字与配音时间同步
+20. **AC20**: 字幕使用工作区内置中文字体（微软雅黑），位置在底部居中
+
+### 阶段可停（stop_at 设计）
+
+21. **AC21**: 用户可选择只生成分镜（预览剧本 + 角色配置），确认后再继续资产生成
+22. **AC22**: 分镜预览阶段不消耗 GLM API 额度（只用主 LLM 分析）
+
+### TTS 降级方案
+
+23. **AC23**: 默认 TTS 使用 Edge-TTS（免费），GLM-TTS 作为高级选项（声色更自然、可克隆）
+24. **AC24**: 未配置 GLM Key 时用 Edge-TTS 生成配音（不是静音），配了 Key 后切换到 GLM-TTS
+
 ### 错误路径
 
-17. **AC17**: ffmpeg 未安装时，提示用户安装地址，不崩溃
-18. **AC18**: 网络中断导致 GLM API 全部失败时，整体降级到简单模式输出 HTML
+25. **AC25**: ffmpeg 未安装时，提示用户安装地址，不崩溃
+26. **AC26**: 网络中断导致 GLM API 全部失败时，整体降级到 Edge-TTS + 简单模式输出
 
 
 ---
@@ -191,12 +214,17 @@
 | 文件/目录 | 改动 |
 |-----------|------|
 | `workspaces/AutoMovie/generator.py` | 重构 — 加入 pipeline 阶段化设计 |
-| `workspaces/AutoMovie/tts_service.py` | 新增 — GLM-TTS 调用封装 |
-| `workspaces/AutoMovie/image_service.py` | 新增 — GLM-Image 调用封装 |
-| `workspaces/AutoMovie/video_service.py` | 新增 — ffmpeg 合成（参考 Pixelle-Video） |
-| `workspaces/AutoMovie/bgm/` | 新增 — 预置 BGM 库（5+ 首免费音乐） |
-| `workspaces/AutoMovie/frontend/` | 修改 — 高级模式开关 + Key 配置入口 |
-| `workspaces/AutoMovie/workspace.json` | 修改 — 新增 glm_api_key 配置字段 |
+| `workspaces/AutoMovie/storyboard.py` | 已创建 — 分镜数据结构 |
+| `workspaces/AutoMovie/glm_config.py` | 已创建 — GLM Key 配置管理 |
+| `workspaces/AutoMovie/glm_image.py` | 已创建 — GLM-Image 场景图生成 |
+| `workspaces/AutoMovie/glm_tts.py` | 已创建 — GLM-TTS 角色配音 |
+| `workspaces/AutoMovie/pexels_service.py` | 新增 — Pexels API 搜索场景图 |
+| `workspaces/AutoMovie/edge_tts_service.py` | 新增 — Edge-TTS 免费配音（降级方案） |
+| `workspaces/AutoMovie/video_service.py` | 新增 — ffmpeg 合成 + 字幕烧录 |
+| `workspaces/AutoMovie/bgm/` | 已创建 — 29 首预置 BGM（来源 MoneyPrinterTurbo） |
+| `workspaces/AutoMovie/fonts/` | 已创建 — 7 个字体文件（含微软雅黑，用于字幕） |
+| `workspaces/AutoMovie/frontend/` | 修改 — 三级模式切换 + Key 配置入口 |
+| `workspaces/AutoMovie/workspace.json` | 修改 — 新增配置字段 |
 
 ---
 
