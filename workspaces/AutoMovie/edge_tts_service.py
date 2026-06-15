@@ -15,6 +15,12 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
+try:
+    import edge_tts
+    EDGE_TTS_AVAILABLE = True
+except ImportError:
+    EDGE_TTS_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 OUTPUT_DIR = Path(__file__).parent / "output" / "audio"
@@ -59,7 +65,9 @@ async def generate_speech(
     filepath = OUTPUT_DIR / filename
 
     try:
-        import edge_tts
+        if not EDGE_TTS_AVAILABLE:
+            logger.warning("[Edge-TTS] edge-tts 未安装")
+            return _generate_silent(scene_index, text, filepath)
 
         communicate = edge_tts.Communicate(text.strip(), voice)
         await communicate.save(str(filepath))
