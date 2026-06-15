@@ -314,128 +314,77 @@ async def _stage_3_4_compose(
     resolution: str,
     progress_fn: Callable,
 ) -> Optional[str]:
-    """Stage 3-4: 录制动画 + 合成 → MP4。"""
-    from video_service import (
-        check_ffmpeg, concat_segments, add_audio_and_bgm,
-        burn_subtitles, get_bgm_file,
-    )
+    """Stage 3-4: 生成视频片段 + moviepy 合成（参考 MoneyPrinterTurbo）"""
+    from video_compose import compose_video, get_bgm_file
     from animation_recorder import _fallback_static_segments
 
-    if not check_ffmpeg():
-        raise RuntimeError(
-            "ffmpeg 未安装。请安装: https://ffmpeg.org/download.html"
-        )
-
-    # Stage 3: 生成视频片段
+    # Stage 3: 每帧生成视频片段（Pexels 视频裁剪到帧时长）
     progress_fn(65, "生成视频片段...")
-    from animation_recorder import _fallback_static_segments
-    segments = await _fallback_static_segments(storyboard, resolution)
 
-    if not segments:
-        logger.info("[Stage3-4] 无 Playwright，使用音频+背景直接合成")
-
-    # 合并配音
-    progress_fn(75, "合成音频...")
-    audio_files = [f.audio_path for f in storyboard.frames if f.audio_path]
-    merged_audio = None
-    if audio_files:
-        merged_audio = str(OUTPUT_DIR / f"{task_id}_audio.mp3")
-        _concat_audio(audio_files, merged_audio)
-        if not Path(merged_audio).exists():
-            logger.error(f"[Stage4] 音频合并失败，{len(audio_files)} 文件")
-            merged_audio = audio_files[0]  # 降级用第一个音频
-        else:
-            logger.info(f"[Stage4] 音频合并完成: {Path(merged_audio).stat().st_size//1024}KB")
-
-    # 选择 BGM
-    mood = storyboard.frames[0].mood_tag if storyboard.frames else ""
-    bgm_file = get_bgm_file(mood)
-
-    progress_fn(80, "混合音视频...")
-
-    # 有视频片段 → 拼接+混音
-    if segments:
-        concat_path = str(OUTPUT_DIR / f"{task_id}_concat.mp4")
-        if len(segments) > 1:
-            concat_result = concat_segments(segments, concat_path)
-        else:
-            concat_result = segments[0]
-            concat_path = segments[0]
-
-        if concat_result:
-            mixed_path = str(OUTPUT_DIR / f"{task_id}_mixed.mp4")
-            mix_result = add_audio_and_bgm(
-                video_path=concat_path,
-                audio_path=merged_audio,
-                bgm_path=bgm_file,
-                output_path=mixed_path,
-            )
-            final_path = mix_result or concat_path
-        else:
-            final_path = None
-    else:
-        # 无视频片段 → 用背景图/视频 + 音频直接生成
-        final_path = str(OUTPUT_DIR / f"{task_id}_final.mp4")
-        cover = next(
-            (f.image_path for f in storyboard.frames if f.image_path), None
-        )
-        w, h = resolution.split("x")
-
-        if cover and cover.endswith(".mp4") and merged_audio:
-            # Pexels 视频背景 + 配音
-            import subprocess
-            cmd = [
-                "ffmpeg", "-y",
-                "-stream_loop", "-1", "-i", cover,
-                "-i", merged_audio,
-                "-c:v", "libx264", "-c:a", "aac", "-b:a", "128k",
-                "-vf", f"scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2",
-                "-shortest", "-pix_fmt", "yuv420p",
-                final_path,
-            ]
-            result = subprocess.run(cmd, capture_output=True, timeout=120)
-            if result.returncode != 0:
-                logger.error(f"[Stage4] Pexels视频合成失败: {result.stderr.decode()[:200]}")
-                final_path = None
-        elif cover and merged_audio:
-            _image_to_video(cover, merged_audio, final_path, bgm_file)
-        elif merged_audio:
-            _blank_video_with_audio(merged_audio, final_path, bgm_file, resolution)
-        else:
-            final_path = None
-
-    if not final_path or not Path(final_path).exists():
-        progress_fn(95, "视频合成失败")
-        return None
-
-    # 收集字幕（使用实际音频时长，不是估算）
-    progress_fn(90, "烧录字幕...")
-    all_subtitles = []
-    cumulative_ms = 0
+    # 先获取每帧实际音频时长
     for frame in storyboard.frames:
-        # 获取实际音频时长
         if frame.audio_path and Path(frame.audio_path).exists():
-            actual_duration = _get_audio_duration(frame.audio_path)
-            frame.duration = actual_duration
+            frame.duration = _get_audio_duration(frame.audio_path)
         elif not frame.duration:
             frame.duration = 3.0
 
+    segments = await _fallback_static_segments(storyboard, resolution)
+    if not segments:
+        logger.error("[Stage3-4] 无视频片段")
+        return None
+
+    progress_fn(70, f"视频片段就绪: {len(segments)} 段")
+
+    # 合并音频
+    progress_fn(75, "合并配音...")
+    audio_files = [f.audio_path for f in storyboard.frames if f.audio_path]
+    if not audio_files:
+        logger.error("[Stage3-4] 无配音文件")
+        return None
+
+    merged_audio = str(OUTPUT_DIR / f"{task_id}_audio.mp3")
+    _concat_audio(audio_files, merged_audio)
+
+    if not Path(merged_audio).exists():
+        logger.error("[Stage3-4] 音频合并失败")
+        return None
+
+    logger.info(f"[Stage4] 配音合并完成: {Path(merged_audio).stat().st_size//1024}KB")
+
+    # 构建字幕列表（精确时间戳）
+    subtitles = []
+    cumulative = 0.0
+    for frame in storyboard.frames:
         if frame.narration:
-            all_subtitles.append({
-                "start_ms": int(cumulative_ms * 1000),
-                "end_ms": int((cumulative_ms + frame.duration) * 1000),
-                "text": frame.narration,
-            })
-        cumulative_ms += frame.duration
+            subtitles.append((cumulative, cumulative + frame.duration, frame.narration))
+        cumulative += frame.duration
 
-    if all_subtitles and Path(final_path).exists():
-        subtitled_path = str(OUTPUT_DIR / f"{task_id}_final.mp4")
-        final_path = burn_subtitles(final_path, all_subtitles, subtitled_path)
+    # BGM
+    mood = storyboard.frames[0].mood_tag if storyboard.frames else ""
+    bgm_file = get_bgm_file(mood)
 
-    progress_fn(95, "完成合成")
-    storyboard.final_video = final_path
-    storyboard.total_duration = cumulative_ms
-    return final_path
+    # moviepy 合成
+    progress_fn(80, "moviepy 合成中...")
+    w, h = [int(x) for x in resolution.split("x")]
+    final_path = str(OUTPUT_DIR / f"{task_id}_final.mp4")
+
+    result = compose_video(
+        video_segments=segments,
+        audio_file=merged_audio,
+        output_path=final_path,
+        bgm_file=bgm_file,
+        subtitle_items=subtitles if subtitles else None,
+        resolution=(w, h),
+    )
+
+    if result:
+        progress_fn(95, "完成合成")
+        storyboard.final_video = result
+        storyboard.total_duration = cumulative
+    else:
+        progress_fn(95, "合成失败")
+
+    return result
 
 
 # ─── 辅助函数 ────────────────────────────────────────────────
