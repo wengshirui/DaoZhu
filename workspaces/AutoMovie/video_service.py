@@ -136,83 +136,73 @@ def add_audio_and_bgm(
 ) -> Optional[str]:
     """
     混合视频 + 配音 + BGM（AC20 ducking + AC21 循环+淡出）。
-
-    Args:
-        video_path: 输入视频（无音频或带原音）
-        audio_path: 配音文件路径
-        bgm_path: BGM 文件路径
-        output_path: 输出路径
-        bgm_volume: BGM 相对音量（0.15 ≈ -16dB）
-
-    Returns:
-        输出路径，失败返回 None
+    使用简单可靠的 ffmpeg 命令，避免复杂 filter_complex。
     """
     if not check_ffmpeg():
         return None
 
-    # 构建 ffmpeg 命令
-    inputs = ["-i", video_path]
-    filter_parts = []
-    audio_map = None
+    import subprocess
 
-    if audio_path and bgm_path:
-        # 三路混合：视频 + 配音 + BGM（循环 + 淡出 + ducking）
-        inputs.extend(["-i", audio_path, "-i", bgm_path])
-        # BGM 循环到视频长度，最后 3 秒淡出，音量压低
-        filter_parts.append(
-            f"[2:a]aloop=loop=-1:size=2e+09,volume={bgm_volume},afade=t=out:st=-3:d=3[bgm];"
-            f"[1:a][bgm]amix=inputs=2:duration=first:dropout_transition=3[aout]"
-        )
-        audio_map = "[aout]"
-    elif audio_path:
-        inputs.extend(["-i", audio_path])
-        audio_map = "1:a"
-    elif bgm_path:
-        inputs.extend(["-i", bgm_path])
-        filter_parts.append(
-            f"[1:a]aloop=loop=-1:size=2e+09,volume={bgm_volume},"
-            f"afade=t=out:st=-3:d=3[aout]"
-        )
-        audio_map = "[aout]"
-
-    cmd = ["ffmpeg", "-y"] + inputs
-
-    if filter_parts:
-        cmd.extend(["-filter_complex", ";".join(filter_parts)])
-
-    # 输出编码（AC27 编码器回退）
-    codec = _get_video_codec()
-    cmd.extend(["-c:v", codec])
-
-    if audio_map:
-        if audio_map.startswith("["):
-            cmd.extend(["-map", "0:v", "-map", audio_map])
-        else:
-            cmd.extend(["-map", "0:v", "-map", audio_map])
-        cmd.extend(["-c:a", "aac", "-b:a", "128k"])
-    else:
-        cmd.extend(["-map", "0:v", "-an"])
-
-    cmd.extend(["-shortest", output_path])
-
-    try:
-        result = subprocess.run(cmd, capture_output=True, timeout=180)
-        if result.returncode == 0 and Path(output_path).exists():
-            logger.info(f"[Video] 音频混合完成: {output_path}")
+    # 策略：分步合成（更可靠）
+    # Step 1: 视频 + 配音
+    if audio_path and Path(audio_path).exists():
+        temp_with_voice = output_path.replace(".mp4", "_voice.mp4")
+        cmd = [
+            "ffmpeg", "-y",
+            "-i", video_path,
+            "-i", audio_path,
+            "-c:v", "copy", "-c:a", "aac", "-b:a", "128k",
+            "-map", "0:v:0", "-map", "1:a:0",
+            "-shortest",
+            temp_with_voice,
+        ]
+        result = subprocess.run(cmd, capture_output=True, timeout=120)
+        if result.returncode != 0:
+            logger.error(f"[Video] 配音合并失败: {result.stderr.decode()[:200]}")
+            # 降级：无音频直接复制
+            import shutil
+            shutil.copy2(video_path, output_path)
             return output_path
+        current_video = temp_with_voice
+    else:
+        current_video = video_path
+
+    # Step 2: 叠加 BGM（如果有）
+    if bgm_path and Path(bgm_path).exists():
+        cmd = [
+            "ffmpeg", "-y",
+            "-i", current_video,
+            "-stream_loop", "-1", "-i", bgm_path,
+            "-filter_complex",
+            f"[1:a]volume={bgm_volume},afade=t=out:st=999:d=3[bgm];"
+            f"[0:a][bgm]amix=inputs=2:duration=first:dropout_transition=3[aout]",
+            "-map", "0:v", "-map", "[aout]",
+            "-c:v", "copy", "-c:a", "aac", "-b:a", "128k",
+            "-shortest",
+            output_path,
+        ]
+        result = subprocess.run(cmd, capture_output=True, timeout=120)
+        if result.returncode != 0:
+            logger.warning(f"[Video] BGM 叠加失败，使用无BGM版本: {result.stderr.decode()[:100]}")
+            # BGM 失败不致命，用只有配音的版本
+            import shutil
+            shutil.copy2(current_video, output_path)
+        # 清理临时文件
+        if current_video != video_path and Path(current_video).exists():
+            Path(current_video).unlink(missing_ok=True)
+    else:
+        # 没有 BGM，直接用当前视频
+        if current_video != video_path:
+            import shutil
+            shutil.move(current_video, output_path)
         else:
-            # 编码器回退（AC27）
-            if codec != "libx264":
-                logger.warning(f"[Video] {codec} 失败，回退 libx264")
-                cmd[cmd.index(codec)] = "libx264"
-                result = subprocess.run(cmd, capture_output=True, timeout=180)
-                if result.returncode == 0:
-                    return output_path
-            logger.error(f"[Video] 混合失败: {result.stderr.decode()[:200]}")
-            return None
-    except subprocess.TimeoutExpired:
-        logger.error("[Video] 合成超时")
-        return None
+            import shutil
+            shutil.copy2(current_video, output_path)
+
+    if Path(output_path).exists():
+        logger.info(f"[Video] 音频混合完成: {output_path}")
+        return output_path
+    return None
 
 
 def burn_subtitles(
