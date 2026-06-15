@@ -81,7 +81,7 @@ async def run_pipeline(
     Returns:
         {state, progress, storyboard, video_path, error}
     """
-    task_id = f"task_{int(time.time())}"
+    task_id = f"{mode}_{int(time.time())}"
     result = {
         "task_id": task_id,
         "state": STATE_PROCESSING,
@@ -389,7 +389,7 @@ async def _stage_3_4_compose(
             ]
             result = subprocess.run(cmd, capture_output=True, timeout=120)
             if result.returncode != 0:
-                logger.error(f"[Stage4] 视频合成失败: {result.stderr.decode()[:200]}")
+                logger.error(f"[Stage4] Pexels视频合成失败: {result.stderr.decode()[:200]}")
                 final_path = None
         elif cover and merged_audio:
             _image_to_video(cover, merged_audio, final_path, bgm_file)

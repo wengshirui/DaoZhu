@@ -138,19 +138,7 @@ async def _fallback_static_segments(
         segment_path = str(OUTPUT_DIR / f"seg_{frame.index:03d}.mp4")
         duration = frame.duration or 3.0
 
-        if frame.image_path and Path(frame.image_path).exists():
-            # 有背景图 → 图+时长
-            cmd = [
-                "ffmpeg", "-y",
-                "-loop", "1", "-i", frame.image_path,
-                "-t", f"{duration:.2f}",
-                "-c:v", "libx264", "-tune", "stillimage",
-                "-pix_fmt", "yuv420p",
-                "-vf", f"scale={w}:{h}:force_original_aspect_ratio=decrease,"
-                       f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2",
-                segment_path,
-            ]
-        elif frame.image_path and frame.image_path.endswith(".mp4"):
+        if frame.image_path and Path(frame.image_path).exists() and frame.image_path.endswith(".mp4"):
             # Pexels 视频背景 → 裁剪到帧时长
             cmd = [
                 "ffmpeg", "-y",
@@ -159,7 +147,19 @@ async def _fallback_static_segments(
                 "-c:v", "libx264",
                 "-vf", f"scale={w}:{h}:force_original_aspect_ratio=decrease,"
                        f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2",
-                "-an",
+                "-pix_fmt", "yuv420p", "-an",
+                segment_path,
+            ]
+        elif frame.image_path and Path(frame.image_path).exists():
+            # 静态图片（GLM-Image 或其他）→ 图片循环
+            cmd = [
+                "ffmpeg", "-y",
+                "-loop", "1", "-i", frame.image_path,
+                "-t", f"{duration:.2f}",
+                "-c:v", "libx264", "-tune", "stillimage",
+                "-pix_fmt", "yuv420p",
+                "-vf", f"scale={w}:{h}:force_original_aspect_ratio=decrease,"
+                       f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2",
                 segment_path,
             ]
         else:
