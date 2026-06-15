@@ -105,6 +105,10 @@ async def run_pipeline(
             result["mode"] = mode
             logger.info(f"[Pipeline] 自动检测模式: {mode}")
 
+        # 重置 Pexels 去重（新任务）
+        from pexels_service import reset_session
+        reset_session()
+
         _progress(5, "开始生成")
 
         # ════════ Stage 1: 导演分析 → 分镜 ════════
@@ -205,6 +209,8 @@ async def _stage_1_director(text: str, title: str, mode: str) -> Storyboard:
             mood_tag=event.get("mood", "neutral"),
             image_prompt=event.get("scene_desc", ""),  # GLM-Image 用这个生成背景
         )
+        # 存储 Pexels 搜索关键词（英文）
+        frame.search_term = event.get("search_term", "")
         storyboard.frames.append(frame)
 
     return storyboard
@@ -272,7 +278,7 @@ async def _generate_frame_assets(
         )
 
     if not frame.image_path and mode in ("medium", "advanced"):
-        # Pexels 视频背景
+        # Pexels 视频背景 — 使用英文搜索关键词
         pexels_config = Path(__file__).parent / "pexels_config.json"
         if pexels_config.exists():
             try:
@@ -280,7 +286,11 @@ async def _generate_frame_assets(
                 keys = data.get("api_keys", [])
                 if keys:
                     from pexels_service import search_and_download
-                    keyword = frame.image_prompt or frame.mood_tag or "nature"
+                    # 优先用导演生成的 search_term，其次用 scene_desc 的前几个词
+                    keyword = getattr(frame, "search_term", "") or frame.image_prompt or "nature"
+                    # 确保是英文（Pexels 英文搜索效果远好于中文）
+                    if keyword and any('\u4e00' <= c <= '\u9fff' for c in keyword):
+                        keyword = frame.mood_tag or "nature scenery"
                     frame.image_path = await search_and_download(
                         keyword=keyword,
                         scene_index=frame.index,

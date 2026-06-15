@@ -90,9 +90,11 @@ DIRECTOR_PROMPT = """你是一个火柴人动画导演。用户输入一段文�
 
 ## 输出格式（纯 JSON，不要 markdown）
 
-{"chars":{"id":{"color":"#hex","label":"名字","scale":1,"gender":"male/female"}},"timeline":[{"t":0,"action":"...","scene_desc":"用英文描述当前场景画面（供AI绘图用，20-40词）"}]}
+{"chars":{"id":{"color":"#hex","label":"名字","scale":1,"gender":"male/female"}},"timeline":[{"t":0,"action":"...","scene_desc":"用英文描述当前场景画面（供AI绘图用，20-40词）","search_term":"1-3个英文单词的视频搜索关键词（供Pexels搜索用）"}]}
 
-注意：每个 dialogue/narr 事件都必须包含 scene_desc 字段，用英文简短描述当前画面，例如 "A dark office with computer screens glowing, papers scattered on desk" """
+注意：每个 dialogue/narr 事件都必须包含：
+- scene_desc: 用英文描述画面（供 AI 绘图），如 "A dark office with computer screens glowing"
+- search_term: 1-3 个英文单词（供 Pexels 视频搜索），如 "hacker computer office" """
 
 
 async def generate_timeline(text: str, max_retries: int = 3, use_glm: bool = False) -> dict:

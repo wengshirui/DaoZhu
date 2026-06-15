@@ -31,6 +31,7 @@ class StoryboardFrame:
     characters: list = field(default_factory=list)  # 角色列表（位置/动作/表情）
     mood_tag: str = ""                      # 氛围标签（欢快/悲伤/紧张/温馨/史诗）
     image_prompt: str = ""                  # 场景背景图 prompt
+    search_term: str = ""                   # Pexels 视频搜索关键词（英文 1-3 词）
 
     # Stage 2 填充
     audio_path: Optional[str] = None        # TTS 音频路径
