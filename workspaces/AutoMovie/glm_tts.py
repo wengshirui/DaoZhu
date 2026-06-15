@@ -24,13 +24,14 @@ logger = logging.getLogger(__name__)
 OUTPUT_DIR = Path(__file__).parent / "output" / "audio"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# 预设音色（智谱 GLM-TTS 支持的音色）
+# 预设音色（智谱 GLM-TTS 平台音色）
+# 参考 https://open.bigmodel.cn/dev/api/speech/tts
 VOICE_PRESETS = {
-    "male_young": "male_young_jingpin",
-    "male_mature": "male_mature_jingpin",
-    "female_young": "female_young_jingpin",
-    "female_mature": "female_mature_jingpin",
-    "narrator": "male_mature_jingpin",
+    "male_young": "alloy",
+    "male_mature": "echo",
+    "female_young": "nova",
+    "female_mature": "shimmer",
+    "narrator": "onyx",
 }
 
 

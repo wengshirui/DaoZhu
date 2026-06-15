@@ -179,8 +179,10 @@ async def _stage_1_director(text: str, title: str, mode: str) -> Storyboard:
     """Stage 1: 导演 LLM 分析文本 → 生成分镜。"""
     from generator import generate_timeline
 
-    # 高级模式用 GLM 作为导演 LLM
-    use_glm = (mode == "advanced")
+    # 有 GLM Key 就用 GLM 做导演（更好的 JSON 输出质量）
+    from glm_config import load_config as load_glm
+    glm_cfg = load_glm()
+    use_glm = bool(glm_cfg.api_key)
     timeline_data = await generate_timeline(text, use_glm=use_glm)
 
     # 将现有 timeline 格式转换为 Storyboard
@@ -249,8 +251,11 @@ async def _generate_frame_assets(
     )
     gender = char_config.gender if char_config else ""
 
-    # ── TTS 配音 ──
-    if mode == "advanced":
+    # ── TTS 配音（有 GLM Key 就优先用 GLM，否则 Edge-TTS）──
+    from glm_config import load_config as _load_glm
+    _glm_cfg = _load_glm()
+
+    if _glm_cfg.api_key:
         from glm_tts import generate_speech as glm_speak
         frame.audio_path = await glm_speak(
             text=frame.narration,
@@ -260,7 +265,7 @@ async def _generate_frame_assets(
         )
 
     if not frame.audio_path:
-        # 中级模式或高级降级 → Edge-TTS
+        # GLM 失败或无 Key → Edge-TTS
         from edge_tts_service import generate_speech as edge_speak
         frame.audio_path = await edge_speak(
             text=frame.narration,
@@ -314,16 +319,17 @@ async def _stage_3_4_compose(
         check_ffmpeg, concat_segments, add_audio_and_bgm,
         burn_subtitles, get_bgm_file,
     )
-    from animation_recorder import record_animation
+    from animation_recorder import _fallback_static_segments
 
     if not check_ffmpeg():
         raise RuntimeError(
             "ffmpeg 未安装。请安装: https://ffmpeg.org/download.html"
         )
 
-    # Stage 3: 录制动画片段
-    progress_fn(65, "录制动画帧...")
-    segments = await record_animation(storyboard, resolution)
+    # Stage 3: 生成视频片段
+    progress_fn(65, "生成视频片段...")
+    from animation_recorder import _fallback_static_segments
+    segments = await _fallback_static_segments(storyboard, resolution)
 
     if not segments:
         logger.info("[Stage3-4] 无 Playwright，使用音频+背景直接合成")
@@ -402,18 +408,25 @@ async def _stage_3_4_compose(
         progress_fn(95, "视频合成失败")
         return None
 
-    # 收集字幕
+    # 收集字幕（使用实际音频时长，不是估算）
     progress_fn(90, "烧录字幕...")
     all_subtitles = []
     cumulative_ms = 0
     for frame in storyboard.frames:
+        # 获取实际音频时长
+        if frame.audio_path and Path(frame.audio_path).exists():
+            actual_duration = _get_audio_duration(frame.audio_path)
+            frame.duration = actual_duration
+        elif not frame.duration:
+            frame.duration = 3.0
+
         if frame.narration:
             all_subtitles.append({
                 "start_ms": int(cumulative_ms * 1000),
-                "end_ms": int((cumulative_ms + (frame.duration or 3.0)) * 1000),
+                "end_ms": int((cumulative_ms + frame.duration) * 1000),
                 "text": frame.narration,
             })
-        cumulative_ms += frame.duration or 3.0
+        cumulative_ms += frame.duration
 
     if all_subtitles and Path(final_path).exists():
         subtitled_path = str(OUTPUT_DIR / f"{task_id}_final.mp4")

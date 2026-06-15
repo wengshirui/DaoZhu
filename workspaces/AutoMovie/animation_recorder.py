@@ -136,6 +136,21 @@ async def _fallback_static_segments(
 
     for frame in storyboard.frames:
         segment_path = str(OUTPUT_DIR / f"seg_{frame.index:03d}.mp4")
+
+        # 用实际音频时长（精确同步）
+        if frame.audio_path and Path(frame.audio_path).exists():
+            import subprocess as _sp
+            import re as _re
+            try:
+                _r = _sp.run(["ffmpeg", "-i", frame.audio_path, "-f", "null", "-"],
+                             capture_output=True, text=True, timeout=10)
+                _m = _re.search(r"Duration: (\d+):(\d+):(\d+\.\d+)", _r.stderr)
+                if _m:
+                    _h, _min, _s = _m.groups()
+                    frame.duration = int(_h)*3600 + int(_min)*60 + float(_s)
+            except Exception:
+                pass
+
         duration = frame.duration or 3.0
 
         if frame.image_path and Path(frame.image_path).exists() and frame.image_path.endswith(".mp4"):
