@@ -163,3 +163,112 @@ async def test_glm_connection():
                 return {"success": False, "message": f"API 返回 {resp.status_code}"}
     except Exception as e:
         return {"success": False, "message": f"连接失败: {str(e)[:100]}"}
+
+
+# === Pipeline API（#083 三级模式视频生成）===
+
+class PipelineRequest(BaseModel):
+    text: str
+    title: str = ""
+    mode: str = "auto"  # auto / simple / medium / advanced
+    resolution: str = "1920x1080"  # 1920x1080 / 1080x1920 / 1080x1080
+    stop_at: str = "video"  # storyboard / assets / video
+
+
+@router.post("/generate/video")
+async def generate_video(req: PipelineRequest):
+    """
+    三级模式视频生成（#083 核心 API）。
+    支持 stop_at 阶段可停：storyboard → assets → video
+    """
+    if not req.text.strip():
+        raise HTTPException(400, "文本不能为空")
+    if len(req.text) > 10000:
+        raise HTTPException(400, "文本过长（最多 10000 字）")
+
+    from pipeline import run_pipeline
+
+    result = await run_pipeline(
+        text=req.text.strip(),
+        title=req.title or req.text[:20].strip(),
+        mode=req.mode,
+        resolution=req.resolution,
+        stop_at=req.stop_at,
+    )
+
+    return result
+
+
+@router.get("/generate/mode")
+async def get_current_mode():
+    """获取当前可用的最高模式"""
+    from pipeline import detect_mode
+    mode = detect_mode()
+    return {
+        "mode": mode,
+        "description": {
+            "simple": "简单模式 — SVG 无声 HTML（零成本）",
+            "medium": "中级模式 — Pexels 视频背景 + Edge-TTS 配音（免费）",
+            "advanced": "高级模式 — GLM-Image 插图 + GLM-TTS 克隆配音（最优质）",
+        }.get(mode, "未知"),
+    }
+
+
+# === Pexels 配置 API ===
+
+class PexelsConfigRequest(BaseModel):
+    api_keys: list[str] = []
+
+
+@router.get("/pexels/config")
+async def get_pexels_config():
+    """获取 Pexels 配置状态"""
+    config_path = Path(__file__).parent / "pexels_config.json"
+    if not config_path.exists():
+        return {"has_keys": False, "key_count": 0}
+    try:
+        data = json.loads(config_path.read_text(encoding="utf-8"))
+        keys = data.get("api_keys", [])
+        return {
+            "has_keys": bool(keys),
+            "key_count": len(keys),
+            "key_previews": [k[:8] + "***" for k in keys],
+        }
+    except Exception:
+        return {"has_keys": False, "key_count": 0}
+
+
+@router.post("/pexels/config")
+async def update_pexels_config(req: PexelsConfigRequest):
+    """更新 Pexels API Key 配置"""
+    config_path = Path(__file__).parent / "pexels_config.json"
+    data = {"api_keys": [k.strip() for k in req.api_keys if k.strip()]}
+    config_path.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return {"success": True, "key_count": len(data["api_keys"])}
+
+
+@router.get("/works/videos")
+async def list_video_works():
+    """列出已生成的视频作品"""
+    works = []
+    for f in sorted(OUTPUT_DIR.glob("*_final*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True):
+        works.append({
+            "filename": f.name,
+            "title": f.stem.split("_", 1)[-1] if "_" in f.stem else f.stem,
+            "size": f.stat().st_size,
+            "size_mb": round(f.stat().st_size / 1024 / 1024, 1),
+            "created": int(f.stat().st_mtime),
+        })
+    # 也包含带字幕的版本
+    for f in sorted(OUTPUT_DIR.glob("*_subtitled*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True):
+        works.append({
+            "filename": f.name,
+            "title": f.stem.split("_", 1)[-1] if "_" in f.stem else f.stem,
+            "size": f.stat().st_size,
+            "size_mb": round(f.stat().st_size / 1024 / 1024, 1),
+            "created": int(f.stat().st_mtime),
+        })
+    return {"works": works}

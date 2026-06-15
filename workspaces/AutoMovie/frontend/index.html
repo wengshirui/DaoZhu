@@ -14,6 +14,38 @@
         </header>
 
         <main class="main">
+            <!-- 模式 & 设置 -->
+            <section class="mode-section">
+                <div class="mode-bar">
+                    <span class="mode-label" id="mode-label">检测中...</span>
+                    <button class="btn btn--small" id="btn-settings">⚙ 设置</button>
+                </div>
+                <div class="settings-panel" id="settings-panel" style="display:none">
+                    <div class="settings-group">
+                        <h3>🔑 GLM API Key（高级模式）</h3>
+                        <input type="password" id="glm-key-input" placeholder="智谱 GLM API Key">
+                        <label><input type="checkbox" id="glm-enabled"> 启用高级模式</label>
+                        <button class="btn btn--small" id="btn-save-glm">保存</button>
+                        <span id="glm-status"></span>
+                    </div>
+                    <div class="settings-group">
+                        <h3>🎬 Pexels API Key（中级模式）</h3>
+                        <input type="text" id="pexels-key-input" placeholder="Pexels API Key（免费注册）">
+                        <button class="btn btn--small" id="btn-save-pexels">保存</button>
+                        <span id="pexels-status"></span>
+                        <small><a href="https://www.pexels.com/api/" target="_blank">免费获取 →</a></small>
+                    </div>
+                    <div class="settings-group">
+                        <h3>📐 输出分辨率</h3>
+                        <select id="resolution-select">
+                            <option value="1920x1080">横屏 1920×1080</option>
+                            <option value="1080x1920">竖屏 1080×1920（社交平台）</option>
+                            <option value="1080x1080">方形 1080×1080</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
             <!-- 输入区 -->
             <section class="input-section">
                 <div class="input-header">
@@ -26,8 +58,12 @@
                 <input type="text" id="title-input" placeholder="动画标题（可选）" class="title-input">
                 <textarea id="text-input" placeholder="在这里粘贴小说、散文、剧本...&#10;&#10;支持多角色对话，AI 会自动识别角色并分配颜色。" rows="10"></textarea>
                 <div class="input-footer">
-                    <span class="char-count" id="char-count">0 / 5000 字</span>
-                    <button class="btn btn--primary" id="btn-generate">🎬 生成动画</button>
+                    <span class="char-count" id="char-count">0 / 10000 字</span>
+                    <div class="gen-buttons">
+                        <button class="btn btn--secondary" id="btn-preview">👁 预览分镜</button>
+                        <button class="btn btn--primary" id="btn-generate">🎬 生成动画</button>
+                        <button class="btn btn--accent" id="btn-generate-video">🎥 生成视频</button>
+                    </div>
                 </div>
                 <div class="status" id="status"></div>
             </section>

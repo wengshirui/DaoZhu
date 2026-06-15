@@ -74,3 +74,59 @@ textarea {
 }
 .work-card__actions a:hover, .work-card__actions button:hover { background:#f0ebe4; }
 .work-card__actions .del { color:#dc2626; border-color:#fca5a5; }
+
+
+/* === 模式 & 设置区（#083）=== */
+.mode-section {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 16px;
+}
+.mode-bar {
+    display: flex; justify-content: space-between; align-items: center;
+}
+.mode-label {
+    font-size: 0.85rem; font-weight: 500; color: var(--muted);
+}
+.mode--simple { color: #6b7280; }
+.mode--medium { color: #2563eb; }
+.mode--advanced { color: #7c3aed; }
+
+.settings-panel {
+    margin-top: 12px; padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+.settings-group {
+    margin-bottom: 14px; padding: 10px; background: #f9f7f4;
+    border-radius: 6px;
+}
+.settings-group h3 { font-size: 0.8rem; margin-bottom: 6px; color: var(--text); }
+.settings-group input[type="text"],
+.settings-group input[type="password"] {
+    width: 100%; padding: 6px 10px; border: 1px solid var(--border);
+    border-radius: 4px; font-size: 0.8rem; margin-bottom: 6px;
+}
+.settings-group select {
+    width: 100%; padding: 6px 10px; border: 1px solid var(--border);
+    border-radius: 4px; font-size: 0.8rem;
+}
+.settings-group small { color: var(--muted); font-size: 0.75rem; }
+.settings-group small a { color: var(--primary); }
+
+/* 生成按钮组 */
+.gen-buttons { display: flex; gap: 8px; }
+.btn--secondary {
+    padding: 8px 14px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); cursor: pointer; font-size: 0.82rem;
+}
+.btn--secondary:hover { background: #f0ede9; }
+.btn--accent {
+    padding: 8px 14px; border-radius: 6px; border: none;
+    background: #7c3aed; color: #fff; cursor: pointer; font-size: 0.82rem;
+}
+.btn--accent:hover { background: #6d28d9; }
+.btn--accent:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn--small {
+    padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border);
+    background: var(--card); cursor: pointer; font-size: 0.75rem;
+}
+.btn--small:hover { background: #f0ede9; }
