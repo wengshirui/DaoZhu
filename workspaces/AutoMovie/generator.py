@@ -90,11 +90,24 @@ DIRECTOR_PROMPT = """你是一个火柴人动画导演。用户输入一段文�
 
 ## 输出格式（纯 JSON，不要 markdown）
 
-{"chars":{"id":{"color":"#hex","label":"名字","scale":1,"gender":"male/female"}},"timeline":[{"t":0,"action":"...","scene_desc":"用英文描述当前场景画面（供AI绘图用，20-40词）","search_term":"1-3个英文单词的视频搜索关键词（供Pexels搜索用）"}]}
+{"chars":{"id":{"color":"#hex","label":"名字","scale":1,"gender":"male/female"}},"timeline":[{"t":0,"action":"...","scene_desc":"用英文描述当前场景画面（供AI绘图用，20-40词）","search_term":"2-4个英文单词的视频搜索关键词（供Pexels搜索用）"}]}
 
 注意：每个 dialogue/narr 事件都必须包含：
 - scene_desc: 用英文描述画面（供 AI 绘图），如 "A dark office with computer screens glowing"
-- search_term: 1-3 个英文单词（供 Pexels 视频搜索），如 "hacker computer office" """
+- search_term: 2-4 个英文单词（供 Pexels 视频搜索），如 "hacker computer dark office"
+
+## search_term 关键规则（必须遵守）
+
+1. 关键词必须是可以在 Pexels 搜到真实视频的通用词，不要用专有名词（如人名、公司名）
+2. 相邻帧的 search_term 要有视觉连贯性（同一场景不同角度，或渐进过渡）
+3. 最后一帧必须是总结性画面（如 "conclusion thinking sunset" 或 "ending city skyline"）
+4. 不要重复使用完全相同的 search_term
+5. 好的例子：technology office meeting → computer screen code → server room lights
+6. 坏的例子：nature → nature → nature（太笼统）或 Anthropic CEO → Claude AI（搜不到）
+
+## 结尾规则
+
+最后一个事件之后，必须再加一个 narr 事件作为结尾总结（3-5秒），search_term 用一个收束感强的画面"""
 
 
 async def generate_timeline(text: str, max_retries: int = 3, use_glm: bool = False) -> dict:
