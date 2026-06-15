@@ -356,19 +356,33 @@ async def _stage_3_4_compose(
         else:
             final_path = None
     else:
-        # 无视频片段 → 用背景图/黑底 + 音频直接生成
+        # 无视频片段 → 用背景图/视频 + 音频直接生成
         final_path = str(OUTPUT_DIR / f"{task_id}_final.mp4")
-        cover_image = next(
+        cover = next(
             (f.image_path for f in storyboard.frames if f.image_path), None
         )
         w, h = resolution.split("x")
 
-        if cover_image and merged_audio:
-            _image_to_video(cover_image, merged_audio, final_path, bgm_file)
+        if cover and cover.endswith(".mp4") and merged_audio:
+            # Pexels 视频背景 + 配音
+            import subprocess
+            cmd = [
+                "ffmpeg", "-y",
+                "-stream_loop", "-1", "-i", cover,
+                "-i", merged_audio,
+                "-c:v", "libx264", "-c:a", "aac", "-b:a", "128k",
+                "-vf", f"scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2",
+                "-shortest", "-pix_fmt", "yuv420p",
+                final_path,
+            ]
+            result = subprocess.run(cmd, capture_output=True, timeout=120)
+            if result.returncode != 0:
+                logger.error(f"[Stage4] 视频合成失败: {result.stderr.decode()[:200]}")
+                final_path = None
+        elif cover and merged_audio:
+            _image_to_video(cover, merged_audio, final_path, bgm_file)
         elif merged_audio:
             _blank_video_with_audio(merged_audio, final_path, bgm_file, resolution)
-        elif bgm_file:
-            _blank_video_with_audio(bgm_file, final_path, None, resolution)
         else:
             final_path = None
 
