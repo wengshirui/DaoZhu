@@ -323,6 +323,11 @@ async def _stage_3_4_compose(
     if audio_files:
         merged_audio = str(OUTPUT_DIR / f"{task_id}_audio.mp3")
         _concat_audio(audio_files, merged_audio)
+        if not Path(merged_audio).exists():
+            logger.error(f"[Stage4] 音频合并失败，{len(audio_files)} 文件")
+            merged_audio = audio_files[0]  # 降级用第一个音频
+        else:
+            logger.info(f"[Stage4] 音频合并完成: {Path(merged_audio).stat().st_size//1024}KB")
 
     # 选择 BGM
     mood = storyboard.frames[0].mood_tag if storyboard.frames else ""
@@ -417,16 +422,10 @@ def _get_audio_duration(path: str) -> float:
 
 def _concat_audio(files: list[str], output: str):
     """拼接多个音频文件。"""
-    import tempfile, subprocess
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".txt", delete=False, encoding="utf-8"
-    ) as f:
-        for fp in files:
-            f.write(f"file '{Path(fp).absolute()}'.replace('\\\\', '/')\n")
-        list_file = f.name
+    import tempfile, subprocess, shutil
 
-    # 简化方案：逐个拼接
-    import shutil
+    if not files:
+        return
     if len(files) == 1:
         shutil.copy2(files[0], output)
         return
