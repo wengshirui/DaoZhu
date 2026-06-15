@@ -74,11 +74,11 @@ async def generate_speech(
             logger.warning(f"[Edge-TTS] 场景 {scene_index} 输出文件过小")
             return _generate_silent(scene_index, text, filepath)
 
-    except ImportError:
-        logger.warning("[Edge-TTS] edge-tts 未安装，生成静音")
+    except ImportError as e:
+        logger.warning(f"[Edge-TTS] edge-tts 导入失败: {e}")
         return _generate_silent(scene_index, text, filepath)
     except Exception as e:
-        logger.warning(f"[Edge-TTS] 场景 {scene_index} 失败: {e}")
+        logger.warning(f"[Edge-TTS] 场景 {scene_index} 失败: {type(e).__name__}: {e}")
         return _generate_silent(scene_index, text, filepath)
 
 
