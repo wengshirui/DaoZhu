@@ -1,0 +1,43 @@
+{
+  "description": "BGM 氛围标签元数据（#083 AC18/AC19）",
+  "tracks": {
+    "output000.mp3": {"mood": "cheerful", "label": "欢快"},
+    "output001.mp3": {"mood": "cheerful", "label": "欢快"},
+    "output002.mp3": {"mood": "warm", "label": "温馨"},
+    "output003.mp3": {"mood": "warm", "label": "温馨"},
+    "output004.mp3": {"mood": "sad", "label": "悲伤"},
+    "output005.mp3": {"mood": "sad", "label": "悲伤"},
+    "output006.mp3": {"mood": "tense", "label": "紧张"},
+    "output007.mp3": {"mood": "tense", "label": "紧张"},
+    "output008.mp3": {"mood": "epic", "label": "史诗"},
+    "output009.mp3": {"mood": "epic", "label": "史诗"},
+    "output010.mp3": {"mood": "cheerful", "label": "欢快"},
+    "output011.mp3": {"mood": "warm", "label": "温馨"},
+    "output012.mp3": {"mood": "neutral", "label": "中性"},
+    "output013.mp3": {"mood": "neutral", "label": "中性"},
+    "output014.mp3": {"mood": "sad", "label": "悲伤"},
+    "output015.mp3": {"mood": "tense", "label": "紧张"},
+    "output016.mp3": {"mood": "cheerful", "label": "欢快"},
+    "output017.mp3": {"mood": "warm", "label": "温馨"},
+    "output018.mp3": {"mood": "epic", "label": "史诗"},
+    "output019.mp3": {"mood": "neutral", "label": "中性"},
+    "output020.mp3": {"mood": "cheerful", "label": "欢快"},
+    "output021.mp3": {"mood": "sad", "label": "悲伤"},
+    "output022.mp3": {"mood": "tense", "label": "紧张"},
+    "output023.mp3": {"mood": "warm", "label": "温馨"},
+    "output024.mp3": {"mood": "epic", "label": "史诗"},
+    "output025.mp3": {"mood": "neutral", "label": "中性"},
+    "output027.mp3": {"mood": "cheerful", "label": "欢快"},
+    "output028.mp3": {"mood": "warm", "label": "温馨"},
+    "output029.mp3": {"mood": "tense", "label": "紧张"}
+  },
+  "mood_mapping": {
+    "欢快": "cheerful",
+    "温馨": "warm",
+    "悲伤": "sad",
+    "紧张": "tense",
+    "史诗": "epic",
+    "中性": "neutral",
+    "neutral": "neutral"
+  }
+}

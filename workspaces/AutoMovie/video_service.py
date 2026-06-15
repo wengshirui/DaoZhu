@@ -36,15 +36,38 @@ def check_ffmpeg() -> bool:
 def get_bgm_file(mood_tag: str = "") -> Optional[str]:
     """
     按氛围标签选择 BGM（AC18/AC19）。
-    当前库未按标签分类时随机选取。
+    使用 metadata.json 做标签匹配，无匹配时随机。
     """
     if not BGM_DIR.exists():
         return None
     files = list(BGM_DIR.glob("*.mp3"))
     if not files:
         return None
-    # TODO: 按 mood_tag 匹配（需要 BGM 元数据文件）
-    # 当前随机选取
+
+    # 尝试按标签匹配
+    metadata_path = BGM_DIR / "metadata.json"
+    if mood_tag and metadata_path.exists():
+        try:
+            import json
+            meta = json.loads(metadata_path.read_text(encoding="utf-8"))
+            tracks = meta.get("tracks", {})
+            mood_map = meta.get("mood_mapping", {})
+
+            # 标准化 mood_tag
+            target_mood = mood_map.get(mood_tag, mood_tag)
+
+            # 筛选匹配的曲目
+            matched = [
+                BGM_DIR / fname
+                for fname, info in tracks.items()
+                if info.get("mood") == target_mood and (BGM_DIR / fname).exists()
+            ]
+            if matched:
+                return str(random.choice(matched))
+        except Exception:
+            pass
+
+    # 无匹配或无元数据 → 随机
     return str(random.choice(files))
 
 

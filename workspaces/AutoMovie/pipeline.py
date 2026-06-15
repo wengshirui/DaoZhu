@@ -294,79 +294,83 @@ async def _stage_3_4_compose(
     resolution: str,
     progress_fn: Callable,
 ) -> Optional[str]:
-    """Stage 3-4: 渲染 + 合成 → MP4。"""
+    """Stage 3-4: 录制动画 + 合成 → MP4。"""
     from video_service import (
         check_ffmpeg, concat_segments, add_audio_and_bgm,
         burn_subtitles, get_bgm_file,
     )
+    from animation_recorder import record_animation
 
     if not check_ffmpeg():
         raise RuntimeError(
             "ffmpeg 未安装。请安装: https://ffmpeg.org/download.html"
         )
 
-    # 暂时用简单方案：每帧生成静态图片视频段
-    # TODO: Stage 3 完整实现（Playwright 录制动画帧）
-    segments = []
-    all_subtitles = []
-    cumulative_ms = 0
+    # Stage 3: 录制动画片段
+    progress_fn(65, "录制动画帧...")
+    segments = await record_animation(storyboard, resolution)
 
-    for frame in storyboard.frames:
-        if frame.audio_path:
-            # 用配音时长作为帧时长
-            duration = _get_audio_duration(frame.audio_path)
-            frame.duration = duration
-        else:
-            frame.duration = 3.0  # 默认 3 秒
+    if not segments:
+        logger.warning("[Stage3-4] 无视频片段，尝试静态方案")
+        from animation_recorder import _fallback_static_segments
+        segments = await _fallback_static_segments(storyboard, resolution)
 
-        # 收集字幕
-        if frame.narration:
-            all_subtitles.append({
-                "start_ms": int(cumulative_ms * 1000),
-                "end_ms": int((cumulative_ms + frame.duration) * 1000),
-                "text": frame.narration,
-            })
-        cumulative_ms += frame.duration
+    if not segments:
+        return None
 
-    progress_fn(75, "合成音频...")
+    # 拼接视频片段
+    progress_fn(75, "拼接视频片段...")
+    concat_path = str(OUTPUT_DIR / f"{task_id}_concat.mp4")
+    if len(segments) > 1:
+        concat_result = concat_segments(segments, concat_path)
+    else:
+        concat_result = segments[0]
+        concat_path = segments[0]
 
-    # 合并所有配音为一个音频文件
+    if not concat_result:
+        return None
+
+    # 合并配音 + BGM
+    progress_fn(80, "合成音频...")
     audio_files = [f.audio_path for f in storyboard.frames if f.audio_path]
     merged_audio = None
     if audio_files:
         merged_audio = str(OUTPUT_DIR / f"{task_id}_audio.mp3")
         _concat_audio(audio_files, merged_audio)
 
-    # 选择 BGM
     mood = storyboard.frames[0].mood_tag if storyboard.frames else ""
     bgm_file = get_bgm_file(mood)
 
-    progress_fn(85, "合成视频...")
-
-    # 最终合成（简化版：用静态背景图 + 音频 → 视频）
-    # 完整版需要 Stage 3 的动画录制，此处先用占位
-    final_path = str(OUTPUT_DIR / f"{task_id}_final.mp4")
-
-    # 如果有帧背景图，用第一张做封面生成视频
-    cover_image = next(
-        (f.image_path for f in storyboard.frames if f.image_path), None
+    progress_fn(85, "混合音视频...")
+    mixed_path = str(OUTPUT_DIR / f"{task_id}_mixed.mp4")
+    mix_result = add_audio_and_bgm(
+        video_path=concat_path,
+        audio_path=merged_audio,
+        bgm_path=bgm_file,
+        output_path=mixed_path,
     )
+    final_path = mix_result or concat_path
 
-    if cover_image and merged_audio:
-        _image_to_video(cover_image, merged_audio, final_path, bgm_file)
-    elif merged_audio:
-        # 黑底+音频
-        _blank_video_with_audio(merged_audio, final_path, bgm_file, resolution)
-    else:
-        return None
+    # 收集字幕
+    progress_fn(90, "烧录字幕...")
+    all_subtitles = []
+    cumulative_ms = 0
+    for frame in storyboard.frames:
+        if frame.narration:
+            all_subtitles.append({
+                "start_ms": int(cumulative_ms * 1000),
+                "end_ms": int((cumulative_ms + (frame.duration or 3.0)) * 1000),
+                "text": frame.narration,
+            })
+        cumulative_ms += frame.duration or 3.0
 
-    # 烧录字幕
     if all_subtitles and Path(final_path).exists():
-        subtitled_path = str(OUTPUT_DIR / f"{task_id}_subtitled.mp4")
+        subtitled_path = str(OUTPUT_DIR / f"{task_id}_final.mp4")
         final_path = burn_subtitles(final_path, all_subtitles, subtitled_path)
 
     progress_fn(95, "完成合成")
     storyboard.final_video = final_path
+    storyboard.total_duration = cumulative_ms
     return final_path
 
 
