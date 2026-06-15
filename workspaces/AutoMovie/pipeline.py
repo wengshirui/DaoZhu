@@ -176,14 +176,11 @@ async def run_pipeline(
 # ─── Stage 实现 ──────────────────────────────────────────────
 
 async def _stage_1_director(text: str, title: str, mode: str) -> Storyboard:
-    """Stage 1: 导演 LLM 分析文本 → 生成分镜。"""
+    """Stage 1: 导演 LLM 分析文本 → 生成分镜。用 DeepSeek（搜索词质量更好）。"""
     from generator import generate_timeline
 
-    # 有 GLM Key 就用 GLM 做导演（更好的 JSON 输出质量）
-    from glm_config import load_config as load_glm
-    glm_cfg = load_glm()
-    use_glm = bool(glm_cfg.api_key)
-    timeline_data = await generate_timeline(text, use_glm=use_glm)
+    # DeepSeek 做导演（search_term 输出质量更好）
+    timeline_data = await generate_timeline(text, use_glm=False)
 
     # 将现有 timeline 格式转换为 Storyboard
     storyboard = Storyboard(title=title or text[:20])
