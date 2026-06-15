@@ -129,12 +129,11 @@ def _process_single_frame(
     else:
         audio_map = ["-map", "0:v", "-an"]
 
-    # 视频滤镜：统一分辨率（crop 取中心，不留黑边）
-    # 参考 MoneyPrinterPlus: scale + crop，不用 pad
+    # 视频滤镜：统一分辨率
+    # 简单方案：强制 scale 到目标（轻微拉伸，比黑边好）
     vf_parts = [
-        f"scale={w}:-1:force_original_aspect_ratio=increase",
-        f"crop={w}:{h}:(iw-{w})/2:(ih-{h})/2",
-        f"fps={fps}",
+        f"scale={w}:{h}",
+        f"setsar=1",
     ]
 
     # 字幕（drawtext，不需要 srt 文件）
