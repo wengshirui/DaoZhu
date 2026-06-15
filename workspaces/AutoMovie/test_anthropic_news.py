@@ -31,7 +31,7 @@ async def main():
         text=TEXT,
         title="Anthropic实名制刷脸",
         mode="medium",
-        resolution="1080x1920",  # 竖屏，社交平台
+        resolution="1920x1080",  # 横屏
         stop_at="video",
         progress_callback=prog,
     )
