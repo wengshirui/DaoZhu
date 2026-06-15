@@ -189,14 +189,17 @@ async def _stage_1_director(text: str, title: str, mode: str) -> Storyboard:
             gender=info.get("gender", ""),
         ))
 
-    # 提取帧
+    # 提取帧（限制最多 15 帧，防止文本过长导致几十帧）
     timeline = timeline_data.get("timeline", [])
-    current_scene = 0
-    for i, event in enumerate(timeline):
+    frame_events = [e for e in timeline if e.get("action") in ("dialogue", "narr")]
+    if len(frame_events) > 15:
+        frame_events = frame_events[:15]
+
+    for i, event in enumerate(frame_events):
         frame = StoryboardFrame(
             index=i,
             narration=event.get("text", ""),
-            speaker=event.get("speaker", "narrator"),
+            speaker=event.get("who", "narrator") if event.get("action") == "dialogue" else "narrator",
             mood_tag=event.get("mood", "neutral"),
             image_prompt=event.get("scene_desc", ""),
         )

@@ -150,10 +150,11 @@ async def _download_video(
     scene_index: int,
 ) -> Optional[str]:
     """下载视频到本地（URL hash 缓存）。"""
-    # URL hash 作为文件名（AC8 缓存）
+    # 下载（URL hash 缓存，AC8）
     url_clean = url.split("?")[0]
     url_hash = hashlib.md5(url_clean.encode()).hexdigest()[:12]
-    filename = f"pexels_{scene_index:03d}_{url_hash}.mp4"
+    # 缓存按 hash 命名（不含 scene_index），确保同一视频只下载一次
+    filename = f"pexels_{url_hash}.mp4"
     filepath = OUTPUT_DIR / filename
 
     # 已缓存则跳过
