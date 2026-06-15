@@ -193,6 +193,7 @@ async def _generate_video_storyboard(text: str, title: str) -> Storyboard:
     视频分镜生成器（参考 MoneyPrinterTurbo generate_script + generate_terms）。
     专注于：把文本拆成 8-12 个旁白段落 + 为每段生成视频搜索词。
     """
+    import httpx
     from daozhu.config_db import get_secret
     from daozhu.config import get_config_value
 
