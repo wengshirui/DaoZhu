@@ -139,14 +139,14 @@ def _process_single_frame(
     # 字幕（drawtext，不需要 srt 文件）
     if text:
         # 转义单引号和特殊字符
-        safe_text = text.replace("'", "'\\''").replace(":", "\\:")
+        safe_text = text.replace("'", "'\\''").replace(":", "\\:").replace("%", "%%")
         font_path = str(FONTS_DIR / "MicrosoftYaHeiNormal.ttc").replace("\\", "/").replace(":", "\\:")
         vf_parts.append(
             f"drawtext=text='{safe_text}'"
             f":fontfile='{font_path}'"
-            f":fontsize=28:fontcolor=white"
-            f":borderw=2:bordercolor=black"
-            f":x=(w-text_w)/2:y=h-60"
+            f":fontsize=42:fontcolor=white"
+            f":borderw=3:bordercolor=black"
+            f":x=(w-text_w)/2:y=h*0.82"
         )
 
     cmd += ["-vf", ",".join(vf_parts)]
@@ -159,11 +159,11 @@ def _process_single_frame(
     cmd += [output]
 
     try:
-        result = subprocess.run(cmd, capture_output=True, timeout=30)
+        result = subprocess.run(cmd, capture_output=True, timeout=30, encoding="utf-8", errors="replace")
         if result.returncode == 0 and Path(output).exists():
             return True
         else:
-            logger.warning(f"[Frame {frame.get('index',0)}] 处理失败: {result.stderr.decode()[:150]}")
+            logger.warning(f"[Frame {frame.get('index',0)}] 处理失败: {result.stderr[:150] if result.stderr else ''}")
             return False
     except Exception as e:
         logger.warning(f"[Frame] 异常: {e}")
