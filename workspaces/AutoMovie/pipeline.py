@@ -248,28 +248,14 @@ async def _generate_frame_assets(
     )
     gender = char_config.gender if char_config else ""
 
-    # ── TTS 配音（有 GLM Key 就优先用 GLM，否则 Edge-TTS）──
-    from glm_config import load_config as _load_glm
-    _glm_cfg = _load_glm()
-
-    if _glm_cfg.api_key:
-        from glm_tts import generate_speech as glm_speak
-        frame.audio_path = await glm_speak(
-            text=frame.narration,
-            scene_index=frame.index,
-            character_name=frame.speaker,
-            gender=gender,
-        )
-
-    if not frame.audio_path:
-        # GLM 失败或无 Key → Edge-TTS
-        from edge_tts_service import generate_speech as edge_speak
-        frame.audio_path = await edge_speak(
-            text=frame.narration,
-            scene_index=frame.index,
-            character_name=frame.speaker,
-            gender=gender,
-        )
+    # ── TTS 配音（中级模式直接用 Edge-TTS，稳定可靠）──
+    from edge_tts_service import generate_speech as edge_speak
+    frame.audio_path = await edge_speak(
+        text=frame.narration,
+        scene_index=frame.index,
+        character_name=frame.speaker,
+        gender=gender,
+    )
 
     # ── 场景图/视频 ──
     if mode == "advanced" and frame.image_prompt:
