@@ -129,10 +129,11 @@ def _process_single_frame(
     else:
         audio_map = ["-map", "0:v", "-an"]
 
-    # 视频滤镜：统一分辨率 + 字幕
+    # 视频滤镜：统一分辨率（crop 取中心，不留黑边）
+    # 参考 MoneyPrinterPlus: scale + crop，不用 pad
     vf_parts = [
-        f"scale={w}:{h}:force_original_aspect_ratio=decrease",
-        f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2",
+        f"scale={w}:-1:force_original_aspect_ratio=increase",
+        f"crop={w}:{h}:(iw-{w})/2:(ih-{h})/2",
         f"fps={fps}",
     ]
 
