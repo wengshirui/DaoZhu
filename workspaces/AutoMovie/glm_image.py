@@ -23,7 +23,7 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 async def generate_scene_image(
     prompt: str,
     scene_index: int,
-    size: str = "1920x1080",
+    size: str = "1024x1024",
 ) -> Optional[str]:
     """
     调用 GLM-Image 生成场景背景图。
@@ -31,21 +31,22 @@ async def generate_scene_image(
     Args:
         prompt: 场景描述 prompt（由导演 LLM 生成）
         scene_index: 场景序号（用于命名）
-        size: 图片尺寸（1920x1080 / 1080x1920 / 1080x1080）
+        size: 图片尺寸（默认 1024x1024，GLM 要求 512-2880 且为 16 整数倍）
 
     Returns:
         生成的图片本地路径，失败返回 None（AC6 降级）
     """
     config = load_config()
-    if not config.is_ready:
+    if not config.api_key:
         return None
 
     try:
         payload = {
             "model": config.image_model,
             "prompt": prompt,
-            "size": size,
         }
+        # 智谱 CogView API 不需要指定 size（默认 1024x1024）
+        # 如果需要其他尺寸，用 "size": "1024x1024" 格式
 
         async with httpx.AsyncClient(timeout=60) as client:
             resp = await client.post(

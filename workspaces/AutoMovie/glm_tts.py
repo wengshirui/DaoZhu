@@ -24,13 +24,13 @@ logger = logging.getLogger(__name__)
 OUTPUT_DIR = Path(__file__).parent / "output" / "audio"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# 预设音色（GLM-TTS 支持的角色音色标识）
+# 预设音色（智谱 GLM-TTS 支持的音色）
 VOICE_PRESETS = {
-    "male_young": "male-young-jingying-jingpin",
-    "male_mature": "male-mature-chenwen-jingpin",
-    "female_young": "female-young-huopo-jingpin",
-    "female_mature": "female-mature-zhixing-jingpin",
-    "narrator": "male-mature-chenwen-jingpin",  # 旁白默认
+    "male_young": "male_young_jingpin",
+    "male_mature": "male_mature_jingpin",
+    "female_young": "female_young_jingpin",
+    "female_mature": "female_mature_jingpin",
+    "narrator": "male_mature_jingpin",
 }
 
 
@@ -55,7 +55,7 @@ async def generate_speech(
         生成的音频文件路径，失败返回 None（AC10 静音降级）
     """
     config = load_config()
-    if not config.is_ready:
+    if not config.api_key:
         return None
 
     if not text or not text.strip():

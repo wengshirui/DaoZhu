@@ -90,20 +90,44 @@ DIRECTOR_PROMPT = """你是一个火柴人动画导演。用户输入一段文�
 
 ## 输出格式（纯 JSON，不要 markdown）
 
-{"chars":{"id":{"color":"#hex","label":"名字","scale":1}},"timeline":[{"t":0,"action":"..."}]}"""
+{"chars":{"id":{"color":"#hex","label":"名字","scale":1,"gender":"male/female"}},"timeline":[{"t":0,"action":"...","scene_desc":"用英文描述当前场景画面（供AI绘图用，20-40词）"}]}
+
+注意：每个 dialogue/narr 事件都必须包含 scene_desc 字段，用英文简短描述当前画面，例如 "A dark office with computer screens glowing, papers scattered on desk" """
 
 
-async def generate_timeline(text: str, max_retries: int = 3) -> dict:
-    """调用 LLM 生成时间轴 JSON（含重试和容错）"""
-    from daozhu.config_db import get_secret
-    from daozhu.config import get_config_value
+async def generate_timeline(text: str, max_retries: int = 3, use_glm: bool = False) -> dict:
+    """
+    调用 LLM 生成时间轴 JSON（含重试和容错）。
+    
+    Args:
+        text: 输入文本
+        max_retries: 重试次数
+        use_glm: True 时优先用 GLM API Key（高级模式），失败再试主平台 Key
+    """
+    # 确定 API 配置
+    api_key = None
+    base_url = None
+    model = None
 
-    api_key = get_secret("DEEPSEEK_API_KEY")
+    if use_glm:
+        # 高级模式：优先用工作区的 GLM Key
+        from glm_config import load_config as load_glm
+        glm_cfg = load_glm()
+        if glm_cfg.api_key:
+            api_key = glm_cfg.api_key
+            base_url = glm_cfg.base_url  # https://open.bigmodel.cn/api/paas/v4
+            model = "glm-4-flash"  # GLM 的快速模型，适合生成 JSON
+
     if not api_key:
-        raise RuntimeError("未配置 AI API Key")
+        # 降级到主平台 API Key
+        from daozhu.config_db import get_secret
+        from daozhu.config import get_config_value
+        api_key = get_secret("DEEPSEEK_API_KEY")
+        base_url = get_config_value("ai.base_url", "https://api.deepseek.com/v1")
+        model = get_config_value("ai.model", "deepseek-chat")
 
-    base_url = get_config_value("ai.base_url", "https://api.deepseek.com/v1")
-    model = get_config_value("ai.model", "deepseek-chat")
+    if not api_key:
+        raise RuntimeError("未配置 AI API Key（GLM 和主平台均无）")
 
     # 截短输入避免输出被截断
     truncated_text = text[:2000]

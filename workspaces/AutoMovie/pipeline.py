@@ -43,7 +43,7 @@ def detect_mode() -> str:
     """
     config = load_config()
 
-    if config.is_ready:
+    if config.api_key:
         return "advanced"
 
     # 检查 Pexels Key（存储在 glm_config.json 扩展字段或独立文件）
@@ -175,12 +175,14 @@ async def _stage_1_director(text: str, title: str, mode: str) -> Storyboard:
     """Stage 1: 导演 LLM 分析文本 → 生成分镜。"""
     from generator import generate_timeline
 
-    timeline_data = await generate_timeline(text)
+    # 高级模式用 GLM 作为导演 LLM
+    use_glm = (mode == "advanced")
+    timeline_data = await generate_timeline(text, use_glm=use_glm)
 
     # 将现有 timeline 格式转换为 Storyboard
     storyboard = Storyboard(title=title or text[:20])
 
-    # 提取角色
+    # 提取角色（含性别）
     chars = timeline_data.get("chars", {})
     for name, info in chars.items():
         storyboard.characters.append(CharacterConfig(
@@ -201,7 +203,7 @@ async def _stage_1_director(text: str, title: str, mode: str) -> Storyboard:
             narration=event.get("text", ""),
             speaker=event.get("who", "narrator") if event.get("action") == "dialogue" else "narrator",
             mood_tag=event.get("mood", "neutral"),
-            image_prompt=event.get("scene_desc", ""),
+            image_prompt=event.get("scene_desc", ""),  # GLM-Image 用这个生成背景
         )
         storyboard.frames.append(frame)
 
