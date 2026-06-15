@@ -93,8 +93,8 @@ DIRECTOR_PROMPT = """你是一个火柴人动画导演。用户输入一段文�
 {"chars":{"id":{"color":"#hex","label":"名字","scale":1}},"timeline":[{"t":0,"action":"..."}]}"""
 
 
-async def generate_timeline(text: str) -> dict:
-    """调用 LLM 生成时间轴 JSON"""
+async def generate_timeline(text: str, max_retries: int = 3) -> dict:
+    """调用 LLM 生成时间轴 JSON（含重试和容错）"""
     from daozhu.config_db import get_secret
     from daozhu.config import get_config_value
 
@@ -105,40 +105,104 @@ async def generate_timeline(text: str) -> dict:
     base_url = get_config_value("ai.base_url", "https://api.deepseek.com/v1")
     model = get_config_value("ai.model", "deepseek-chat")
 
+    # 截短输入避免输出被截断
+    truncated_text = text[:2000]
+
     messages = [
         {"role": "system", "content": DIRECTOR_PROMPT},
-        {"role": "user", "content": f"请将以下文本转为火柴人动画时间轴：\n\n{text[:3000]}"},
+        {"role": "user", "content": f"请将以下文本转为火柴人动画时间轴：\n\n{truncated_text}"},
     ]
 
-    async with httpx.AsyncClient(timeout=60) as client:
-        resp = await client.post(
-            f"{base_url}/chat/completions",
-            headers={"Authorization": f"Bearer {api_key}"},
-            json={"model": model, "messages": messages, "max_tokens": 4000, "temperature": 0.3},
-        )
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            async with httpx.AsyncClient(timeout=90) as client:
+                resp = await client.post(
+                    f"{base_url}/chat/completions",
+                    headers={"Authorization": f"Bearer {api_key}"},
+                    json={
+                        "model": model,
+                        "messages": messages,
+                        "max_tokens": 8000,
+                        "temperature": 0.3,
+                    },
+                )
 
-    if resp.status_code != 200:
-        raise RuntimeError(f"API 错误: {resp.status_code}")
+            if resp.status_code != 200:
+                last_error = f"API 错误: {resp.status_code}"
+                continue
 
-    content = resp.json()["choices"][0]["message"]["content"]
-    return _parse_json(content)
+            content = resp.json()["choices"][0]["message"]["content"]
+            return _parse_json(content)
+
+        except RuntimeError as e:
+            last_error = str(e)
+            # JSON 解析失败 → 重试时提醒 LLM
+            if attempt < max_retries - 1:
+                messages.append({"role": "assistant", "content": content if 'content' in dir() else ""})
+                messages.append({"role": "user", "content": "你的输出不是有效的 JSON。请只输出纯 JSON，不要 markdown 代码块，不要任何解释文字。"})
+        except Exception as e:
+            last_error = str(e)
+
+    raise RuntimeError(f"AI 生成失败（重试 {max_retries} 次）: {last_error}")
 
 
 def _parse_json(content: str) -> dict:
-    """从 LLM 输出中提取 JSON"""
+    """从 LLM 输出中提取 JSON（含 markdown 代码块和截断修复）"""
+    if not content:
+        raise RuntimeError("AI 输出为空")
+
+    # 去除 markdown 代码块
+    text = content.strip()
+    if text.startswith("```"):
+        # 去掉 ```json 或 ``` 开头
+        text = re.sub(r'^```[a-zA-Z]*\s*\n?', '', text)
+        text = re.sub(r'\n?```\s*$', '', text)
+        text = text.strip()
+
     # 尝试直接解析
     try:
-        return json.loads(content)
+        return json.loads(text)
     except json.JSONDecodeError:
         pass
-    # 提取 JSON 块
-    match = re.search(r'\{[\s\S]*\}', content)
+
+    # 提取最外层 JSON 对象
+    match = re.search(r'\{[\s\S]*\}', text)
     if match:
+        json_str = match.group()
         try:
-            return json.loads(match.group())
+            return json.loads(json_str)
         except json.JSONDecodeError:
-            pass
+            # 尝试修复截断的 JSON（补齐括号）
+            repaired = _repair_truncated_json(json_str)
+            if repaired:
+                try:
+                    return json.loads(repaired)
+                except json.JSONDecodeError:
+                    pass
+
     raise RuntimeError("AI 输出格式错误，无法解析 JSON")
+
+
+def _repair_truncated_json(text: str) -> str:
+    """尝试修复被截断的 JSON（补齐缺失的括号）"""
+    # 计算未闭合的括号
+    open_braces = text.count('{') - text.count('}')
+    open_brackets = text.count('[') - text.count(']')
+
+    if open_braces <= 0 and open_brackets <= 0:
+        return text  # 不需要修复
+
+    # 移除末尾不完整的元素（可能截断在字符串中间）
+    # 找最后一个完整的 JSON 值结尾
+    text = re.sub(r',\s*"[^"]*$', '', text)  # 去掉截断的 key
+    text = re.sub(r',\s*$', '', text)  # 去掉尾部逗号
+
+    # 补齐括号
+    text += ']' * max(0, open_brackets)
+    text += '}' * max(0, open_braces)
+
+    return text
 
 
 def render_html(title: str, data: dict) -> str:
