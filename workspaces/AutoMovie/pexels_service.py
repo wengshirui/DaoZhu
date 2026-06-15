@@ -164,8 +164,8 @@ def _select_best_video(
             if not url:
                 continue
 
-            # 分辨率筛选：至少达到目标的 80%
-            if w >= target_width * 0.8 and h >= target_height * 0.8:
+            # 分辨率筛选：至少达到目标的 80% 且必须是横屏（宽>高）
+            if w >= target_width * 0.8 and h >= target_height * 0.8 and w > h:
                 # 去重：同一 URL 不重复使用
                 url_clean = url.split("?")[0]
                 with _used_lock:

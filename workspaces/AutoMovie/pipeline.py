@@ -177,15 +177,133 @@ async def run_pipeline(
 
 async def _stage_1_director(text: str, title: str, mode: str) -> Storyboard:
     """Stage 1: 导演 LLM 分析文本 → 生成分镜。用 DeepSeek（搜索词质量更好）。"""
-    from generator import generate_timeline
 
-    # DeepSeek 做导演（search_term 输出质量更好）
-    timeline_data = await generate_timeline(text, use_glm=False)
+    if mode in ("medium", "advanced"):
+        # 视频模式：用专门的视频分镜 prompt（参考 MoneyPrinterTurbo）
+        return await _generate_video_storyboard(text, title)
+    else:
+        # 简单模式：用原有的火柴人动画导演
+        from generator import generate_timeline
+        timeline_data = await generate_timeline(text, use_glm=False)
+        return _timeline_to_storyboard(timeline_data, title)
 
-    # 将现有 timeline 格式转换为 Storyboard
-    storyboard = Storyboard(title=title or text[:20])
 
-    # 提取角色（含性别）
+async def _generate_video_storyboard(text: str, title: str) -> Storyboard:
+    """
+    视频分镜生成器（参考 MoneyPrinterTurbo generate_script + generate_terms）。
+    专注于：把文本拆成 8-12 个旁白段落 + 为每段生成视频搜索词。
+    """
+    from daozhu.config_db import get_secret
+    from daozhu.config import get_config_value
+
+    api_key = get_secret("DEEPSEEK_API_KEY")
+    base_url = get_config_value("ai.base_url", "https://api.deepseek.com/v1")
+    model = get_config_value("ai.model", "deepseek-chat")
+
+    prompt = f"""你是一个短视频分镜脚本编写器。将用户输入的文本拆分为 8-12 个旁白段落，并为每段配上视频搜索关键词。
+
+## 规则
+1. 每段旁白 30-80 字，一句完整的话，适合 TTS 朗读
+2. 每段必须有 search_term（2-4 个英文单词），用于搜索配图视频
+3. search_term 必须是 Pexels 能搜到的通用场景，不要用专有名词（人名/公司名）
+4. 相邻段的 search_term 有视觉连贯性（不要跳跃太大）
+5. 最后一段是总结/提问/互动（收束感）
+6. search_term 最后一段用收束画面（如 "conclusion question mark" 或 "thinking audience"）
+7. 用中文旁白，search_term 用英文
+
+## 好的 search_term 示例
+- "breaking news studio broadcast"（新闻类）
+- "technology office computer screen"（科技类）
+- "stock market trading screen"（财经类）
+- "person worried phone privacy"（隐私类）
+- "document signing agreement"（协议类）
+
+## 输出格式（纯 JSON，不要 markdown）
+{{"segments": [{{"narration": "旁白文字", "search_term": "english search words", "speaker": "narrator"}}]}}
+
+## 用户文本
+{text[:2000]}"""
+
+    messages = [{"role": "user", "content": prompt}]
+
+    try:
+        async with httpx.AsyncClient(timeout=90) as client:
+            resp = await client.post(
+                f"{base_url}/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}"},
+                json={"model": model, "messages": messages, "max_tokens": 4000, "temperature": 0.3},
+            )
+
+        if resp.status_code != 200:
+            raise RuntimeError(f"API 错误: {resp.status_code}")
+
+        content = resp.json()["choices"][0]["message"]["content"]
+        data = _parse_video_json(content)
+
+        segments = data.get("segments", [])
+        if not segments:
+            raise RuntimeError("导演未生成分镜")
+
+        # 构建 Storyboard
+        storyboard = Storyboard(title=title)
+        for i, seg in enumerate(segments[:15]):
+            frame = StoryboardFrame(
+                index=i,
+                narration=seg.get("narration", ""),
+                speaker=seg.get("speaker", "narrator"),
+                mood_tag="neutral",
+                image_prompt="",
+            )
+            frame.search_term = seg.get("search_term", "")
+            storyboard.frames.append(frame)
+
+        logger.info(f"[Director] 视频分镜: {len(storyboard.frames)} 帧")
+        return storyboard
+
+    except Exception as e:
+        logger.error(f"[Director] 视频分镜失败: {e}")
+        # 降级：简单按段落分
+        return _fallback_split(text, title)
+
+
+def _parse_video_json(content: str) -> dict:
+    """解析 LLM 输出的 JSON"""
+    text = content.strip()
+    if text.startswith("```"):
+        text = re.sub(r'^```[a-zA-Z]*\s*\n?', '', text)
+        text = re.sub(r'\n?```\s*$', '', text)
+        text = text.strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        match = re.search(r'\{[\s\S]*\}', text)
+        if match:
+            try:
+                return json.loads(match.group())
+            except json.JSONDecodeError:
+                pass
+    return {}
+
+
+def _fallback_split(text: str, title: str) -> Storyboard:
+    """降级：按句号分段"""
+    storyboard = Storyboard(title=title)
+    sentences = [s.strip() for s in re.split(r'[。！？\n]', text) if s.strip() and len(s.strip()) > 10]
+    for i, sent in enumerate(sentences[:12]):
+        frame = StoryboardFrame(
+            index=i,
+            narration=sent,
+            speaker="narrator",
+        )
+        frame.search_term = "news broadcast studio"
+        storyboard.frames.append(frame)
+    return storyboard
+
+
+def _timeline_to_storyboard(timeline_data: dict, title: str) -> Storyboard:
+    """将火柴人 timeline 转为 Storyboard（简单模式用）"""
+    storyboard = Storyboard(title=title)
+
     chars = timeline_data.get("chars", {})
     for name, info in chars.items():
         storyboard.characters.append(CharacterConfig(
@@ -194,7 +312,6 @@ async def _stage_1_director(text: str, title: str, mode: str) -> Storyboard:
             gender=info.get("gender", ""),
         ))
 
-    # 提取帧（限制最多 15 帧，防止文本过长导致几十帧）
     timeline = timeline_data.get("timeline", [])
     frame_events = [e for e in timeline if e.get("action") in ("dialogue", "narr")]
     if len(frame_events) > 15:
@@ -206,9 +323,8 @@ async def _stage_1_director(text: str, title: str, mode: str) -> Storyboard:
             narration=event.get("text", ""),
             speaker=event.get("who", "narrator") if event.get("action") == "dialogue" else "narrator",
             mood_tag=event.get("mood", "neutral"),
-            image_prompt=event.get("scene_desc", ""),  # GLM-Image 用这个生成背景
+            image_prompt=event.get("scene_desc", ""),
         )
-        # 存储 Pexels 搜索关键词（英文）
         frame.search_term = event.get("search_term", "")
         storyboard.frames.append(frame)
 
