@@ -314,45 +314,62 @@ async def _stage_3_4_compose(
     segments = await record_animation(storyboard, resolution)
 
     if not segments:
-        logger.warning("[Stage3-4] 无视频片段，尝试静态方案")
-        from animation_recorder import _fallback_static_segments
-        segments = await _fallback_static_segments(storyboard, resolution)
+        logger.info("[Stage3-4] 无 Playwright，使用音频+背景直接合成")
 
-    if not segments:
-        return None
-
-    # 拼接视频片段
-    progress_fn(75, "拼接视频片段...")
-    concat_path = str(OUTPUT_DIR / f"{task_id}_concat.mp4")
-    if len(segments) > 1:
-        concat_result = concat_segments(segments, concat_path)
-    else:
-        concat_result = segments[0]
-        concat_path = segments[0]
-
-    if not concat_result:
-        return None
-
-    # 合并配音 + BGM
-    progress_fn(80, "合成音频...")
+    # 合并配音
+    progress_fn(75, "合成音频...")
     audio_files = [f.audio_path for f in storyboard.frames if f.audio_path]
     merged_audio = None
     if audio_files:
         merged_audio = str(OUTPUT_DIR / f"{task_id}_audio.mp3")
         _concat_audio(audio_files, merged_audio)
 
+    # 选择 BGM
     mood = storyboard.frames[0].mood_tag if storyboard.frames else ""
     bgm_file = get_bgm_file(mood)
 
-    progress_fn(85, "混合音视频...")
-    mixed_path = str(OUTPUT_DIR / f"{task_id}_mixed.mp4")
-    mix_result = add_audio_and_bgm(
-        video_path=concat_path,
-        audio_path=merged_audio,
-        bgm_path=bgm_file,
-        output_path=mixed_path,
-    )
-    final_path = mix_result or concat_path
+    progress_fn(80, "混合音视频...")
+
+    # 有视频片段 → 拼接+混音
+    if segments:
+        concat_path = str(OUTPUT_DIR / f"{task_id}_concat.mp4")
+        if len(segments) > 1:
+            concat_result = concat_segments(segments, concat_path)
+        else:
+            concat_result = segments[0]
+            concat_path = segments[0]
+
+        if concat_result:
+            mixed_path = str(OUTPUT_DIR / f"{task_id}_mixed.mp4")
+            mix_result = add_audio_and_bgm(
+                video_path=concat_path,
+                audio_path=merged_audio,
+                bgm_path=bgm_file,
+                output_path=mixed_path,
+            )
+            final_path = mix_result or concat_path
+        else:
+            final_path = None
+    else:
+        # 无视频片段 → 用背景图/黑底 + 音频直接生成
+        final_path = str(OUTPUT_DIR / f"{task_id}_final.mp4")
+        cover_image = next(
+            (f.image_path for f in storyboard.frames if f.image_path), None
+        )
+        w, h = resolution.split("x")
+
+        if cover_image and merged_audio:
+            _image_to_video(cover_image, merged_audio, final_path, bgm_file)
+        elif merged_audio:
+            _blank_video_with_audio(merged_audio, final_path, bgm_file, resolution)
+        elif bgm_file:
+            _blank_video_with_audio(bgm_file, final_path, None, resolution)
+        else:
+            final_path = None
+
+    if not final_path or not Path(final_path).exists():
+        progress_fn(95, "视频合成失败")
+        return None
 
     # 收集字幕
     progress_fn(90, "烧录字幕...")
