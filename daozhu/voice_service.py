@@ -2,13 +2,13 @@
 岛主 DaoZhu — 语音交互服务（#085）
 参考: RealtimeSTT_LLM_TTS + RealtimeVoiceChat
 
-架构：
-- 前端 Web Audio API 录音 → WebSocket 发送 PCM 音频块
-- 后端接收音频 → RealtimeSTT 转文字 → agent 处理 → Edge-TTS 生成语音 → 回传
-- 支持唤醒词"岛主"（openwakeword）
-
-依赖：
-- pip install realtimestt[openwakeword] realtimetts[edge]
+配置项（config.json → voice 字段）：
+- voice.wake_word: 唤醒词（默认"岛主"）
+- voice.stt_engine: "whisper" / "glm"（默认 whisper）
+- voice.stt_model: whisper 模型大小（tiny/base/small）
+- voice.tts_engine: "edge" / "glm"（默认 edge）
+- voice.tts_voice: 音色名称（默认 zh-CN-XiaoxiaoNeural）
+- voice.enabled: 是否启用语音（默认 true）
 """
 
 import asyncio
@@ -21,10 +21,34 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# 全局状态
-_recorder = None
-_recorder_ready = threading.Event()
-_is_listening = False
+# 默认配置
+DEFAULT_VOICE_CONFIG = {
+    "enabled": True,
+    "wake_word": "岛主",
+    "stt_engine": "whisper",    # whisper / glm
+    "stt_model": "base",        # tiny / base / small
+    "tts_engine": "edge",       # edge / glm
+    "tts_voice": "zh-CN-XiaoxiaoNeural",
+}
+
+# Edge-TTS 可用音色列表
+EDGE_VOICES = {
+    "晓晓（温柔女声）": "zh-CN-XiaoxiaoNeural",
+    "云希（年轻男声）": "zh-CN-YunxiNeural",
+    "云健（成熟男声）": "zh-CN-YunjianNeural",
+    "晓秋（知性女声）": "zh-CN-XiaoqiuNeural",
+    "晓忆（活泼女声）": "zh-CN-XiaoyiNeural",
+    "云扬（播音男声）": "zh-CN-YunyangNeural",
+}
+
+
+def get_voice_config() -> dict:
+    """获取语音配置"""
+    from .config import get_config_value
+    config = {}
+    for key, default in DEFAULT_VOICE_CONFIG.items():
+        config[key] = get_config_value(f"voice.{key}", default)
+    return config
 
 
 def check_voice_available() -> dict:
@@ -91,11 +115,24 @@ async def speech_to_text_from_audio(audio_bytes: bytes, sample_rate: int = 16000
         return None
 
 
-async def text_to_speech(text: str, voice: str = "zh-CN-XiaoxiaoNeural") -> Optional[bytes]:
+async def text_to_speech(text: str, voice: str = "") -> Optional[bytes]:
     """
     文字转语音（返回 mp3 字节）。
-    复用 Edge-TTS。
+    根据配置选择 Edge-TTS 或 GLM-TTS。
     """
+    config = get_voice_config()
+    if not voice:
+        voice = config["tts_voice"]
+    engine = config["tts_engine"]
+
+    if engine == "glm":
+        return await _tts_glm(text, voice)
+    else:
+        return await _tts_edge(text, voice)
+
+
+async def _tts_edge(text: str, voice: str) -> Optional[bytes]:
+    """Edge-TTS 实现"""
     try:
         import edge_tts
         import tempfile
@@ -110,10 +147,39 @@ async def text_to_speech(text: str, voice: str = "zh-CN-XiaoxiaoNeural") -> Opti
         Path(tmp_path).unlink(missing_ok=True)
 
         if len(audio_bytes) > 500:
-            logger.info(f"[Voice TTS] 生成语音: {len(audio_bytes)//1024}KB")
+            logger.info(f"[Voice TTS] Edge 生成: {len(audio_bytes)//1024}KB")
             return audio_bytes
         return None
-
     except Exception as e:
-        logger.error(f"[Voice TTS] 失败: {e}")
+        logger.error(f"[Voice TTS] Edge 失败: {e}")
         return None
+
+
+async def _tts_glm(text: str, voice: str) -> Optional[bytes]:
+    """GLM-TTS 实现（云端高质量）"""
+    try:
+        from .config import get_config_value
+        import httpx
+
+        api_key = get_config_value("voice.glm_api_key", "")
+        if not api_key:
+            # 降级到 Edge
+            logger.info("[Voice TTS] GLM Key 未配置，降级 Edge")
+            return await _tts_edge(text, "zh-CN-XiaoxiaoNeural")
+
+        base_url = "https://open.bigmodel.cn/api/paas/v4"
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                f"{base_url}/audio/speech",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={"model": "glm-tts", "input": text, "voice": voice or "alloy"},
+            )
+            if resp.status_code == 200 and len(resp.content) > 500:
+                logger.info(f"[Voice TTS] GLM 生成: {len(resp.content)//1024}KB")
+                return resp.content
+            else:
+                logger.warning(f"[Voice TTS] GLM 返回 {resp.status_code}，降级 Edge")
+                return await _tts_edge(text, "zh-CN-XiaoxiaoNeural")
+    except Exception as e:
+        logger.error(f"[Voice TTS] GLM 失败: {e}")
+        return await _tts_edge(text, "zh-CN-XiaoxiaoNeural")

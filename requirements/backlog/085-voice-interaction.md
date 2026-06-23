@@ -39,12 +39,16 @@
 ### In Scope
 
 - 安装 RealtimeSTT + openwakeword 做唤醒词检测
-- 唤醒词"岛主" → 开始监听用户语音
+- **唤醒词可配置**（默认"岛主"，用户可在设置中自定义）
 - 语音转文字（Whisper tiny/base，本地运行）
+- **STT 模型可选**（本地 Whisper / 云端 GLM-ASR）
 - 文字送入现有 agent_chat_stream → 获取回复
-- 回复通过 Edge-TTS 流式播放（RealtimeTTS）
+- 回复通过 TTS 流式播放
+- **TTS 音色可配置**（Edge-TTS 多音色 / GLM-TTS）
+- **TTS 引擎可选**（Edge-TTS 免费 / GLM-TTS 高质量）
 - 前端麦克风按钮（手动模式：按住说话）
 - 后端 WebSocket 传输音频流
+- 配置项集中在 config.json 的 `voice` 字段
 
 ### Out of Scope
 
@@ -58,12 +62,13 @@
 ## 验收标准
 
 1. **AC1**: 用户点击麦克风按钮 → 开始录音 → 松开后语音转文字 → 发送给 agent
-2. **AC2**: agent 回复文字后自动通过 Edge-TTS 播放语音
-3. **AC3**: 唤醒词"岛主"被检测到时自动开始录音（无需点击按钮）
-4. **AC4**: 语音识别支持中文（Whisper base 模型）
-5. **AC5**: TTS 播放使用 zh-CN-XiaoxiaoNeural 音色（温柔女声）
+2. **AC2**: agent 回复文字后自动通过 TTS 播放语音
+3. **AC3**: 唤醒词可在设置中自定义（默认"岛主"），检测到时自动开始录音
+4. **AC4**: 语音识别支持中文，STT 引擎可选：本地 Whisper / 云端 GLM
+5. **AC5**: TTS 音色可在设置中选择（Edge-TTS 多音色列表 + GLM-TTS）
 6. **AC6**: 麦克风权限未授予时，友好提示用户授权
-7. **AC7**: 网络断开时语音功能降级（STT 本地 Whisper 仍可用，TTS 失败则只显示文字）
+7. **AC7**: 网络断开时语音功能降级（本地 Whisper 仍可用，TTS 失败则只显示文字）
+8. **AC8**: 所有语音配置项在 config.json 的 `voice` 字段集中管理
 
 ---
 

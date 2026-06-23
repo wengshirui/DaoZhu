@@ -549,9 +549,28 @@ async def kill_current_agent(body: dict):
 
 @router.get("/api/voice/status")
 async def voice_status():
-    """检查语音功能可用性"""
-    from daozhu.voice_service import check_voice_available
-    return check_voice_available()
+    """检查语音功能可用性 + 当前配置"""
+    from daozhu.voice_service import check_voice_available, get_voice_config, EDGE_VOICES
+    status = check_voice_available()
+    config = get_voice_config()
+    return {
+        **status,
+        "config": config,
+        "available_voices": EDGE_VOICES,
+    }
+
+
+@router.post("/api/voice/config")
+async def update_voice_config(body: dict):
+    """更新语音配置"""
+    from daozhu.config import set_config_value
+    allowed_keys = ["wake_word", "stt_engine", "stt_model", "tts_engine", "tts_voice", "enabled"]
+    updated = {}
+    for key in allowed_keys:
+        if key in body:
+            set_config_value(f"voice.{key}", body[key])
+            updated[key] = body[key]
+    return {"success": True, "updated": updated}
 
 
 @router.post("/api/voice/stt")
