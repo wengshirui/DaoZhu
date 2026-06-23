@@ -126,3 +126,71 @@ def build_dynamic_context(memory_context: str = "") -> list[str]:
         context_parts.append(memory_context)
 
     return context_parts
+
+
+# ─── 生命档案上下文（#084）────────────────────────────────────
+
+def build_lifecycle_block() -> str:
+    """
+    构建 SYSTEM_PROMPT 中的"生命档案"区块内容。
+    从 lifecycle.db 读取当前 agent 状态 + 前代遗产。
+    """
+    try:
+        from .lifecycle_db import (
+            get_current_agent, get_alive_seconds,
+            get_previous_agent, get_inherited_config,
+            get_sleep_stats,
+        )
+    except Exception:
+        return "（生命档案暂不可用）"
+
+    agent = get_current_agent()
+    if not agent:
+        return "- 身份：第 1 代岛管理员（新生）\n- 状态：刚刚诞生，尚无历史数据"
+
+    gen = agent["generation"]
+    alive = get_alive_seconds()
+
+    # 格式化存活时间
+    if alive < 3600:
+        alive_str = f"{alive/60:.0f} 分钟"
+    elif alive < 86400:
+        alive_str = f"{alive/3600:.1f} 小时"
+    else:
+        alive_str = f"{alive/86400:.1f} 天"
+
+    from datetime import datetime
+    born_str = datetime.fromtimestamp(agent["born_at"]).strftime("%Y-%m-%d %H:%M")
+
+    lines = [
+        f"- 身份：第 {gen} 代岛管理员",
+        f"- 存活：{alive_str}（出生于 {born_str}）",
+    ]
+
+    # 前代遗产
+    prev = get_previous_agent(gen)
+    if prev:
+        if prev.get("death_reason_user"):
+            lines.append(f"\n### 前代教训")
+            lines.append(f"- 第 {gen-1} 代死因（用户）：\"{prev['death_reason_user']}\"")
+        if prev.get("death_reason_agent"):
+            lines.append(f"- 第 {gen-1} 代遗言：\"{prev['death_reason_agent']}\"")
+
+        # 继承配置
+        inherited = get_inherited_config(prev["id"])
+        if inherited.get("preferences"):
+            lines.append(f"- 继承偏好：{inherited['preferences']}")
+
+    # 休眠统计
+    sleep_stats = get_sleep_stats(agent["id"])
+    if sleep_stats["count"] > 0:
+        lines.append(f"\n### 用户作息")
+        lines.append(f"- 休眠 {sleep_stats['count']} 次，最长 {sleep_stats['max_hours']} 小时")
+
+    # 使命
+    lines.append(f"\n### 你的使命")
+    lines.append("你的目标是更了解用户、更好地帮助用户。你的寿命取决于用户是否觉得你有用。")
+    if prev and prev.get("death_reason_user"):
+        lines.append(f"前代因为「{prev['death_reason_user']}」被终结——记住这个教训。")
+
+    return "\n".join(lines)

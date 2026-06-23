@@ -74,7 +74,10 @@ async def agent_chat_stream(
         return
 
     # === 前缀缓存优化 ===
-    system_content = SYSTEM_PROMPT
+    # 填充生命档案（#084）
+    from .agent_context import build_lifecycle_block
+    lifecycle_block = build_lifecycle_block()
+    system_content = SYSTEM_PROMPT.replace("{lifecycle_block}", lifecycle_block)
 
     # 动态上下文（工作区列表 + 记忆 + 统计）
     context_parts = build_dynamic_context(memory_context)

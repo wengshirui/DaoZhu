@@ -98,6 +98,11 @@ async def lifespan(app: FastAPI):
     init_config_db()
     from .tool_log_db import init_tool_log_db
     init_tool_log_db()
+    from .lifecycle_db import init_lifecycle_db, get_current_agent, birth_new_agent
+    init_lifecycle_db()
+    # 确保有存活的 agent（首次启动或前代已死亡时自动创建新一代）
+    if not get_current_agent():
+        birth_new_agent()
     await manager.startup()
     _mount_lightweight_workspaces(app)
 
