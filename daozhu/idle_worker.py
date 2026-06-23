@@ -58,9 +58,18 @@ _last_report_hash: str = ""  # 上次汇报内容的 hash，避免重复内容
 
 
 def record_interaction(event_type: str = "api_call", detail: str = ""):
-    """记录一次用户交互"""
+    """记录一次用户交互（同时结束休眠状态）"""
     global _last_interaction
     _last_interaction = datetime.now()
+
+    # #084: 结束休眠
+    try:
+        from .lifecycle_db import get_current_agent, record_sleep_end
+        agent = get_current_agent()
+        if agent:
+            record_sleep_end(agent["id"])
+    except Exception:
+        pass
 
 
 def get_last_interaction() -> datetime:
@@ -134,6 +143,15 @@ async def check_and_run():
     # 基础门槛：至少空闲 30 分钟才开始检查（避免用户只是去倒杯水）
     if idle_mins < 30:
         return
+
+    # #084: 空闲超过 30 分钟，标记进入休眠
+    try:
+        from .lifecycle_db import get_current_agent, record_sleep_start
+        agent = get_current_agent()
+        if agent:
+            record_sleep_start(agent["id"])
+    except Exception:
+        pass
 
     # 收集所有应该执行的任务
     tasks_to_run = []

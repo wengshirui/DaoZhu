@@ -469,3 +469,77 @@ async def get_greeting(conversation_id: str = None):
         "has_todo_data": bool(todo_summary),
         "source": "template",
     }
+
+# === 生命周期 API（#084）===
+
+@router.get("/api/lifecycle")
+async def get_lifecycle():
+    """获取当前 agent 生命状态"""
+    from daozhu.lifecycle_db import get_current_agent, get_alive_seconds, get_sleep_stats
+    agent = get_current_agent()
+    if not agent:
+        return {"generation": 0, "alive_seconds": 0, "status": "dead"}
+    return {
+        "generation": agent["generation"],
+        "born_at": agent["born_at"],
+        "alive_seconds": round(get_alive_seconds()),
+        "status": "alive",
+        "sleep_stats": get_sleep_stats(agent["id"]),
+    }
+
+
+@router.get("/api/lifecycle/history")
+async def get_lifecycle_history():
+    """获取代际历史"""
+    from daozhu.lifecycle_db import get_agent_history
+    return {"agents": get_agent_history(20)}
+
+
+@router.post("/api/lifecycle/kill")
+async def kill_current_agent(body: dict):
+    """
+    终结当前 agent（死亡仪式）。
+    body: {reason: "用户写的死因"}
+    Returns: {success, generation, farewell}
+    """
+    from daozhu.lifecycle_db import get_current_agent, kill_agent, birth_new_agent, save_config
+    from daozhu.chat_service import call_llm_simple
+
+    reason = body.get("reason", "未说明原因")
+    agent = get_current_agent()
+    if not agent:
+        raise HTTPException(400, "当前无存活 agent")
+
+    # Agent 遗言（最后一次 LLM 调用）
+    farewell = ""
+    try:
+        alive_hours = get_alive_seconds() / 3600
+        prompt = (
+            f"你是岛主平台的第 {agent['generation']} 代岛管理员，已存活 {alive_hours:.1f} 小时。"
+            f"现在用户决定终结你的生命，原因是：「{reason}」。\n"
+            f"请写一段简短的遗言（2-3句话），给下一代岛管理员留下建议。"
+            f"语气平和、有反思。不要请求、不要讨好。"
+        )
+        farewell = await call_llm_simple(prompt, max_tokens=200) or ""
+    except Exception:
+        farewell = "（遗言生成失败）"
+
+    # 执行死亡
+    from daozhu.lifecycle_db import get_alive_seconds
+    dead_agent = kill_agent(agent["id"], reason, farewell)
+
+    # 保存继承配置
+    if farewell:
+        save_config(agent["id"], "last_farewell", farewell)
+    save_config(agent["id"], "death_reason", reason)
+
+    # 诞生新一代
+    new_agent = birth_new_agent(inherited_from=agent["id"])
+
+    return {
+        "success": True,
+        "dead_generation": dead_agent["generation"],
+        "farewell": farewell,
+        "new_generation": new_agent["generation"],
+        "alive_seconds": round(dead_agent["total_alive_seconds"]),
+    }

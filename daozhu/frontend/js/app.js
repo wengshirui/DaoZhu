@@ -17,6 +17,7 @@ const App = {
       Sidebar.init();
       Chat.init();
       Panel.init();
+      this._initLifecycle();
       Panel.addLog('success', '所有模块初始化完成');
       this._checkUpdate();
     } catch (err) {
@@ -24,6 +25,63 @@ const App = {
       this.showToast('页面初始化失败，请刷新重试');
       Panel.addLog('error', `初始化失败: ${err.message}`);
     }
+  },
+
+  // === 生命周期（#084）===
+  _initLifecycle() {
+    this._updateLifecycle();
+    setInterval(() => this._updateLifecycle(), 10000); // 每 10 秒刷新
+
+    const killBtn = document.getElementById('btn-kill-agent');
+    const statusEl = document.getElementById('lifecycle-status');
+
+    // 双击状态显示杀死按钮
+    statusEl.addEventListener('dblclick', () => {
+      killBtn.style.display = killBtn.style.display === 'none' ? 'inline-flex' : 'none';
+    });
+
+    killBtn.addEventListener('click', async () => {
+      const reason = prompt('为什么要结束当前 Agent 的生命？\n（你的理由会帮助下一代做得更好）');
+      if (!reason) return;
+      if (!confirm(`确定要终结第 ${this._currentGen} 代 Agent 吗？`)) return;
+
+      try {
+        const resp = await fetch('/api/lifecycle/kill', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({reason}),
+        });
+        const data = await resp.json();
+        if (data.success) {
+          const msg = `第 ${data.dead_generation} 代 Agent 已终结（存活 ${Math.round(data.alive_seconds/3600)} 小时）\n\n遗言：${data.farewell}\n\n第 ${data.new_generation} 代已诞生。`;
+          alert(msg);
+          killBtn.style.display = 'none';
+          this._updateLifecycle();
+          Panel.addLog('info', `💀 第 ${data.dead_generation} 代终结 → 第 ${data.new_generation} 代诞生`);
+        }
+      } catch (e) {
+        alert('操作失败: ' + e.message);
+      }
+    });
+  },
+
+  _currentGen: 0,
+
+  async _updateLifecycle() {
+    try {
+      const resp = await fetch('/api/lifecycle');
+      const data = await resp.json();
+      const el = document.getElementById('lifecycle-status');
+      if (data.status === 'alive') {
+        this._currentGen = data.generation;
+        const h = Math.floor(data.alive_seconds / 3600);
+        const m = Math.floor((data.alive_seconds % 3600) / 60);
+        el.textContent = `第${data.generation}代 · ${h}h${m}m`;
+        el.title = `第 ${data.generation} 代岛管理员，已存活 ${h} 小时 ${m} 分钟`;
+      } else {
+        el.textContent = '⏱️ --';
+      }
+    } catch (e) {}
   },
 
   // === 主题 ===

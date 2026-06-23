@@ -500,3 +500,15 @@
   font-size: 11px;
   white-space: nowrap;
 }
+
+
+/* === Agent 生命周期状态（#084）=== */
+.topbar__lifecycle {
+  font-size: 0.72rem;
+  color: var(--text-muted, #8a7a6a);
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--bg-hover, #f5f0eb);
+  cursor: default;
+  user-select: none;
+}
