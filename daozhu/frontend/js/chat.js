@@ -17,6 +17,7 @@ const Chat = {
     this._bindForm();
     this._bindTextarea();
     this._bindFileUpload();
+    this._bindMic();
     this._showWelcome();
     this._loadGreeting();
   },
@@ -41,6 +42,68 @@ const Chat = {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         this._handleSend();
+      }
+    });
+  },
+
+  // === 语音输入（#085）===
+  _bindMic() {
+    const btn = document.getElementById('btn-mic');
+    if (!btn) return;
+    let mediaRecorder = null;
+    let audioChunks = [];
+
+    btn.addEventListener('mousedown', async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+        audioChunks = [];
+        mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+          stream.getTracks().forEach(t => t.stop());
+          const blob = new Blob(audioChunks, { type: 'audio/webm' });
+          btn.classList.remove('chat__mic--recording');
+          btn.textContent = '⏳';
+          // 转为 base64 发送到后端 STT
+          const reader = new FileReader();
+          reader.onloadend = async () => {
+            const base64 = reader.result.split(',')[1];
+            try {
+              const resp = await fetch('/api/voice/stt', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ audio_base64: base64, sample_rate: 16000 }),
+              });
+              const data = await resp.json();
+              if (data.success && data.text) {
+                document.getElementById('chat-input').value = data.text;
+                this._handleSend();
+              } else {
+                Panel.addLog('warning', '语音识别无结果');
+              }
+            } catch (e) {
+              Panel.addLog('error', '语音识别失败: ' + e.message);
+            }
+            btn.textContent = '🎙️';
+          };
+          reader.readAsDataURL(blob);
+        };
+        mediaRecorder.start();
+        btn.classList.add('chat__mic--recording');
+        btn.textContent = '🔴';
+      } catch (e) {
+        alert('麦克风权限未授予，请在浏览器设置中允许。');
+      }
+    });
+
+    btn.addEventListener('mouseup', () => {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+      }
+    });
+    btn.addEventListener('mouseleave', () => {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
       }
     });
   },

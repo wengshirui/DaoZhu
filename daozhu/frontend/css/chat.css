@@ -607,3 +607,26 @@
 .message__stats:hover {
   opacity: 1;
 }
+
+
+/* === 语音按钮（#085）=== */
+.chat__mic {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  opacity: 0.6;
+  transition: all 0.2s;
+}
+.chat__mic:hover { opacity: 1; background: var(--bg-hover); }
+.chat__mic--recording {
+  opacity: 1;
+  color: #dc2626;
+  animation: pulse 1s infinite;
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}

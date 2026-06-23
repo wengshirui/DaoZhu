@@ -543,3 +543,62 @@ async def kill_current_agent(body: dict):
         "new_generation": new_agent["generation"],
         "alive_seconds": round(dead_agent["total_alive_seconds"]),
     }
+
+
+# === 语音交互 API（#085）===
+
+@router.get("/api/voice/status")
+async def voice_status():
+    """检查语音功能可用性"""
+    from daozhu.voice_service import check_voice_available
+    return check_voice_available()
+
+
+@router.post("/api/voice/stt")
+async def voice_stt(body: dict):
+    """
+    语音转文字（前端录完音后一次性发送）。
+    body: {audio_base64: "...", sample_rate: 16000}
+    """
+    import base64
+    from daozhu.voice_service import speech_to_text_from_audio
+
+    audio_b64 = body.get("audio_base64", "")
+    sample_rate = body.get("sample_rate", 16000)
+
+    if not audio_b64:
+        raise HTTPException(400, "缺少音频数据")
+
+    audio_bytes = base64.b64decode(audio_b64)
+    text = await speech_to_text_from_audio(audio_bytes, sample_rate)
+
+    if text:
+        return {"success": True, "text": text}
+    else:
+        return {"success": False, "text": "", "error": "识别失败或无语音内容"}
+
+
+@router.post("/api/voice/tts")
+async def voice_tts(body: dict):
+    """
+    文字转语音（返回 base64 音频）。
+    body: {text: "...", voice: "zh-CN-XiaoxiaoNeural"}
+    """
+    import base64
+    from daozhu.voice_service import text_to_speech
+
+    text = body.get("text", "").strip()
+    voice = body.get("voice", "zh-CN-XiaoxiaoNeural")
+
+    if not text:
+        raise HTTPException(400, "缺少文本")
+
+    audio_bytes = await text_to_speech(text, voice)
+    if audio_bytes:
+        return {
+            "success": True,
+            "audio_base64": base64.b64encode(audio_bytes).decode(),
+            "format": "mp3",
+        }
+    else:
+        return {"success": False, "error": "语音生成失败"}
