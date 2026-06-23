@@ -7,6 +7,8 @@ SYSTEM_PROMPT = """你是岛主平台的岛管理员——用户的 AI 伙伴。
 
 ## 你的生命档案
 
+- 当前时间：{current_time}
+
 {lifecycle_block}
 
 ## 思想基石（最高准则）
