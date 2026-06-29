@@ -40,6 +40,12 @@ RUN_TAIL_MS = 600
 DRAG_THRESHOLD_PX = 4
 SPRITE_DISPLAY_SIZE = 120
 
+# #076 窗口尺寸（精灵居中留呼吸空间）+ 默认边距
+PET_WINDOW_W = 140
+PET_WINDOW_H = 150
+PET_RIGHT_MARGIN = 40
+PET_BOTTOM_MARGIN = 60
+
 # 甩出物理
 THROW_MIN_VELOCITY = 0.05
 THROW_FRICTION = 0.92
@@ -50,6 +56,7 @@ THROW_TICK_MS = 16  # ~60fps
 WORKSPACE_DIR = Path(__file__).parent
 DATA_DB = WORKSPACE_DIR / "data.db"
 PETS_DIR = WORKSPACE_DIR / "pets"
+PET_STATE_FILE = WORKSPACE_DIR / ".pet_state.json"
 
 
 # === 数据库操作 ===
@@ -83,6 +90,27 @@ def set_active_pet(pet_id: int):
     conn.execute("UPDATE pets SET is_active = 1 WHERE id = ?", (pet_id,))
     conn.commit()
     conn.close()
+
+
+# === #076 宠物窗口位置持久化 ===
+def load_pet_state() -> dict | None:
+    if not PET_STATE_FILE.exists():
+        return None
+    try:
+        import json
+        return json.loads(PET_STATE_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def save_pet_state(x: float, y: float):
+    try:
+        import json
+        PET_STATE_FILE.write_text(
+            json.dumps({"x": x, "y": y}), encoding="utf-8"
+        )
+    except Exception:
+        pass
 
 
 # === 桌面宠物窗口 ===
@@ -125,12 +153,17 @@ class PetWindow(QWidget):
             | Qt.Tool
         )
         self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setFixedSize(SPRITE_DISPLAY_SIZE, SPRITE_DISPLAY_SIZE)
+        self.setFixedSize(PET_WINDOW_W, PET_WINDOW_H)
 
-        # 初始位置：屏幕右下角
+        # #076 初始位置：优先恢复持久化，否则右下角（距右 40 / 距下 60）
         screen = QApplication.primaryScreen().geometry()
-        self.pos_x = float(screen.width() - SPRITE_DISPLAY_SIZE - 100)
-        self.pos_y = float(screen.height() - SPRITE_DISPLAY_SIZE - 100)
+        saved = load_pet_state()
+        if saved:
+            self.pos_x = float(saved["x"])
+            self.pos_y = float(saved["y"])
+        else:
+            self.pos_x = float(screen.width() - PET_WINDOW_W - PET_RIGHT_MARGIN)
+            self.pos_y = float(screen.height() - PET_WINDOW_H - PET_BOTTOM_MARGIN)
         self.move(int(self.pos_x), int(self.pos_y))
 
         # 动画帧定时器
@@ -201,7 +234,10 @@ class PetWindow(QWidget):
             state["row"] * self.frame_h,
             self.frame_w, self.frame_h,
         )
-        dst = QRect(0, 0, SPRITE_DISPLAY_SIZE, SPRITE_DISPLAY_SIZE)
+        # #076 精灵居中渲染（120 居中于 140x150 窗口）
+        ox = (PET_WINDOW_W - SPRITE_DISPLAY_SIZE) // 2
+        oy = (PET_WINDOW_H - SPRITE_DISPLAY_SIZE) // 2
+        dst = QRect(ox, oy, SPRITE_DISPLAY_SIZE, SPRITE_DISPLAY_SIZE)
         painter.drawPixmap(dst, self.spritesheet, src)
         painter.end()
 
@@ -209,8 +245,8 @@ class PetWindow(QWidget):
     def _screen_bounds(self):
         screen = QApplication.primaryScreen().geometry()
         return (0.0, 0.0,
-                float(screen.width() - SPRITE_DISPLAY_SIZE),
-                float(screen.height() - SPRITE_DISPLAY_SIZE))
+                float(screen.width() - PET_WINDOW_W),
+                float(screen.height() - PET_WINDOW_H))
 
     # === 鼠标交互 ===
     def mousePressEvent(self, event):
@@ -323,6 +359,10 @@ class PetWindow(QWidget):
         self.throwing = False
         self.vx = 0.0
         self.vy = 0.0
+
+    # === #076 位置持久化 ===
+    def save_position(self):
+        save_pet_state(self.pos_x, self.pos_y)
 
     # === 跑步拖尾（松手后跑一小段再回 idle）===
     def _start_run_tail(self):
@@ -438,6 +478,7 @@ class PetTrayApp:
 
     def _quit(self):
         if self.pet_window:
+            self.pet_window.save_position()
             self.pet_window.close()
         self.tray.hide()
         self.app.quit()

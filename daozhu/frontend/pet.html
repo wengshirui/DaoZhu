@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>桌面宠物</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
@@ -16,8 +17,9 @@
 
   .pet-floater {
     position: absolute;
-    bottom: 0;
-    right: 0;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     cursor: grab;
     border: none;
     background: transparent;

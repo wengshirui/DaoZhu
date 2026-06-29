@@ -49,6 +49,69 @@ fn save_window_state(state: &WindowState) {
     }
 }
 
+/// #076 宠物窗口尺寸（给 120px 精灵留呼吸空间）
+const PET_W: f64 = 140.0;
+const PET_H: f64 = 150.0;
+
+/// 宠物窗口位置（持久化到 .pet_state.json）
+#[derive(Serialize, Deserialize)]
+struct PetState {
+    x: f64,
+    y: f64,
+}
+
+/// 运行期缓存宠物最后位置（Moved 时更新，退出/隐藏时落盘）
+struct PetLastPos(Mutex<Option<(f64, f64)>>);
+
+fn pet_state_file_path() -> PathBuf {
+    let mut path = std::env::current_dir().unwrap_or_default();
+    path.push(".pet_state.json");
+    path
+}
+
+fn load_pet_state() -> Option<PetState> {
+    let path = pet_state_file_path();
+    let content = fs::read_to_string(path).ok()?;
+    serde_json::from_str(&content).ok()
+}
+
+fn save_pet_state(state: &PetState) {
+    let path = pet_state_file_path();
+    if let Ok(json) = serde_json::to_string(state) {
+        let _ = fs::write(path, json);
+    }
+}
+
+/// #076 主窗口默认尺寸：min(900, 屏宽*0.6) x min(650, 屏高*0.7)
+fn compute_default_main_size(app: &tauri::AppHandle) -> (f64, f64) {
+    if let Ok(Some(monitor)) = app.primary_monitor() {
+        let size = monitor.size();
+        let scale = monitor.scale_factor();
+        if scale > 0.0 {
+            let sw = size.width as f64 / scale;
+            let sh = size.height as f64 / scale;
+            return (900.0_f64.min(sw * 0.6), 650.0_f64.min(sh * 0.7));
+        }
+    }
+    (900.0, 650.0)
+}
+
+/// #076 宠物默认位置：右下角，距右 40px，距下 60px
+fn compute_default_pet_pos(app: &tauri::AppHandle) -> (f64, f64) {
+    if let Some(main_win) = app.get_webview_window("main") {
+        if let Ok(Some(monitor)) = main_win.current_monitor() {
+            let size = monitor.size();
+            let scale = monitor.scale_factor();
+            if scale > 0.0 {
+                let screen_w = size.width as f64 / scale;
+                let screen_h = size.height as f64 / scale;
+                return (screen_w - PET_W - 40.0, screen_h - PET_H - 60.0);
+            }
+        }
+    }
+    (1600.0, 820.0)
+}
+
 /// Tauri 命令：在系统浏览器中打开 URL
 #[tauri::command]
 fn open_external(url: String) {
@@ -179,6 +242,7 @@ pub fn run() {
                 .build(),
         )
         .manage(BackendProcess(Mutex::new(None)))
+        .manage(PetLastPos(Mutex::new(None)))
         .invoke_handler(tauri::generate_handler![open_external, toggle_always_on_top, show_main_window, start_dragging])
         .setup(move |app| {
             let app_handle = app.handle().clone();
@@ -216,8 +280,10 @@ pub fn run() {
 
             // 恢复上次窗口位置/大小
             let saved = load_window_state();
-            let width = saved.as_ref().and_then(|s| s.width).unwrap_or(1080.0);
-            let height = saved.as_ref().and_then(|s| s.height).unwrap_or(650.0);
+            let (width, height) = match &saved {
+                Some(s) => (s.width.unwrap_or(900.0), s.height.unwrap_or(650.0)),
+                None => compute_default_main_size(app.handle()),
+            };
 
             let mut builder = WebviewWindowBuilder::new(app, "main", initial_url)
                 .title("岛主 DaoZhu")
@@ -348,19 +414,11 @@ pub fn run() {
 
                     // 创建桌面宠物透明窗口（默认右下角）
                     let pet_url = format!("http://localhost:{}/pet.html", port);
-                    // 计算右下角位置
-                    let (pet_x, pet_y) = if let Some(main_win) = handle_for_backend.get_webview_window("main") {
-                        if let Ok(Some(monitor)) = main_win.current_monitor() {
-                            let size = monitor.size();
-                            let scale = monitor.scale_factor();
-                            let screen_w = size.width as f64 / scale;
-                            let screen_h = size.height as f64 / scale;
-                            (screen_w - 180.0, screen_h - 200.0)
-                        } else {
-                            (1740.0, 900.0)
-                        }
+                    // #076 优先恢复持久化位置，否则右下角动态计算
+                    let (pet_x, pet_y) = if let Some(ps) = load_pet_state() {
+                        (ps.x, ps.y)
                     } else {
-                        (1740.0, 900.0)
+                        compute_default_pet_pos(&handle_for_backend)
                     };
 
                     let _ = WebviewWindowBuilder::new(
@@ -369,7 +427,7 @@ pub fn run() {
                         tauri::WebviewUrl::External(pet_url.parse().unwrap()),
                     )
                     .title("桌面宠物")
-                    .inner_size(130.0, 140.0)
+                    .inner_size(PET_W, PET_H)
                     .resizable(false)
                     .decorations(false)
                     .transparent(true)
@@ -402,8 +460,32 @@ pub fn run() {
                                 };
                                 save_window_state(&state);
                             }
+                            // #076 顺带持久化宠物最终位置
+                            if let Some(pet_pos) = app.try_state::<PetLastPos>() {
+                                if let Ok(guard) = pet_pos.0.lock() {
+                                    if let Some((x, y)) = *guard {
+                                        save_pet_state(&PetState { x, y });
+                                    }
+                                }
+                            }
                             api.prevent_close();
                             let _ = window.hide();
+                        }
+                    }
+                } else if label == "pet" {
+                    // #076 拖拽宠物时缓存最新位置（logical 坐标）
+                    if let WindowEvent::Moved(pos) = event {
+                        if let Some(window) = app.get_webview_window("pet") {
+                            let scale = window.scale_factor().unwrap_or(1.0);
+                            if scale > 0.0 {
+                                let lx = pos.x as f64 / scale;
+                                let ly = pos.y as f64 / scale;
+                                if let Some(state) = app.try_state::<PetLastPos>() {
+                                    if let Ok(mut guard) = state.0.lock() {
+                                        *guard = Some((lx, ly));
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -416,6 +498,14 @@ pub fn run() {
             RunEvent::Exit => {
                 let state = app.state::<BackendProcess>();
                 stop_backend(&state);
+                // #076 持久化宠物最终位置
+                if let Some(pet_pos) = app.try_state::<PetLastPos>() {
+                    if let Ok(guard) = pet_pos.0.lock() {
+                        if let Some((x, y)) = *guard {
+                            save_pet_state(&PetState { x, y });
+                        }
+                    }
+                }
             }
             _ => {}
         });
